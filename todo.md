@@ -27,3 +27,7 @@
 - [x] Refine the agent, schedules, and settings screens for stronger consistency and clearer operational state.
 - [x] Validate the refined GUI at a mobile portrait viewport; dashboard, agent, jobs, and control screens render with consistent visual hierarchy and readable tab labels.
 - [x] Save the GUI refinement checkpoint.
+- [x] Research one focused GitHub shortlist for Pocket Hermes GUI improvements, including reusable UI patterns and Android/Expo-compatible tooling.
+- [x] Discover relevant `SKILL.md` resources and agent tools that can improve future GUI work.
+- [x] Evaluate repository licenses, maintenance quality, fit, and implementation effort before recommending integrations.
+- [x] Produce a ranked GUI research brief with a concrete implementation recommendation.
