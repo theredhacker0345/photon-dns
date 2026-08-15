@@ -60,7 +60,20 @@ Thumbs.db
 *.tgz
 *.tar.gz
 .cache/
+.artifacts/
+modules/pocket-hermes-supervisor/android/src/main/python/wheels/
+modules/pocket-hermes-supervisor/android/src/main/python/vendor/pydantic-core/*.whl
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 .project-config.json
+
+# Additional ignored runtime artifacts
+.cache/
+.manus-logs/
+fastlane/
+metadata/
+
+# Module build outputs
+**/build/
+

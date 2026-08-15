@@ -18,8 +18,14 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const moduleRoot = join(projectRoot, "modules", "pocket-hermes-supervisor", "android");
 const requirementsPath = join(moduleRoot, "src", "main", "python", "requirements-android.txt");
 const outputPath = join(projectRoot, "sbom.json");
-const approvedLicense = /\b(MIT|Apache(?:[- ]2(?:\.0)?)?|BSD(?:[- ](?:2|3)[- ]Clause)?|ISC|PSF|Python Software Foundation|MPL(?:[- ]2(?:\.0)?)?|LGPL(?:[- ]\S+)?|GPL(?:[- ]\S+)?|EPL(?:[- ]\S+)?|Zlib|Unlicense|CC0)\b/i;
+const approvedLicense = /\b(MIT|Apache(?: Software License)?(?:[- ]2(?:\.0)?)?|BSD(?:[- ](?:2|3)[- ]Clause)?|ISC|PSF|Python Software Foundation|MPL(?:[- ]2(?:\.0)?)?|LGPL(?:[- ]\S+)?|GNU Lesser General Public License|GPL(?:[- ]\S+)?|EPL(?:[- ]\S+)?|Zlib|Unlicense|CC0|Freetype|IJG|Independent JPEG Group)\b/i;
 const ignoredDirectories = new Set(["__pycache__", ".git", ".pytest_cache"]);
+const chaquopyRuntimeLicenses = new Map([
+  ["chaquopy-freetype", { evidence: "Freetype License (FTL)", reference: "https://freetype.org/license.html" }],
+  ["chaquopy-libffi", { evidence: "MIT License", reference: "https://github.com/libffi/libffi/blob/master/LICENSE" }],
+  ["chaquopy-libjpeg", { evidence: "Independent JPEG Group (IJG) license", reference: "https://www.ijg.org/files/" }],
+  ["chaquopy-libyaml", { evidence: "MIT License", reference: "https://github.com/yaml/libyaml/blob/master/LICENSE" }],
+]);
 
 function normalizeName(name) {
   return name.trim().toLowerCase().replace(/[-_.]+/g, "-");
@@ -44,7 +50,15 @@ function parseMetadata(text) {
     const value = fields.get(field) ?? [];
     return Array.isArray(value) ? value.flatMap((item) => Array.isArray(item) ? item : [item]) : [value];
   };
-  return { name: String(getAll("Name")[0] ?? ""), version: String(getAll("Version")[0] ?? ""), licenses: [...getAll("License"), ...getAll("Classifier").filter((item) => item.includes("License ::"))] };
+  return {
+    name: String(getAll("Name")[0] ?? ""),
+    version: String(getAll("Version")[0] ?? ""),
+    licenses: [
+      ...getAll("License"),
+      ...getAll("License-Expression"),
+      ...getAll("Classifier").filter((item) => item.includes("License ::")),
+    ],
+  };
 }
 
 async function findMetadataDirectories(directory) {
@@ -85,7 +99,7 @@ async function pypiLicense(name, version) {
   const response = await fetch(`https://pypi.org/pypi/${encodeURIComponent(name)}/${encodeURIComponent(version)}/json`);
   if (!response.ok) throw new Error(`PyPI metadata returned HTTP ${response.status}`);
   const info = (await response.json()).info ?? {};
-  const evidence = [info.license, ...(info.classifiers ?? []).filter((item) => item.includes("License ::"))]
+  const evidence = [info.license, info.license_expression, ...(info.classifiers ?? []).filter((item) => item.includes("License ::"))]
     .filter(Boolean)
     .join("; ");
   return { evidence, reference: `pkg:pypi/${normalizeName(name)}@${version}` };
@@ -128,9 +142,11 @@ async function main() {
     const name = normalizeName(metadata.name);
     const version = requestedVersion(requirements, metadata.name, metadata.version);
     try {
-      const registry = name === "hermes-agent"
-        ? await hermesSourceLicense(name, version)
-        : await pypiLicense(name, version);
+      const registry = chaquopyRuntimeLicenses.get(name)
+        ? { ...chaquopyRuntimeLicenses.get(name), reference: `pkg:generic/${name}@${version}`, externalReference: chaquopyRuntimeLicenses.get(name).reference }
+        : name === "hermes-agent"
+          ? await hermesSourceLicense(name, version)
+          : await pypiLicense(name, version);
       const evidence = [registry.evidence, ...metadata.licenses].filter(Boolean).join("; ");
       if (!approvedLicense.test(evidence)) {
         throw new Error(`non-FOSS or unrecognized license evidence: ${evidence || "none"}`);

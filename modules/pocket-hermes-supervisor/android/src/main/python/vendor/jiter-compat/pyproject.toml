@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jiter"
+version = "0.10.0"
+description = "Pocket Hermes Android pure-Python compatibility implementation for OpenAI JSON streaming"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Pocket Hermes contributors" }]
+
+[tool.setuptools]
+packages = ["jiter"]

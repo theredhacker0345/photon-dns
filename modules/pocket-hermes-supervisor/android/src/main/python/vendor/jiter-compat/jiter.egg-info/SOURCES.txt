@@ -1,0 +1,7 @@
+LICENSE
+pyproject.toml
+jiter/__init__.py
+jiter.egg-info/PKG-INFO
+jiter.egg-info/SOURCES.txt
+jiter.egg-info/dependency_links.txt
+jiter.egg-info/top_level.txt

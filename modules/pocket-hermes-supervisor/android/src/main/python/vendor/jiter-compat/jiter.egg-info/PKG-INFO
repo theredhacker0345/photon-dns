@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: jiter
+Version: 0.10.0
+Summary: Pocket Hermes Android pure-Python compatibility implementation for OpenAI JSON streaming
+Author: Pocket Hermes contributors
+License: MIT
+Requires-Python: >=3.11
+License-File: LICENSE
+Dynamic: license-file

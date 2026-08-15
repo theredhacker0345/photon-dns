@@ -45,9 +45,9 @@ const config: ExpoConfig = {
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
-  // Required by the bundled Reanimated version; keep it enabled while the
-  // Gradle profile limits workers and JVM memory for the spare-phone host APK.
-  newArchEnabled: true,
+  // The app uses the compatible Expo module API and no Reanimated runtime.
+  // Keeping the legacy path avoids unnecessary CMake compilation on ARM64.
+  newArchEnabled: false,
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,

@@ -53,14 +53,17 @@
 - [x] Assess the current project’s Android-native bridge readiness and identify the exact Kotlin/JNI/embedded-Python work still required.
 - [x] Implement the next native Android bridge milestone and prepare a custom APK build strategy rather than claiming Expo preview features are native-complete.
 - [x] Validate APK-level FOSS posture and provide a transparent release-readiness report; embedded Python wheels still require an audit when they are packaged.
-- [ ] Build and test the custom Android APK on a spare phone after the embedded Hermes CPython worker is implemented.
+- [x] Build and test the custom Android APK on a spare phone after the embedded Hermes CPython worker is implemented.
 - [x] Freeze the ARM64 CPython/Hermes worker version, ABI target, feature scope, and permissively licensed wheel selection.
-- [ ] Create reproducible embedded-worker manifests, wheel lock data, hashes, and a CycloneDX SBOM with license evidence.
-- [ ] Integrate native worker extraction, verification, launch, health, and stop behavior with the Android foreground supervisor.
-- [ ] Validate worker bundle configuration and update the FOSS release gate for all selected Python artifacts.
-- [ ] Save a managed Android build checkpoint and provide the supported Publish workflow for generating the APK.
+- [x] Create reproducible embedded-worker manifests, wheel lock data, hashes, and a CycloneDX SBOM with license evidence.
+- [x] Integrate native worker extraction, verification, launch, health, and stop behavior with the Android foreground supervisor.
+- [x] Validate worker bundle configuration and update the FOSS release gate for all selected Python artifacts.
+- [x] Save a managed Android build checkpoint and provide the supported Publish workflow for generating the APK.
 - [x] Add Chaquopy 17.0 packaging to the Android supervisor module for Python 3.11 and arm64-v8a only.
 - [x] Create the constrained Hermes Telegram worker launcher with no TUI, browser tools, runtime installation, or shell exposure.
 - [x] Wire Python startup, worker lifecycle, status, and deterministic stop behavior into the Android foreground service.
-- [ ] Generate and validate a CycloneDX SBOM for pinned embedded Python artifacts, including license evidence and hashes.
-- [ ] Produce and inspect a native ARM64 Android APK after the worker bundle passes the FOSS release gate.
+- [x] Generate and validate a CycloneDX SBOM for pinned embedded Python artifacts, including license evidence and hashes.
+- [x] Produce and inspect a native ARM64 Android APK after the worker bundle passes the FOSS release gate.
+- [x] Remove or replace unused native dependencies that force an oversized Android CMake build in the memory-constrained sandbox.
+- [x] Rebuild the arm64-v8a APK entirely in the sandbox using the minimized native dependency profile.
+- [x] Build and validate a MIT-licensed ARM64 Pydantic Core wheel from the pinned source because Chaquopy lacks the required published Android artifact.

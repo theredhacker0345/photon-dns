@@ -9,7 +9,17 @@
 # no Discord, Slack, or WhatsApp adapters. Telegram uses long polling, so its
 # webhooks extra is intentionally omitted.
 
-https://github.com/NousResearch/hermes-agent/archive/165c889e5b4277b56dadd42949a4112c1e6175a6.tar.gz#egg=hermes-agent
+# Hermes’ desktop metadata pins native packages that Chaquopy does not publish
+# for Android. This local wheel is built from upstream commit
+# 165c889e5b4277b56dadd42949a4112c1e6175a6 with only its desktop dependency
+# metadata removed. The reviewed Android manifest below is authoritative.
+../../../.artifacts/wheels/hermes_agent-0.20.1-py3-none-any.whl
+# Pure-Python MIT compatibility wheel for OpenAI's optional streaming JSON
+# parser. Chaquopy has no Android wheel for upstream Rust-based jiter.
+../../../.artifacts/wheels/jiter-0.10.0-py3-none-any.whl
+# Pydantic 2.13.4 requires this exact Pydantic Core release. The wheel is
+# cross-compiled from the MIT source archive by scripts/build-pydantic-core-android-wheel.sh.
+../../../.artifacts/wheels/pydantic_core-2.46.4-cp311-cp311-android_24_arm64_v8a.whl
 
 # Explicit runtime pins retained from the upstream Hermes 0.20.1 project.
 openai==2.24.0
@@ -20,7 +30,9 @@ httpx[socks]==0.28.1
 rich==14.3.3
 tenacity==9.1.4
 PyYAML==6.0.3
-ruamel.yaml==0.18.17
+# Chaquopy currently publishes ruamel.yaml.clib 0.2.8 for Android ARM64.
+# 0.18.15 supports that ABI-compatible C extension; 0.18.17 requires 0.2.15.
+ruamel.yaml==0.18.15
 requests==2.33.0
 Jinja2==3.1.6
 pydantic==2.13.4
@@ -29,14 +41,24 @@ packaging==26.0
 Markdown==3.10.2
 PyJWT[crypto]==2.13.0
 urllib3==2.7.0
-cryptography==50.0.0
-psutil==7.2.2
+# Chaquopy 17's Android index currently publishes cryptography 42.0.8. Hermes
+# uses the stable Fernet/JWT APIs available in this release.
+cryptography==42.0.8
+# Chaquopy 17's Android index currently publishes psutil 7.1.3. Hermes uses
+# its stable process and system telemetry interfaces, which are present here.
+psutil==7.1.3
 websockets==15.0.1
 pathspec==1.1.1
 fastapi==0.133.1
-uvicorn[standard]==0.41.0
+# Avoid Uvicorn's optional ``standard`` extra: it pulls httptools, for which
+# Chaquopy has no Android ARM64 distribution. The restricted worker does not
+# expose Hermes' HTTP gateway, and the base Uvicorn package remains available
+# for code paths that import it.
+uvicorn==0.41.0
 python-multipart==0.0.22
-Pillow==12.3.0
+# Chaquopy 17 publishes Pillow 11.0.0 for the target ARM64 API level. Image
+# handling remains optional in the restricted Telegram-only worker.
+Pillow==11.0.0
 
 # Telegram-only messaging surface: owner-locked long polling, not webhooks.
 python-telegram-bot==22.8

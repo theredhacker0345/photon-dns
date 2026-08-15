@@ -1,0 +1,1612 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:9ce3c020-1651-411a-9f77-237025617a90",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-15T19:24:39.492Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "Pocket Hermes SBOM generator",
+          "version": "1.0.0"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "name": "Pocket Hermes embedded Hermes worker",
+      "version": "0.20.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "annotated-doc",
+      "version": "0.0.5",
+      "purl": "pkg:pypi/annotated-doc@0.0.5",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ce0c40d8222eb5ad9c5ed48d458dce3aaa6ab747d32c294a72014f91a1864f38"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "purl": "pkg:pypi/annotated-types@0.8.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3095619d4f1a90531cec4d2f647e9e91003266e98e44a65fc4f3d0795e501ff9"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "anyio",
+      "version": "4.14.2",
+      "purl": "pkg:pypi/anyio@4.14.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6e3cc323318c6d6e6776e934a1e83680c942cdc1a7067d20319f8c0d8c829189"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "attrs",
+      "version": "23.1.0",
+      "purl": "pkg:pypi/attrs@23.1.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "17404a19349cd116cfc2c60c5859a37c536d066f89a58e0c2ac939f9ee8ad884"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "certifi",
+      "version": "2026.5.20",
+      "purl": "pkg:pypi/certifi@2026.5.20",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0; License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "05238108fd5eab5aa8aad97313c0cf3a51e24621a0c45b043a2123d6eb2156d3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MPL-2.0; License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0); MPL-2.0; License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cffi",
+      "version": "1.17.1",
+      "purl": "pkg:pypi/cffi@1.17.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d984e30bd999f5aca5b8c0080778525bfda64db9174de67ea5460a996177b8ce"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chaquopy-freetype",
+      "version": "2.9.1",
+      "purl": "pkg:generic/chaquopy-freetype@2.9.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "Freetype License (FTL)"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a26dcc12865a95df7c4f6528d3a5bbafefce8272a64403386fb24cb621119620"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://freetype.org/license.html"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Freetype License (FTL)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chaquopy-libffi",
+      "version": "3.3",
+      "purl": "pkg:generic/chaquopy-libffi@3.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8a1769b046a567583ab3a2ae1ea8f7cc33967974fb14f7a8b087bc6a315217f6"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/libffi/libffi/blob/master/LICENSE"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chaquopy-libjpeg",
+      "version": "1.5.3",
+      "purl": "pkg:generic/chaquopy-libjpeg@1.5.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "Independent JPEG Group (IJG) license"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5df592dc75d8c5fbed2ab656e9a99a49c33cc1aa5556a5d8fd09fcfbaf0304f9"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://www.ijg.org/files/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Independent JPEG Group (IJG) license"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chaquopy-libyaml",
+      "version": "0.2.5",
+      "purl": "pkg:generic/chaquopy-libyaml@0.2.5",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2b4ee34443dc5effd8aef81e165cd1dd27f2f4701c1ac18ff0bf6b4052e049b2"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/yaml/libyaml/blob/master/LICENSE"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "charset-normalizer",
+      "version": "3.5.1",
+      "purl": "pkg:pypi/charset-normalizer@3.5.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "64e64ac56a89f480bc01be5af175bd7e74b49f2eebd6c17ad9eddfc7169ea714"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "click",
+      "version": "8.4.2",
+      "purl": "pkg:pypi/click@8.4.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "736f2fb8a95e0f1cc04802fbd436d50a5cba0ef58ba03b5caefa7dca6fcdf207"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "croniter",
+      "version": "6.0.0",
+      "purl": "pkg:pypi/croniter@6.0.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ed95bab757fbc6998a144e78ae96b5781c60e66b7843e80b960677783afcf778"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT License; License :: OSI Approved :: MIT License; MIT License; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "42.0.8",
+      "purl": "pkg:pypi/cryptography@42.0.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0 OR BSD-3-Clause; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1f48f1e7dfec883c5aeb13ef9f83ca330191127dd77587cc2c111c275fab826d"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0 OR BSD-3-Clause; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License; Apache-2.0 OR BSD-3-Clause; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "distro",
+      "version": "1.9.0",
+      "purl": "pkg:pypi/distro@1.9.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache License, Version 2.0; License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "84c60045c032671b1cd6966a15192f1c538d1b6c4b69f9e1d13b86bfd51fff92"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache License, Version 2.0; License :: OSI Approved :: Apache Software License; Apache License, Version 2.0; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.133.1",
+      "purl": "pkg:pypi/fastapi@0.133.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3d06300f3f79216cc51c3a46e0cddc8ee1c3d304330d4cbc885e692a6f9531cd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fire",
+      "version": "0.7.1",
+      "purl": "pkg:pypi/fire@0.7.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e7947f27feb6aac93fa79c4f3d7be8941fbaa7d2efe067c4733119fd9b698fc7"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0; Apache-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "h11",
+      "version": "0.16.0",
+      "purl": "pkg:pypi/h11@0.16.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c633ee8bd0c86fb8bdddb1b328ead8dcca31adc79501c8df4652ff73cf7feaef"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hermes-agent",
+      "version": "0.20.1",
+      "purl": "pkg:github/NousResearch/hermes-agent@0.20.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License (pinned upstream source)"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "42abe986358326e949371b867ca31caf8aa962ed70aa18bdcd6a943d4614ba23"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/NousResearch/hermes-agent/blob/165c889e5b4277b56dadd42949a4112c1e6175a6/LICENSE"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT License (pinned upstream source); MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "httpcore",
+      "version": "1.0.9",
+      "purl": "pkg:pypi/httpcore@1.0.9",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause; License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8625a0f3246a28dfa175f548ed83b08ed0e0ec83ab647f5e8b51b8dd7f7c8191"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; License :: OSI Approved :: BSD License; BSD-3-Clause; License :: OSI Approved :: BSD License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "version": "0.28.1",
+      "purl": "pkg:pypi/httpx@0.28.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause; License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c5b43cbedf30db7981299dd8d05e8c5ab4d1fad8761e92358cefae37224d005f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; License :: OSI Approved :: BSD License; BSD-3-Clause; License :: OSI Approved :: BSD License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "idna",
+      "version": "3.18",
+      "purl": "pkg:pypi/idna@3.18",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "635e47d9eebba8ba75467e247edbb8cb5c2737be32c9c8dc2982e35d1ecd2533"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Jinja2",
+      "version": "3.1.6",
+      "purl": "pkg:pypi/jinja2@3.1.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ee3502c1b0aec70efadad67477b2a1615f331597252aabc5d8f605beeaf2e281"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "License :: OSI Approved :: BSD License; License :: OSI Approved :: BSD License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "jiter",
+      "version": "0.10.0",
+      "purl": "pkg:pypi/jiter@0.10.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "12d41e4bbf3e82c7777fda735d2cd48a4fbaf1c6e4ff86d3fbf4374748c353df"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Markdown",
+      "version": "3.10.2",
+      "purl": "pkg:pypi/markdown@3.10.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "69e4bb8ef472c6cf95d1d1a1a9405486c0f766fb63c8da2c713442ba8d98777c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "markdown-it-py",
+      "version": "4.2.0",
+      "purl": "pkg:pypi/markdown-it-py@4.2.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "827ce1485c31d6052a025194e44c78778d5bec37805c682e2e26300df4c6ccc7"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "License :: OSI Approved :: MIT License; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "MarkupSafe",
+      "version": "3.0.3",
+      "purl": "pkg:pypi/markupsafe@3.0.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "eaa788e8f807284ff67772a93d7dbd696873e97444470181a2823389c198c7f3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "mdurl",
+      "version": "0.1.2",
+      "purl": "pkg:pypi/mdurl@0.1.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3571dbc30fbc70cd2e45ac3e249ea408c4126476b1dc4a57f19bc5707cf5b669"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "License :: OSI Approved :: MIT License; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "openai",
+      "version": "2.24.0",
+      "purl": "pkg:pypi/openai@2.24.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0; License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "961f8c96e311cdec92000d32074f7b01b354d983d61c813c0a14cb571d014635"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0; License :: OSI Approved :: Apache Software License; Apache-2.0; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "packaging",
+      "version": "26.0",
+      "purl": "pkg:pypi/packaging@26.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0 OR BSD-2-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4f51c15ea499355c494dc17b29a61421312f1e25166587149083d3b57cf0a53e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0 OR BSD-2-Clause; Apache-2.0 OR BSD-2-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pathspec",
+      "version": "1.1.1",
+      "purl": "pkg:pypi/pathspec@1.1.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6076651332d08e30161335f93cc3b91fdd681186a61032a99e1406b0745785f3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0); License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pillow",
+      "version": "11.0.0",
+      "purl": "pkg:pypi/pillow@11.0.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT-CMU; License :: OSI Approved :: CMU License (MIT-CMU)"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6b0448e33567df8529fdebd2e1f8d9e83729918f2f400eff85e2cc073be69ffd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT-CMU; License :: OSI Approved :: CMU License (MIT-CMU); MIT-CMU; License :: OSI Approved :: CMU License (MIT-CMU)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pip",
+      "version": "25.3",
+      "purl": "pkg:pypi/pip@25.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6bb12fb62e5d9aff28c8930992045357bd37dee575cb4b0285a341f0c2d74e60"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "psutil",
+      "version": "7.1.3",
+      "purl": "pkg:pypi/psutil@7.1.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "746d375d10888889d6b5c8dac44a0f2151654ae3129de749305ab30a054762d5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pycparser",
+      "version": "3.0",
+      "purl": "pkg:pypi/pycparser@3.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4f3db635323dadb4fe5700a8ac28f67fff20ed944e24b300cdf5b690e4cd91d6"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pydantic",
+      "version": "2.13.4",
+      "purl": "pkg:pypi/pydantic@2.13.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "51af0c7edc56ba586262b5b1a68b1f137f9c5b4168416fcdf6a3eaccef9fcbdb"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pydantic_core",
+      "version": "2.46.4",
+      "purl": "pkg:pypi/pydantic-core@2.46.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9d86b33f6113b76060dc3bc8a6222eaa147c3cea1e3a11e5a02a4d196376301f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Pygments",
+      "version": "2.20.0",
+      "purl": "pkg:pypi/pygments@2.20.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-2-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "088ee6504311b66ee41caa907c47a908daa60718fb88a8757af6ffdeb14fc900"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-2-Clause; BSD-2-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "PyJWT",
+      "version": "2.13.0",
+      "purl": "pkg:pypi/pyjwt@2.13.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b27b1f3b3e96c5085712766b60f782abb9427df560a5fb9bf61772ceea126e9e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "python-dateutil",
+      "version": "2.9.0.post0",
+      "purl": "pkg:pypi/python-dateutil@2.9.0.post0",
+      "licenses": [
+        {
+          "license": {
+            "name": "Dual License; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9be1546ec3c176c3a02a6cd94c47700cf99a1c8376c26057a17d1389899b44d3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Dual License; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License; Dual License; License :: OSI Approved :: BSD License; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "python-dotenv",
+      "version": "1.2.2",
+      "purl": "pkg:pypi/python-dotenv@1.2.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d6126ab52c01b4a322bed366fc7317d893a5ea950d94e6b13f93a48e5c21f424"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "python-multipart",
+      "version": "0.0.22",
+      "purl": "pkg:pypi/python-multipart@0.0.22",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0; License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e2044bd769246511cadeef1da90c199f9912680264877dbe0daaa9e1c9905dad"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0; License :: OSI Approved :: Apache Software License; Apache-2.0; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "python-telegram-bot",
+      "version": "22.8",
+      "purl": "pkg:pypi/python-telegram-bot@22.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "LGPL-3.0-only; License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "76ff8daec592932fc7250a18d259afee87109b3f2b6b49be2e0a404a8bde7638"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "LGPL-3.0-only; License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3); LGPL-3.0-only; License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pytz",
+      "version": "2026.3.post1",
+      "purl": "pkg:pypi/pytz@2026.3.post1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e31cceb06be421194f2c3290049b0327c91beaf5832aad25729bf87f15dc8c5a"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "purl": "pkg:pypi/pyyaml@6.0.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8f43db132fd84054a0850007379af02ab90261240b3595af35dfda02e236dd37"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "version": "2.33.0",
+      "purl": "pkg:pypi/requests@2.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0; License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "bd9e005e1026172543efac70712888576cde809867ed2ca1394292b10db50352"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0; License :: OSI Approved :: Apache Software License; Apache-2.0; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "retrying",
+      "version": "1.4.2",
+      "purl": "pkg:pypi/retrying@1.4.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "867668618f1bd4a143d551c93ee5a97b9cd714bdf6a6efe83f8d77076f5383bd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache-2.0; Apache-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "rich",
+      "version": "14.3.3",
+      "purl": "pkg:pypi/rich@14.3.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b1106eb7327ca28bc1d8dc70c91851ad419fb1e5cf3cd9795ac24d55108d8856"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ruamel.yaml",
+      "version": "0.18.15",
+      "purl": "pkg:pypi/ruamel-yaml@0.18.15",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT license; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6c8fd473d47c0dbd930c82aa4800884a5c11249ada2eac518dff943904e4fe6a"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT license; License :: OSI Approved :: MIT License; MIT license; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ruamel.yaml.clib",
+      "version": "0.2.8",
+      "purl": "pkg:pypi/ruamel-yaml-clib@0.2.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9705d33e50072724031ad5dbdefce7c00de6472baae228503b5346049d3c2a3d"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "six",
+      "version": "1.17.0",
+      "purl": "pkg:pypi/six@1.17.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c7d6700dccb66b2841de03d0cd2fa4c3e09851d850b077efc526104ea0353009"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sniffio",
+      "version": "1.3.1",
+      "purl": "pkg:pypi/sniffio@1.3.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT OR Apache-2.0; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "25995cbbd95d97a18dbccec8b0245a467c70ef3d51d7a790e69273bb07e02e4b"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT OR Apache-2.0; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: MIT License; MIT OR Apache-2.0; License :: OSI Approved :: MIT License; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "socksio",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/socksio@1.0.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "License :: OSI Approved :: MIT License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6fc51216b9c800d4d72cfb5834fe55a25505f3e6d8d7725759c21b3b973d48c4"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "License :: OSI Approved :: MIT License; UNKNOWN; License :: OSI Approved :: MIT License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "starlette",
+      "version": "1.6.0",
+      "purl": "pkg:pypi/starlette@1.6.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7c24372c44223641c3675b40b76d857f095ec44ac0028389cbddeea42e4f5203"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tenacity",
+      "version": "9.1.4",
+      "purl": "pkg:pypi/tenacity@9.1.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache 2.0; License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4c38a03787d2638408a7a5ac5b2faf06db7a575a583eca0ccd1d1665a33cf1f4"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "Apache 2.0; License :: OSI Approved :: Apache Software License; Apache 2.0; License :: OSI Approved :: Apache Software License"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "termcolor",
+      "version": "3.3.0",
+      "purl": "pkg:pypi/termcolor@3.3.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "65f1a89bffe1fd4dcbeaa974c3ca6826b1a81df388c96494bad7b1c51851a43e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tqdm",
+      "version": "4.70.0",
+      "purl": "pkg:pypi/tqdm@4.70.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0 AND MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ad9765bd963f2f39fc7b5888c0b32662a97eb0cebdbfe0639e79280b60aea9dd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MPL-2.0 AND MIT; MPL-2.0 AND MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "purl": "pkg:pypi/typing-extensions@4.16.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "PSF-2.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1cfe3b1dde3c1ad5b1e329762a3530e04dc2f584fe56832dc3ba2211bb703fb3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "PSF-2.0; PSF-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typing-inspection",
+      "version": "0.4.4",
+      "purl": "pkg:pypi/typing-inspection@0.4.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "19380f6b78cf5143c707f799451196f76e4448ee82bb4980daaccc561dbe6557"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "urllib3",
+      "version": "2.7.0",
+      "purl": "pkg:pypi/urllib3@2.7.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4af7f70b315411e850f7cf6ddd587e2c20dddc1db6bc267517c4b9a402aecf44"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "MIT; MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "version": "0.41.0",
+      "purl": "pkg:pypi/uvicorn@0.41.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "42271bd8878e38ae128ebb2be43ec40c96a515eab0844064919bf99dc10db88c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "websockets",
+      "version": "15.0.1",
+      "purl": "pkg:pypi/websockets@15.0.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause; License :: OSI Approved :: BSD License"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "56f9d663ca25c60694555dc3eec0265d37b2c92a32fd693c743366543546acef"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.license-evidence",
+          "value": "BSD-3-Clause; License :: OSI Approved :: BSD License; BSD-3-Clause; License :: OSI Approved :: BSD License"
+        }
+      ]
+    }
+  ]
+}
