@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import PocketHermesSupervisorModule, {
+  type NativeSupervisorStartConfig,
   type NativeSupervisorTelemetry,
 } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
 
@@ -46,10 +47,10 @@ export async function getSupervisorTelemetry(): Promise<SupervisorTelemetry | nu
   }
 }
 
-export async function startNativeSupervisor(): Promise<boolean> {
+export async function startNativeSupervisor(config: NativeSupervisorStartConfig): Promise<boolean> {
   if (Platform.OS === "web") return false;
   try {
-    await PocketHermesSupervisorModule.startSupervisor();
+    await PocketHermesSupervisorModule.startSupervisor(config);
     return true;
   } catch {
     return false;

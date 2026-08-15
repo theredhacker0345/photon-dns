@@ -8,9 +8,15 @@ export type NativeSupervisorTelemetry = {
   sampledAt: string;
 };
 
+export type NativeSupervisorStartConfig = {
+  telegramToken: string;
+  ownerChatId: string;
+  modelEndpoint?: string;
+};
+
 type SupervisorModule = {
   getTelemetry(): Promise<NativeSupervisorTelemetry>;
-  startSupervisor(): Promise<{ status: "starting" }>;
+  startSupervisor(config: NativeSupervisorStartConfig): Promise<{ status: "starting" }>;
   stopSupervisor(): Promise<{ status: "stopped" }>;
 };
 

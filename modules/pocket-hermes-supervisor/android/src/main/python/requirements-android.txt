@@ -1,0 +1,42 @@
+# Pocket Hermes embedded worker lock input.
+#
+# This file is consumed only by Chaquopy at APK build time. Runtime package
+# installation is intentionally unavailable. The Hermes source commit below
+# declares version 0.20.1 and is pinned to an immutable Git object.
+#
+# Android exclusions: no nemo-relay (upstream excludes Android), no Windows
+# packages, no TUI-only dependencies, no browser/MCP/lazy provider extras, and
+# no Discord, Slack, or WhatsApp adapters. Telegram uses long polling, so its
+# webhooks extra is intentionally omitted.
+
+https://github.com/NousResearch/hermes-agent/archive/165c889e5b4277b56dadd42949a4112c1e6175a6.tar.gz#egg=hermes-agent
+
+# Explicit runtime pins retained from the upstream Hermes 0.20.1 project.
+openai==2.24.0
+certifi==2026.5.20
+python-dotenv==1.2.2
+fire==0.7.1
+httpx[socks]==0.28.1
+rich==14.3.3
+tenacity==9.1.4
+PyYAML==6.0.3
+ruamel.yaml==0.18.17
+requests==2.33.0
+Jinja2==3.1.6
+pydantic==2.13.4
+croniter==6.0.0
+packaging==26.0
+Markdown==3.10.2
+PyJWT[crypto]==2.13.0
+urllib3==2.7.0
+cryptography==50.0.0
+psutil==7.2.2
+websockets==15.0.1
+pathspec==1.1.1
+fastapi==0.133.1
+uvicorn[standard]==0.41.0
+python-multipart==0.0.22
+Pillow==12.3.0
+
+# Telegram-only messaging surface: owner-locked long polling, not webhooks.
+python-telegram-bot==22.8

@@ -11,6 +11,12 @@ object SupervisorRuntimeState {
   @Volatile
   var isRunning: Boolean = false
 
+  @Volatile
+  var workerStatus: String = "stopped"
+
+  @Volatile
+  var workerReason: String = "not started"
+
   private var lastCpuTimeMillis: Long = 0L
   private var lastWallTimeMillis: Long = 0L
 

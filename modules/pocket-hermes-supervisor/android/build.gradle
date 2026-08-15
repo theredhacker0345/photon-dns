@@ -1,7 +1,21 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath "com.chaquo.python:gradle:17.0.0"
+  }
+}
+
 apply plugin: 'com.android.library'
+apply plugin: 'com.chaquo.python'
 
 group = 'expo.modules.pockethermessupervisor'
 version = ''
+
+dependencies {
+  implementation "androidx.security:security-crypto:1.1.0-alpha06"
+}
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -27,6 +41,9 @@ if (useManagedAndroidSdkVersions) {
     defaultConfig {
       minSdkVersion safeExtGet("minSdkVersion", 24)
       targetSdkVersion safeExtGet("targetSdkVersion", 36)
+      ndk {
+        abiFilters "arm64-v8a"
+      }
     }
   }
 }
@@ -39,5 +56,18 @@ android {
   }
   lintOptions {
     abortOnError false
+  }
+}
+
+// Pocket Hermes packages one private CPython interpreter and only the ARM64
+// worker profile. No Python interpreter, shell, package installer, or runtime
+// downloader is exposed through the Android UI.
+chaquopy {
+  defaultConfig {
+    version = "3.11"
+    buildPython("python3")
+    pip {
+      install("-r", "src/main/python/requirements-android.txt")
+    }
   }
 }

@@ -104,7 +104,15 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   }, []);
 
   const prepareRuntime = useCallback(async () => {
-    const supervisorStarted = await startNativeSupervisor();
+    const telegramToken = await readSecret(TELEGRAM_TOKEN_KEY);
+    const currentConfig = state.config;
+    const supervisorStarted = telegramToken && canPreparePrivateHost(currentConfig)
+      ? await startNativeSupervisor({
+          telegramToken,
+          ownerChatId: currentConfig.allowedChatId,
+          modelEndpoint: currentConfig.modelEndpoint || undefined,
+        })
+      : false;
     setState((current) => {
       if (!canPreparePrivateHost(current.config)) {
         return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked", detail: "Add a Telegram token and allowed owner chat ID first.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
@@ -114,7 +122,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       }
       return { ...current, phase: "bridge_required", events: [{ id: createId("event"), title: "Runtime preparation queued", detail: "The control plane is ready. Install a custom Android build to launch the native foreground supervisor and bundled Hermes runtime.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
     });
-  }, []);
+  }, [state.config]);
 
   const testGateway = useCallback(async (): Promise<GatewayTestResult> => {
     const token = await readSecret(TELEGRAM_TOKEN_KEY);
