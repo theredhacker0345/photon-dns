@@ -15,3 +15,7 @@ Subsequent browser navigation to the `/agent` route returned the managed proxy�
 ## Host Setup flow validation
 
 The new `/setup` route was type-checked and the existing deterministic host-policy suite passed. Managed mobile screenshot capture failed after the preview restart, and direct browser navigation returned the sandbox proxy’s unavailable page even though the local development service reported a ready Metro process. This is recorded as an environment/proxy limitation rather than evidence of a route or type error. Native Android validation remains necessary for the complete secure-storage experience.
+
+## Completed-host dashboard and gateway validation
+
+At a 375 × 812 portrait viewport, the Device setup screen, final Gateway Check screen, and default Host dashboard all rendered successfully. The setup progression, security explanation, large primary actions, and compact bottom navigation remained readable and reachable. The post-setup dashboard condition is covered by type-checked state logic; actual CPU/RAM values are intentionally marked as awaiting the native embedded-runtime bridge rather than shown as mock measurements.

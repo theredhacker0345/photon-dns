@@ -1,10 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
+import type { ComponentProps } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { EventIcon, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useHostReadiness } from "@/hooks/use-host-readiness";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
 
 function formatEventTime(iso: string) {
@@ -14,6 +16,7 @@ function formatEventTime(iso: string) {
 export default function HostScreen() {
   const colors = useColors();
   const { config, phase, events, hydrated, prepareRuntime, stopHost } = usePocketHermes();
+  const readiness = useHostReadiness();
   const canPrepare = config.hasTelegramToken && Boolean(config.allowedChatId);
 
   if (!hydrated) {
@@ -22,7 +25,7 @@ export default function HostScreen() {
 
   const phaseCopy = {
     unconfigured: { title: "Make this phone a private agent host.", detail: "Connect one Telegram bot and lock it to your own chat before anything can run." },
-    ready: { title: "Your host configuration is protected.", detail: "The native runtime can now verify and launch the bundled Hermes gateway." },
+    ready: { title: "Your private host is set up.", detail: "Review local readiness, test the owner gateway, then prepare the embedded Hermes runtime." },
     bridge_required: { title: "Control plane is ready for its native bridge.", detail: "The Expo preview stores your setup locally; the production build adds the bundled Python/Hermes supervisor." },
     stopped: { title: "Host is paused.", detail: "No new runtime session will be requested until you prepare the host again." },
   }[phase];
@@ -46,6 +49,8 @@ export default function HostScreen() {
           <View style={styles.actionRow}><View style={styles.primaryWrap}><PrimaryButton label={phase === "ready" ? "Prepare runtime" : "Review native bridge"} icon={phase === "ready" ? "play-arrow" : "account-tree"} onPress={prepareRuntime} disabled={!canPrepare} /></View><View style={styles.secondaryWrap}><SecondaryButton label="Pause" icon="pause" onPress={stopHost} /></View></View>
         )}
 
+        {phase !== "unconfigured" ? <><SectionHeading eyebrow="HOST TELEMETRY" title="This phone, ready to host" action={<Text style={[styles.countText, { color: colors.muted }]}>Native bridge adds CPU/RAM</Text>} /><View style={styles.metricGrid}><MetricCard icon="smart-toy" label="Agent" value={phase === "ready" ? "Setup complete" : phase === "stopped" ? "Paused" : "Bridge required"} detail="Private runtime" color={phase === "stopped" ? colors.warning : colors.success} colors={colors} /><MetricCard icon="memory" label="CPU" value="Awaiting bridge" detail="Live usage unavailable" color={colors.primary} colors={colors} /><MetricCard icon="developer-board" label="RAM" value="Awaiting bridge" detail="Live usage unavailable" color={colors.primary} colors={colors} /><MetricCard icon="battery-charging-full" label="Power" value={readiness.batteryPercent === null ? readiness.chargingLabel : `${readiness.batteryPercent}%`} detail={readiness.chargingLabel} color={readiness.isCharging ? colors.success : colors.warning} colors={colors} /><MetricCard icon="storage" label="Storage" value={readiness.freeStorageBytes === null ? "Checking…" : `${(readiness.freeStorageBytes / 1024 / 1024 / 1024).toFixed(1)} GB`} detail={readiness.storageReady === false ? "Reserve is low" : "Free for runtime"} color={readiness.storageReady === false ? colors.warning : colors.success} colors={colors} /></View>{phase === "ready" ? <SecondaryButton label="Test owner gateway" icon="telegram" onPress={() => router.push("/gateway-test" as never)} /> : null}</> : null}
+
         <SectionHeading eyebrow="HOST BOUNDARY" title="What runs here" />
         <View style={styles.boundaryGrid}>
           <PressableCard style={styles.boundaryCard}><View style={[styles.boundaryIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="lock" size={19} color={colors.primary} /></View><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>App-private workspace</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Memory, schedules, and logs stay inside Pocket Hermes.</Text></PressableCard>
@@ -61,6 +66,10 @@ export default function HostScreen() {
   );
 }
 
+function MetricCard({ icon, label, value, detail, color, colors }: { icon: ComponentProps<typeof MaterialIcons>["name"]; label: string; value: string; detail: string; color: string; colors: ReturnType<typeof useColors> }) {
+  return <PressableCard style={styles.metricCard}><MaterialIcons name={icon} size={19} color={color} /><Text style={[styles.metricLabel, { color: colors.muted }]}>{label.toUpperCase()}</Text><Text style={[styles.metricValue, { color: colors.foreground }]} numberOfLines={1}>{value}</Text><Text style={[styles.metricDetail, { color: colors.muted }]} numberOfLines={1}>{detail}</Text></PressableCard>;
+}
+
 const styles = StyleSheet.create({
   content: { paddingTop: 16, paddingBottom: 34, gap: 22 },
   topline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -71,6 +80,7 @@ const styles = StyleSheet.create({
   heroRail: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, gap: 9 }, heroRailItem: { flexDirection: "row", alignItems: "center", gap: 5 }, heroRailText: { fontSize: 11, fontWeight: "800" }, heroRailDivider: { width: StyleSheet.hairlineWidth, height: 16 },
   shield: { position: "absolute", right: 18, bottom: 18, width: 55, height: 55, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   actionRow: { flexDirection: "row", gap: 10 }, primaryWrap: { flex: 1.38 }, secondaryWrap: { flex: 0.62 }, boundaryGrid: { flexDirection: "row", gap: 10 }, boundaryCard: { flex: 1, minHeight: 160, justifyContent: "space-between" },
+  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 }, metricCard: { width: "48.6%", gap: 5, minHeight: 126 }, metricLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.8, marginTop: 4 }, metricValue: { fontSize: 15, lineHeight: 19, fontWeight: "900" }, metricDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" },
   boundaryIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center" }, boundaryTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900", marginTop: 8 }, boundaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, countText: { fontSize: 12, fontWeight: "700", paddingBottom: 2 },
   eventCard: { paddingVertical: 2, gap: 0 }, emptyCard: { flexDirection: "row", alignItems: "center", gap: 12 }, eventRow: { flexDirection: "row", gap: 10, paddingVertical: 14, alignItems: "flex-start" },
   eventIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" }, eventCopy: { flex: 1, gap: 3 }, eventTitle: { fontSize: 14, lineHeight: 18, fontWeight: "800" }, eventDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, eventTime: { fontSize: 11, fontWeight: "700", marginTop: 2 },

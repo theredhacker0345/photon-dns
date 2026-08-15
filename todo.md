@@ -36,3 +36,9 @@
 - [x] Connect the setup flow to existing secure Telegram and host-policy state without duplicating credentials.
 - [x] Validate the Host Setup flow with TypeScript and deterministic policy tests; browser/screenshot visual capture was blocked by the managed preview proxy.
 - [x] Save the Host Setup checkpoint.
+- [x] Define completed-host dashboard status, CPU/RAM display states, readiness criteria, and gateway test behavior.
+- [x] Build a post-setup main dashboard showing agent status, CPU, RAM, storage, and charging readiness.
+- [x] Surface storage and charging readiness directly in the Runtime Policy setup step.
+- [x] Add inline Telegram chat-ID help and a final test-gateway confirmation screen.
+- [x] Validate the completed-host setup flow with portrait screenshots, TypeScript, and deterministic policy tests.
+- [x] Save the completed-host dashboard checkpoint.
