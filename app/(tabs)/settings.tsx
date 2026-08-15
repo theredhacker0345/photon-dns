@@ -2,7 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
-import { PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
+import { PageHeader, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
@@ -35,10 +35,10 @@ export default function SettingsScreen() {
   return (
     <ScreenContainer className="px-5">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}><Text style={[styles.title, { color: colors.foreground }]}>Host settings</Text><RuntimePill phase={phase} /><Text style={[styles.subtitle, { color: colors.muted }]}>Secure this phone before you let it host an agent from anywhere.</Text></View>
+        <View style={styles.header}><PageHeader eyebrow="DEVICE CONTROL" title="Host settings" detail="Secure this phone before you let it host an agent from anywhere." icon="security" /><RuntimePill phase={phase} /></View>
 
         <SectionHeading eyebrow="IDENTITY" title="This phone" />
-        <PressableCard style={styles.formCard}>
+        <PressableCard style={[styles.formCard, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}22` }]}>
           <Label text="Host name" color={colors.muted} />
           <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Hermes" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Label text="Model endpoint (optional)" color={colors.muted} />
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 14, paddingBottom: 34, gap: 18 }, header: { gap: 9 }, title: { fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -0.7 }, subtitle: { fontSize: 14, lineHeight: 20, fontWeight: "500" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 48, borderRadius: 14, paddingHorizontal: 13, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });

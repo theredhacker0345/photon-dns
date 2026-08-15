@@ -8,7 +8,7 @@
 - [x] Generate a unique Pocket Hermes app icon and update Expo branding configuration.
 - [x] Test type safety and core mobile interaction flows.
 - [x] Capture final visual validation: dashboard and settings rendered in direct browser preview; managed capture and later proxy routes were unstable under sandbox memory pressure.
-- [ ] Save the final release checkpoint.
+- [x] Save the initial release checkpoint (a4f3c08e).
 - [x] Confirm the device-host architecture, threat model, and security boundaries before implementation.
 - [x] Define the native Android foreground-service and private embedded-Hermes integration contract for true 24/7 operation; the earlier visible-Termux proposal is superseded.
 - [x] Define Telegram authorization, secret-storage, and remote-access safeguards before adding connection flows.
@@ -22,3 +22,8 @@
 - [x] Verify a single-APK embedded Linux-userland approach so the user never installs or opens Termux.
 - [x] Determine how to bundle and privately supervise the Hermes Python runtime, dependencies, and app-owned filesystem inside Pocket Hermes.
 - [x] Verify APK/native-library/foreground-service constraints at architecture level; production packaging still requires a dedicated Android build validation.
+- [x] Audit the Pocket Hermes mobile visual system and identify high-impact hierarchy, spacing, and interaction improvements.
+- [x] Refine the dashboard and setup experience for a more polished one-handed mobile flow.
+- [x] Refine the agent, schedules, and settings screens for stronger consistency and clearer operational state.
+- [x] Validate the refined GUI at a mobile portrait viewport; dashboard, agent, jobs, and control screens render with consistent visual hierarchy and readable tab labels.
+- [x] Save the GUI refinement checkpoint.

@@ -9,8 +9,9 @@ import { useColors } from "@/hooks/use-colors";
 export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
-  const tabBarHeight = 56 + bottomPadding;
+  const isWeb = Platform.OS === "web";
+  const bottomPadding = isWeb ? 16 : Math.max(insets.bottom, 8);
+  const tabBarHeight = isWeb ? 76 : 60 + bottomPadding;
 
   return (
     <Tabs
@@ -25,6 +26,14 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "700",
+          marginTop: 1,
+        },
+        tabBarItemStyle: {
+          paddingHorizontal: 2,
         },
       }}
     >
@@ -45,14 +54,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="automations"
         options={{
-          title: "Schedules",
+          title: "Jobs",
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: "Control",
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="gearshape.fill" color={color} />,
         }}
       />

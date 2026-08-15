@@ -31,13 +31,14 @@ export default function HostScreen() {
     <ScreenContainer className="px-5" safeAreaClassName="bg-background">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.topline}>
-          <View><Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET HERMES</Text><Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID AGENT HOST</Text></View>
+          <View style={styles.brandCopy}><Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET HERMES</Text><View style={styles.brandMeta}><View style={[styles.brandDot, { backgroundColor: phase === "unconfigured" ? colors.warning : colors.success }]} /><Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID AGENT HOST</Text></View></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => router.push("/(tabs)/settings" as never)} style={({ pressed }) => [styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="settings" size={20} color={colors.foreground} /></Pressable>
         </View>
 
         <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.heroAura, { backgroundColor: `${colors.primary}19` }]} />
           <View style={styles.heroCopy}><RuntimePill phase={phase} /><Text style={[styles.heroTitle, { color: colors.foreground }]}>{phaseCopy.title}</Text><Text style={[styles.heroDetail, { color: colors.muted }]}>{phaseCopy.detail}</Text></View>
+          <View style={styles.heroRail}><View style={styles.heroRailItem}><MaterialIcons name="phone-android" size={15} color={colors.primary} /><Text style={[styles.heroRailText, { color: colors.foreground }]}>On this phone</Text></View><View style={[styles.heroRailDivider, { backgroundColor: colors.border }]} /><View style={styles.heroRailItem}><MaterialIcons name="lock" size={15} color={colors.primary} /><Text style={[styles.heroRailText, { color: colors.foreground }]}>Owner locked</Text></View></View>
           <View style={[styles.shield, { backgroundColor: colors.background, borderColor: `${colors.primary}33` }]}><MaterialIcons name="shield" size={30} color={colors.primary} /></View>
         </View>
 
@@ -47,8 +48,8 @@ export default function HostScreen() {
 
         <SectionHeading eyebrow="HOST BOUNDARY" title="What runs here" />
         <View style={styles.boundaryGrid}>
-          <PressableCard style={styles.boundaryCard}><MaterialIcons name="lock" size={22} color={colors.primary} /><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>App-private workspace</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Memory, schedules, and logs stay inside Pocket Hermes.</Text></PressableCard>
-          <PressableCard style={styles.boundaryCard}><MaterialIcons name="telegram" size={22} color={colors.primary} /><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>Owner-only gateway</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Only your allowed Telegram chat can send instructions.</Text></PressableCard>
+          <PressableCard style={styles.boundaryCard}><View style={[styles.boundaryIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="lock" size={19} color={colors.primary} /></View><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>App-private workspace</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Memory, schedules, and logs stay inside Pocket Hermes.</Text></PressableCard>
+          <PressableCard style={styles.boundaryCard}><View style={[styles.boundaryIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="telegram" size={19} color={colors.primary} /></View><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>Owner-only gateway</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Only your allowed Telegram chat can send instructions.</Text></PressableCard>
         </View>
 
         <SectionHeading eyebrow="LOCAL ACTIVITY" title="Host events" action={<Text style={[styles.countText, { color: colors.muted }]}>{events.length ? `${events.length} saved` : "No activity"}</Text>} />
@@ -61,15 +62,16 @@ export default function HostScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 14, paddingBottom: 34, gap: 20 },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 22 },
   topline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  wordmark: { fontSize: 17, fontWeight: "900", letterSpacing: 0.8 }, caption: { fontSize: 10, fontWeight: "800", letterSpacing: 1.15, marginTop: 2 },
+  brandCopy: { gap: 4 }, wordmark: { fontSize: 17, fontWeight: "900", letterSpacing: 0.8 }, brandMeta: { flexDirection: "row", alignItems: "center", gap: 6 }, brandDot: { width: 6, height: 6, borderRadius: 3 }, caption: { fontSize: 10, fontWeight: "800", letterSpacing: 1.1 },
   settingsButton: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1 }, pressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
-  hero: { minHeight: 210, borderRadius: 28, padding: 22, borderWidth: 1, overflow: "hidden", justifyContent: "space-between" }, heroAura: { width: 190, height: 190, borderRadius: 100, position: "absolute", right: -86, top: -58 },
-  heroCopy: { gap: 12, maxWidth: "82%" }, heroTitle: { fontSize: 29, lineHeight: 34, fontWeight: "900", letterSpacing: -0.8 }, heroDetail: { fontSize: 14, lineHeight: 20, fontWeight: "500" },
+  hero: { minHeight: 236, borderRadius: 30, padding: 22, borderWidth: 1, overflow: "hidden", justifyContent: "space-between", gap: 17 }, heroAura: { width: 202, height: 202, borderRadius: 101, position: "absolute", right: -86, top: -58 },
+  heroCopy: { gap: 12, maxWidth: "84%" }, heroTitle: { fontSize: 30, lineHeight: 35, fontWeight: "900", letterSpacing: -0.9 }, heroDetail: { fontSize: 14, lineHeight: 20, fontWeight: "500", maxWidth: "88%" },
+  heroRail: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, gap: 9 }, heroRailItem: { flexDirection: "row", alignItems: "center", gap: 5 }, heroRailText: { fontSize: 11, fontWeight: "800" }, heroRailDivider: { width: StyleSheet.hairlineWidth, height: 16 },
   shield: { position: "absolute", right: 18, bottom: 18, width: 55, height: 55, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   actionRow: { flexDirection: "row", gap: 10 }, primaryWrap: { flex: 1.38 }, secondaryWrap: { flex: 0.62 }, boundaryGrid: { flexDirection: "row", gap: 10 }, boundaryCard: { flex: 1, minHeight: 160, justifyContent: "space-between" },
-  boundaryTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900", marginTop: 8 }, boundaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, countText: { fontSize: 12, fontWeight: "700", paddingBottom: 2 },
+  boundaryIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center" }, boundaryTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900", marginTop: 8 }, boundaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, countText: { fontSize: 12, fontWeight: "700", paddingBottom: 2 },
   eventCard: { paddingVertical: 2, gap: 0 }, emptyCard: { flexDirection: "row", alignItems: "center", gap: 12 }, eventRow: { flexDirection: "row", gap: 10, paddingVertical: 14, alignItems: "flex-start" },
   eventIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" }, eventCopy: { flex: 1, gap: 3 }, eventTitle: { fontSize: 14, lineHeight: 18, fontWeight: "800" }, eventDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, eventTime: { fontSize: 11, fontWeight: "700", marginTop: 2 },
 });

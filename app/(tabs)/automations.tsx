@@ -2,7 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
-import { PressableCard, PrimaryButton, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
+import { PageHeader, PressableCard, PrimaryButton, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
@@ -28,14 +28,11 @@ export default function AutomationsScreen() {
     <ScreenContainer className="px-5">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <View style={styles.headerCopy}>
-            <Text style={[styles.title, { color: colors.foreground }]}>Automations</Text>
-            <Text style={[styles.subtitle, { color: colors.muted }]}>Your embedded Hermes scheduler will keep these definitions locally and deliver through your approved gateway.</Text>
-          </View>
+          <View style={styles.headerCopy}><PageHeader eyebrow="ON-DEVICE SCHEDULER" title="Automations" detail="Create routines now. Hermes will run them locally and deliver through your approved gateway." icon="event-repeat" /></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Create automation" onPress={() => setIsModalOpen(true)} style={({ pressed }) => [styles.add, { backgroundColor: colors.primary }, pressed && styles.pressed]}><MaterialIcons name="add" size={24} color="#FFFFFF" /></Pressable>
         </View>
 
-        <PressableCard style={styles.schedulerCard}>
+        <PressableCard style={[styles.schedulerCard, { backgroundColor: `${colors.primary}0A`, borderColor: `${colors.primary}28` }]}>
           <View style={[styles.schedulerIcon, { backgroundColor: `${colors.primary}18` }]}><MaterialIcons name="event-repeat" size={23} color={colors.primary} /></View>
           <View style={styles.schedulerCopy}><Text style={[styles.schedulerTitle, { color: colors.foreground }]}>Local scheduler</Text><Text style={[styles.schedulerDetail, { color: colors.muted }]}>Schedules are stored on this phone. The native runtime determines their next execution after it is installed.</Text></View>
         </PressableCard>
@@ -78,7 +75,7 @@ export default function AutomationsScreen() {
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 14, paddingBottom: 34, gap: 18 }, header: { flexDirection: "row", gap: 16, alignItems: "flex-start", justifyContent: "space-between" }, headerCopy: { flex: 1, gap: 6 }, title: { fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -0.7 }, subtitle: { fontSize: 14, lineHeight: 20, fontWeight: "500" }, add: { width: 45, height: 45, borderRadius: 16, alignItems: "center", justifyContent: "center" }, pressed: { opacity: 0.76, transform: [{ scale: 0.97 }] },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { flexDirection: "row", gap: 12, alignItems: "flex-start", justifyContent: "space-between" }, headerCopy: { flex: 1 }, add: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", marginTop: 2 }, pressed: { opacity: 0.76, transform: [{ scale: 0.97 }] },
   schedulerCard: { flexDirection: "row", gap: 13, alignItems: "center" }, schedulerIcon: { width: 43, height: 43, borderRadius: 15, alignItems: "center", justifyContent: "center" }, schedulerCopy: { flex: 1, gap: 3 }, schedulerTitle: { fontSize: 14, fontWeight: "900" }, schedulerDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, count: { fontSize: 12, fontWeight: "700", paddingBottom: 2 },
   automationCard: { gap: 13 }, automationTop: { flexDirection: "row", alignItems: "center", gap: 11 }, miniIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" }, automationCopy: { flex: 1, gap: 3 }, automationTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, automationDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, runtimeLine: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, flexDirection: "row", alignItems: "center", gap: 6 }, runtimeLineText: { fontSize: 12, fontWeight: "800" },
   empty: { minHeight: 250, borderWidth: 1, borderStyle: "dashed", borderRadius: 22, alignItems: "center", justifyContent: "center", padding: 25, gap: 9 }, emptyTitle: { fontSize: 15, fontWeight: "900" }, emptyDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500", textAlign: "center" }, emptyAction: { marginTop: 8 },
