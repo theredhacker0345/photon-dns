@@ -1,16 +1,11 @@
-import { NativeModules, Platform } from "react-native";
+import { Platform } from "react-native";
 
-export type SupervisorTelemetry = {
-  agentStatus: "running" | "starting" | "degraded" | "stopped";
-  cpuPercent: number;
-  ramUsedBytes: number;
-  ramTotalBytes: number;
-  sampledAt: string;
+import PocketHermesSupervisorModule, {
+  type NativeSupervisorTelemetry,
+} from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
+
+export type SupervisorTelemetry = NativeSupervisorTelemetry & {
   source: "native";
-};
-
-type NativeSupervisorModule = {
-  getTelemetry: () => Promise<Omit<SupervisorTelemetry, "source">>;
 };
 
 function isFiniteNonNegative(value: unknown): value is number {
@@ -22,16 +17,22 @@ function normalizeStatus(value: unknown): SupervisorTelemetry["agentStatus"] {
 }
 
 /**
- * Bridge to the Kotlin PocketHermesSupervisor module included in the custom Android build.
- * Expo preview deliberately returns null: it cannot host the embedded Hermes runtime.
+ * Reads real Android process telemetry from the FOSS foreground supervisor.
+ * Expo web preview intentionally resolves to null because it has no Android
+ * process, foreground service, or embedded Hermes runtime.
  */
 export async function getSupervisorTelemetry(): Promise<SupervisorTelemetry | null> {
   if (Platform.OS === "web") return null;
-  const module = NativeModules.PocketHermesSupervisor as NativeSupervisorModule | undefined;
-  if (!module?.getTelemetry) return null;
   try {
-    const raw = await module.getTelemetry();
-    if (!isFiniteNonNegative(raw.cpuPercent) || !isFiniteNonNegative(raw.ramUsedBytes) || !isFiniteNonNegative(raw.ramTotalBytes) || raw.ramTotalBytes === 0) return null;
+    const raw = await PocketHermesSupervisorModule.getTelemetry();
+    if (
+      !isFiniteNonNegative(raw.cpuPercent) ||
+      !isFiniteNonNegative(raw.ramUsedBytes) ||
+      !isFiniteNonNegative(raw.ramTotalBytes) ||
+      raw.ramTotalBytes === 0
+    ) {
+      return null;
+    }
     return {
       agentStatus: normalizeStatus(raw.agentStatus),
       cpuPercent: Math.min(100, Math.round(raw.cpuPercent)),
@@ -42,6 +43,26 @@ export async function getSupervisorTelemetry(): Promise<SupervisorTelemetry | nu
     };
   } catch {
     return null;
+  }
+}
+
+export async function startNativeSupervisor(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    await PocketHermesSupervisorModule.startSupervisor();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function stopNativeSupervisor(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    await PocketHermesSupervisorModule.stopSupervisor();
+    return true;
+  } catch {
+    return false;
   }
 }
 

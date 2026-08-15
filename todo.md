@@ -48,3 +48,9 @@
 - [x] Add local low-battery and low-storage host notifications with duplicate-alert suppression.
 - [x] Validate telemetry, gateway receipt, and host-alert flows with TypeScript and deterministic policy tests; managed screenshots were unavailable.
 - [x] Save the telemetry, receipt, and alert checkpoint.
+- [x] Audit Pocket Hermes source, dependencies, icons/assets, upstream Hermes code, and planned native runtime components for FOSS licensing compliance.
+- [x] Document every dependency and asset that requires attribution, replacement, or license confirmation before APK distribution.
+- [x] Assess the current project’s Android-native bridge readiness and identify the exact Kotlin/JNI/embedded-Python work still required.
+- [x] Implement the next native Android bridge milestone and prepare a custom APK build strategy rather than claiming Expo preview features are native-complete.
+- [x] Validate APK-level FOSS posture and provide a transparent release-readiness report; embedded Python wheels still require an audit when they are packaged.
+- [ ] Build and test the custom Android APK on a spare phone after the embedded Hermes CPython worker is implemented.

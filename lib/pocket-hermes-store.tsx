@@ -4,8 +4,9 @@ import { PropsWithChildren, createContext, useCallback, useContext, useEffect, u
 import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
+import { startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
 
-export type HostPhase = "unconfigured" | "ready" | "bridge_required" | "stopped";
+export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
 export type HostEvent = { id: string; title: string; detail: string; severity: "info" | "success" | "warning"; createdAt: string };
 export type Automation = { id: string; title: string; expression: string; delivery: string; enabled: boolean; createdAt: string };
 export type AgentDraft = { id: string; body: string; createdAt: string };
@@ -20,8 +21,8 @@ type PocketHermesContextValue = PersistedState & {
   saveConfiguration: (input: SaveConfigurationInput) => Promise<{ ok: boolean; message: string }>;
   testGateway: () => Promise<GatewayTestResult>;
   sendTestMessage: () => Promise<TestMessageResult>;
-  prepareRuntime: () => void;
-  stopHost: () => void;
+  prepareRuntime: () => Promise<void>;
+  stopHost: () => Promise<void>;
   addAutomation: (input: Pick<Automation, "title" | "expression" | "delivery">) => void;
   setAutomationEnabled: (id: string, enabled: boolean) => void;
   addDraft: (body: string) => void;
@@ -102,12 +103,16 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     return { ok: true, message: "Secure configuration saved. Your host is ready for the embedded runtime." };
   }, []);
 
-  const prepareRuntime = useCallback(() => {
+  const prepareRuntime = useCallback(async () => {
+    const supervisorStarted = await startNativeSupervisor();
     setState((current) => {
       if (!canPreparePrivateHost(current.config)) {
         return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked", detail: "Add a Telegram token and allowed owner chat ID first.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
-      return { ...current, phase: "bridge_required", events: [{ id: createId("event"), title: "Runtime preparation queued", detail: "The control plane is ready. A production build will verify and launch the bundled Hermes runtime through its native supervisor.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
+      if (supervisorStarted) {
+        return { ...current, phase: "running", events: [{ id: createId("event"), title: "Android supervisor started", detail: "Pocket Hermes is sampling this phone’s live process CPU and RAM through its foreground supervisor.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
+      }
+      return { ...current, phase: "bridge_required", events: [{ id: createId("event"), title: "Runtime preparation queued", detail: "The control plane is ready. Install a custom Android build to launch the native foreground supervisor and bundled Hermes runtime.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
     });
   }, []);
 
@@ -154,8 +159,9 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }
   }, [appendEvent, state.config.allowedChatId]);
 
-  const stopHost = useCallback(() => {
-    setState((current) => ({ ...current, phase: "stopped", events: [{ id: createId("event"), title: "Host marked stopped", detail: "The control plane will not request a new native runtime session until you prepare it again.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+  const stopHost = useCallback(async () => {
+    const supervisorStopped = await stopNativeSupervisor();
+    setState((current) => ({ ...current, phase: "stopped", events: [{ id: createId("event"), title: supervisorStopped ? "Android supervisor stopped" : "Host marked stopped", detail: supervisorStopped ? "The foreground supervisor was stopped and telemetry will no longer be sampled." : "The control plane will not request a new native runtime session until you prepare it again.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
   }, []);
 
   const addAutomation = useCallback((input: Pick<Automation, "title" | "expression" | "delivery">) => {

@@ -35,6 +35,7 @@ export function RuntimePill({ phase }: { phase: HostPhase }) {
   const definition = {
     unconfigured: { label: "SETUP REQUIRED", color: colors.warning },
     ready: { label: "HOST READY", color: colors.success },
+    running: { label: "SUPERVISOR LIVE", color: colors.success },
     bridge_required: { label: "BRIDGE PENDING", color: colors.primary },
     stopped: { label: "HOST PAUSED", color: colors.muted },
   }[phase];
