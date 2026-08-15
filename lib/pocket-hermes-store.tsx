@@ -14,10 +14,12 @@ type PublicHostConfig = { hostName: string; allowedChatId: string; modelEndpoint
 type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[] };
 type SaveConfigurationInput = { hostName: string; allowedChatId: string; modelEndpoint: string; telegramToken: string };
 type GatewayTestResult = { ok: boolean; message: string; botName?: string };
+type TestMessageResult = { ok: boolean; message: string; messageId?: number; deliveredAt?: string };
 type PocketHermesContextValue = PersistedState & {
   hydrated: boolean;
   saveConfiguration: (input: SaveConfigurationInput) => Promise<{ ok: boolean; message: string }>;
   testGateway: () => Promise<GatewayTestResult>;
+  sendTestMessage: () => Promise<TestMessageResult>;
   prepareRuntime: () => void;
   stopHost: () => void;
   addAutomation: (input: Pick<Automation, "title" | "expression" | "delivery">) => void;
@@ -128,6 +130,30 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }
   }, [appendEvent]);
 
+  const sendTestMessage = useCallback(async (): Promise<TestMessageResult> => {
+    const token = await readSecret(TELEGRAM_TOKEN_KEY);
+    const allowedChatId = state.config.allowedChatId;
+    if (!token || !isValidTelegramChatId(allowedChatId)) return { ok: false, message: "Save a protected bot token and an allowed owner chat ID before sending a test message." };
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: allowedChatId, text: "Pocket Hermes connection check: this phone can deliver to your owner-only Telegram route." }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; result?: { message_id?: number; date?: number }; description?: string };
+      if (!response.ok || !payload.ok || typeof payload.result?.message_id !== "number") {
+        appendEvent({ title: "Test message failed", detail: "Telegram did not confirm delivery to the allowed owner chat. Check the chat ID, start the bot, and try again.", severity: "warning" });
+        return { ok: false, message: payload.description ?? "Telegram did not confirm delivery to the allowed owner chat." };
+      }
+      const deliveredAt = typeof payload.result.date === "number" ? new Date(payload.result.date * 1000).toISOString() : new Date().toISOString();
+      appendEvent({ title: "Test message delivered", detail: `Telegram confirmed receipt as message #${payload.result.message_id}.`, severity: "success" });
+      return { ok: true, message: "Telegram confirmed delivery to the allowed owner chat.", messageId: payload.result.message_id, deliveredAt };
+    } catch {
+      appendEvent({ title: "Test message unavailable", detail: "Pocket Hermes could not reach Telegram. Check the phone’s network and try again.", severity: "warning" });
+      return { ok: false, message: "Pocket Hermes could not reach Telegram. Check the phone’s network and try again." };
+    }
+  }, [appendEvent, state.config.allowedChatId]);
+
   const stopHost = useCallback(() => {
     setState((current) => ({ ...current, phase: "stopped", events: [{ id: createId("event"), title: "Host marked stopped", detail: "The control plane will not request a new native runtime session until you prepare it again.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
   }, []);
@@ -150,7 +176,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
 
   const clearActivity = useCallback(() => { setState((current) => ({ ...current, events: [], drafts: [] })); }, []);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity }), [state, hydrated, saveConfiguration, testGateway, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

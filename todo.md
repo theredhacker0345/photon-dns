@@ -42,3 +42,9 @@
 - [x] Add inline Telegram chat-ID help and a final test-gateway confirmation screen.
 - [x] Validate the completed-host setup flow with portrait screenshots, TypeScript, and deterministic policy tests.
 - [x] Save the completed-host dashboard checkpoint.
+- [x] Define the native-supervisor telemetry interface, notification thresholds, and safe Telegram test-message behavior.
+- [x] Connect dashboard CPU/RAM cards to the native-supervisor telemetry bridge with an explicit preview fallback.
+- [x] Add a protected Telegram test-message send flow with delivered-message receipt details.
+- [x] Add local low-battery and low-storage host notifications with duplicate-alert suppression.
+- [x] Validate telemetry, gateway receipt, and host-alert flows with TypeScript and deterministic policy tests; managed screenshots were unavailable.
+- [x] Save the telemetry, receipt, and alert checkpoint.

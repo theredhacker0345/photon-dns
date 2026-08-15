@@ -19,3 +19,7 @@ The new `/setup` route was type-checked and the existing deterministic host-poli
 ## Completed-host dashboard and gateway validation
 
 At a 375 × 812 portrait viewport, the Device setup screen, final Gateway Check screen, and default Host dashboard all rendered successfully. The setup progression, security explanation, large primary actions, and compact bottom navigation remained readable and reachable. The post-setup dashboard condition is covered by type-checked state logic; actual CPU/RAM values are intentionally marked as awaiting the native embedded-runtime bridge rather than shown as mock measurements.
+
+## Supervisor telemetry, receipt, and alert validation
+
+The TypeScript build and deterministic policy suite passed after adding the typed native-supervisor adapter, dashboard telemetry cards, Telegram delivery-receipt state, and local resource alert hook. The managed screenshot service failed for the dashboard and gateway-test paths after a successful Metro bundle, so visual confirmation of this increment is blocked by the managed capture environment. The implementation retains an explicit `Bridge pending` state until the Android supervisor module supplies live CPU/RAM values.
