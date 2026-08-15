@@ -32,7 +32,7 @@ export default function HostScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.topline}>
           <View style={styles.brandCopy}><Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET HERMES</Text><View style={styles.brandMeta}><View style={[styles.brandDot, { backgroundColor: phase === "unconfigured" ? colors.warning : colors.success }]} /><Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID AGENT HOST</Text></View></View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => router.push("/(tabs)/settings" as never)} style={({ pressed }) => [styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="settings" size={20} color={colors.foreground} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open host setup" onPress={() => router.push("/setup" as never)} style={({ pressed }) => [styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="settings" size={20} color={colors.foreground} /></Pressable>
         </View>
 
         <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -42,7 +42,7 @@ export default function HostScreen() {
           <View style={[styles.shield, { backgroundColor: colors.background, borderColor: `${colors.primary}33` }]}><MaterialIcons name="shield" size={30} color={colors.primary} /></View>
         </View>
 
-        {phase === "unconfigured" ? <PrimaryButton label="Configure host" icon="lock-outline" onPress={() => router.push("/(tabs)/settings" as never)} /> : phase === "stopped" ? <PrimaryButton label="Prepare runtime" icon="play-arrow" onPress={prepareRuntime} disabled={!canPrepare} /> : (
+        {phase === "unconfigured" ? <PrimaryButton label="Configure host" icon="lock-outline" onPress={() => router.push("/setup" as never)} /> : phase === "stopped" ? <PrimaryButton label="Prepare runtime" icon="play-arrow" onPress={prepareRuntime} disabled={!canPrepare} /> : (
           <View style={styles.actionRow}><View style={styles.primaryWrap}><PrimaryButton label={phase === "ready" ? "Prepare runtime" : "Review native bridge"} icon={phase === "ready" ? "play-arrow" : "account-tree"} onPress={prepareRuntime} disabled={!canPrepare} /></View><View style={styles.secondaryWrap}><SecondaryButton label="Pause" icon="pause" onPress={stopHost} /></View></View>
         )}
 

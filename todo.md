@@ -31,3 +31,8 @@
 - [x] Discover relevant `SKILL.md` resources and agent tools that can improve future GUI work.
 - [x] Evaluate repository licenses, maintenance quality, fit, and implementation effort before recommending integrations.
 - [x] Produce a ranked GUI research brief with a concrete implementation recommendation.
+- [x] Define the four Host Setup steps, validation rules, and readiness criteria.
+- [x] Build the Device, Telegram, Model, and Runtime Policy setup screens with progress and back/continue interactions.
+- [x] Connect the setup flow to existing secure Telegram and host-policy state without duplicating credentials.
+- [x] Validate the Host Setup flow with TypeScript and deterministic policy tests; browser/screenshot visual capture was blocked by the managed preview proxy.
+- [x] Save the Host Setup checkpoint.
