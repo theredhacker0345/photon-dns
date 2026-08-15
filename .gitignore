@@ -71,8 +71,8 @@ modules/pocket-hermes-supervisor/android/src/main/python/vendor/pydantic-core/*.
 # Additional ignored runtime artifacts
 .cache/
 .manus-logs/
-fastlane/
-metadata/
+# fastlane/
+# metadata/
 
 # Module build outputs
 **/build/

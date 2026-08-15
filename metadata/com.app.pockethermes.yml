@@ -1,0 +1,39 @@
+Categories:
+  - System
+  - Internet
+License: MIT
+WebSite: https://github.com/manus-ai/pocket-hermes
+SourceCode: https://github.com/manus-ai/pocket-hermes
+IssueTracker: https://github.com/manus-ai/pocket-hermes/issues
+
+AutoName: Pocket Hermes
+Summary: Turn a spare phone into a 24/7 self-hosted AI agent host
+Description: |-
+  Pocket Hermes is a FOSS Android application that transforms an idle spare phone
+  into a 24/7 self-hosted AI agent host. Designed around a private embedded CPython
+  and Hermes Agent runtime, Pocket Hermes runs entirely as a native Android
+  foreground service without requiring or displaying any external terminal user
+  interface like Termux.
+
+  Features include secure Telegram remote control restricted to an owner allowlist,
+  real-time CPU/RAM/storage telemetry, persistent background execution, and complete
+  FOSS compliance with CycloneDX SBOM verification.
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: v1.0.0
+    subdir: android
+    gradle:
+      - release
+    srclibs:
+      - hermes@0.20.1
+    rm:
+      - node_modules
+    prebuild:
+      - echo "Building Pocket Hermes offline embedded Python wheels for ARM64"
+      - bash ../scripts/build-jiter-compat-wheel.sh
+      - bash ../scripts/build-hermes-android-wheel.sh
+
+MaintainerNotes: |-
+  Requires Android 7.0+ (API 24+). Bundles Chaquopy 17.0 for private CPython 3.11 execution.

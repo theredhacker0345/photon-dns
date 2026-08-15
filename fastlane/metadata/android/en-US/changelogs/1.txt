@@ -1,0 +1,1 @@
+Initial FOSS release of Pocket Hermes: embedded ARM64 Hermes agent runtime, secure Telegram owner control, native supervisor foreground service, real-time device telemetry, and complete CycloneDX SBOM compliance.
