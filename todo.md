@@ -1,0 +1,24 @@
+# Project TODO
+
+- [x] Define Pocket Hermes mobile UX, state model, and runtime security boundaries.
+- [x] Build setup, dashboard, agent, automation, and settings screens.
+- [x] Implement local non-secret configuration persistence and secure credential handling.
+- [x] Add runtime health model, background-runtime readiness guide, and native integration contract.
+- [x] Add FOSS licensing and architecture documentation.
+- [x] Generate a unique Pocket Hermes app icon and update Expo branding configuration.
+- [x] Test type safety and core mobile interaction flows.
+- [x] Capture final visual validation: dashboard and settings rendered in direct browser preview; managed capture and later proxy routes were unstable under sandbox memory pressure.
+- [ ] Save the final release checkpoint.
+- [x] Confirm the device-host architecture, threat model, and security boundaries before implementation.
+- [x] Define the native Android foreground-service and private embedded-Hermes integration contract for true 24/7 operation; the earlier visible-Termux proposal is superseded.
+- [x] Define Telegram authorization, secret-storage, and remote-access safeguards before adding connection flows.
+- [x] Verify the existing Hermes Agent repository’s MIT license, Android/Termux support, and stable integration points.
+- [x] Design Pocket Hermes as a supervisor and control plane for the existing Hermes Agent runtime rather than recreating the agent core.
+- [x] Research and choose a no-Termux, lightweight native Android runtime architecture.
+- [x] Close as superseded: the selected architecture privately embeds the upstream Hermes Python runtime and exposes no general-purpose user shell.
+- [x] Design the Android foreground-service, boot recovery, and Telegram long-polling lifecycle for the native host.
+- [x] Verify the license of any third-party native core before reusing it; ZeroAI application code is excluded because its top-level license has a purpose restriction.
+- [x] Close ZeroClaw evaluation as not selected: the chosen path privately embeds Hermes Agent rather than substituting its agent core.
+- [x] Verify a single-APK embedded Linux-userland approach so the user never installs or opens Termux.
+- [x] Determine how to bundle and privately supervise the Hermes Python runtime, dependencies, and app-owned filesystem inside Pocket Hermes.
+- [x] Verify APK/native-library/foreground-service constraints at architecture level; production packaging still requires a dedicated Android build validation.

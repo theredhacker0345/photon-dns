@@ -1,48 +1,75 @@
-import { ScrollView, Text, View, TouchableOpacity } from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { router } from "expo-router";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { EventIcon, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
+import { usePocketHermes } from "@/lib/pocket-hermes-store";
 
-/**
- * Home Screen - NativeWind Example
- *
- * This template uses NativeWind (Tailwind CSS for React Native).
- * You can use familiar Tailwind classes directly in className props.
- *
- * Key patterns:
- * - Use `className` instead of `style` for most styling
- * - Theme colors: use tokens directly (bg-background, text-foreground, bg-primary, etc.); no dark: prefix needed
- * - Responsive: standard Tailwind breakpoints work on web
- * - Custom colors defined in tailwind.config.js
- */
-export default function HomeScreen() {
+function formatEventTime(iso: string) {
+  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+}
+
+export default function HostScreen() {
+  const colors = useColors();
+  const { config, phase, events, hydrated, prepareRuntime, stopHost } = usePocketHermes();
+  const canPrepare = config.hasTelegramToken && Boolean(config.allowedChatId);
+
+  if (!hydrated) {
+    return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} /></ScreenContainer>;
+  }
+
+  const phaseCopy = {
+    unconfigured: { title: "Make this phone a private agent host.", detail: "Connect one Telegram bot and lock it to your own chat before anything can run." },
+    ready: { title: "Your host configuration is protected.", detail: "The native runtime can now verify and launch the bundled Hermes gateway." },
+    bridge_required: { title: "Control plane is ready for its native bridge.", detail: "The Expo preview stores your setup locally; the production build adds the bundled Python/Hermes supervisor." },
+    stopped: { title: "Host is paused.", detail: "No new runtime session will be requested until you prepare the host again." },
+  }[phase];
+
   return (
-    <ScreenContainer className="p-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 gap-8">
-          {/* Hero Section */}
-          <View className="items-center gap-2">
-            <Text className="text-4xl font-bold text-foreground">Welcome</Text>
-            <Text className="text-base text-muted text-center">
-              Edit app/(tabs)/index.tsx to get started
-            </Text>
-          </View>
-
-          {/* Example Card */}
-          <View className="w-full max-w-sm self-center bg-surface rounded-2xl p-6 shadow-sm border border-border">
-            <Text className="text-lg font-semibold text-foreground mb-2">NativeWind Ready</Text>
-            <Text className="text-sm text-muted leading-relaxed">
-              Use Tailwind CSS classes directly in your React Native components.
-            </Text>
-          </View>
-
-          {/* Example Button */}
-          <View className="items-center">
-            <TouchableOpacity className="bg-primary px-6 py-3 rounded-full active:opacity-80">
-              <Text className="text-background font-semibold">Get Started</Text>
-            </TouchableOpacity>
-          </View>
+    <ScreenContainer className="px-5" safeAreaClassName="bg-background">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <View style={styles.topline}>
+          <View><Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET HERMES</Text><Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID AGENT HOST</Text></View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => router.push("/(tabs)/settings" as never)} style={({ pressed }) => [styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="settings" size={20} color={colors.foreground} /></Pressable>
         </View>
+
+        <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.heroAura, { backgroundColor: `${colors.primary}19` }]} />
+          <View style={styles.heroCopy}><RuntimePill phase={phase} /><Text style={[styles.heroTitle, { color: colors.foreground }]}>{phaseCopy.title}</Text><Text style={[styles.heroDetail, { color: colors.muted }]}>{phaseCopy.detail}</Text></View>
+          <View style={[styles.shield, { backgroundColor: colors.background, borderColor: `${colors.primary}33` }]}><MaterialIcons name="shield" size={30} color={colors.primary} /></View>
+        </View>
+
+        {phase === "unconfigured" ? <PrimaryButton label="Configure host" icon="lock-outline" onPress={() => router.push("/(tabs)/settings" as never)} /> : phase === "stopped" ? <PrimaryButton label="Prepare runtime" icon="play-arrow" onPress={prepareRuntime} disabled={!canPrepare} /> : (
+          <View style={styles.actionRow}><View style={styles.primaryWrap}><PrimaryButton label={phase === "ready" ? "Prepare runtime" : "Review native bridge"} icon={phase === "ready" ? "play-arrow" : "account-tree"} onPress={prepareRuntime} disabled={!canPrepare} /></View><View style={styles.secondaryWrap}><SecondaryButton label="Pause" icon="pause" onPress={stopHost} /></View></View>
+        )}
+
+        <SectionHeading eyebrow="HOST BOUNDARY" title="What runs here" />
+        <View style={styles.boundaryGrid}>
+          <PressableCard style={styles.boundaryCard}><MaterialIcons name="lock" size={22} color={colors.primary} /><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>App-private workspace</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Memory, schedules, and logs stay inside Pocket Hermes.</Text></PressableCard>
+          <PressableCard style={styles.boundaryCard}><MaterialIcons name="telegram" size={22} color={colors.primary} /><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>Owner-only gateway</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Only your allowed Telegram chat can send instructions.</Text></PressableCard>
+        </View>
+
+        <SectionHeading eyebrow="LOCAL ACTIVITY" title="Host events" action={<Text style={[styles.countText, { color: colors.muted }]}>{events.length ? `${events.length} saved` : "No activity"}</Text>} />
+        {events.length ? <PressableCard style={styles.eventCard}>{events.slice(0, 4).map((event, index) => <View key={event.id} style={[styles.eventRow, index !== 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }]}><View style={[styles.eventIcon, { backgroundColor: colors.background }]}><EventIcon severity={event.severity} /></View><View style={styles.eventCopy}><Text style={[styles.eventTitle, { color: colors.foreground }]}>{event.title}</Text><Text style={[styles.eventDetail, { color: colors.muted }]} numberOfLines={2}>{event.detail}</Text></View><Text style={[styles.eventTime, { color: colors.muted }]}>{formatEventTime(event.createdAt)}</Text></View>)}</PressableCard> : (
+          <PressableCard style={styles.emptyCard}><MaterialIcons name="history" size={22} color={colors.muted} /><View style={styles.eventCopy}><Text style={[styles.eventTitle, { color: colors.foreground }]}>No activity yet</Text><Text style={[styles.eventDetail, { color: colors.muted }]}>Your configuration and runtime events will be listed here.</Text></View></PressableCard>
+        )}
       </ScrollView>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { paddingTop: 14, paddingBottom: 34, gap: 20 },
+  topline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  wordmark: { fontSize: 17, fontWeight: "900", letterSpacing: 0.8 }, caption: { fontSize: 10, fontWeight: "800", letterSpacing: 1.15, marginTop: 2 },
+  settingsButton: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1 }, pressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
+  hero: { minHeight: 210, borderRadius: 28, padding: 22, borderWidth: 1, overflow: "hidden", justifyContent: "space-between" }, heroAura: { width: 190, height: 190, borderRadius: 100, position: "absolute", right: -86, top: -58 },
+  heroCopy: { gap: 12, maxWidth: "82%" }, heroTitle: { fontSize: 29, lineHeight: 34, fontWeight: "900", letterSpacing: -0.8 }, heroDetail: { fontSize: 14, lineHeight: 20, fontWeight: "500" },
+  shield: { position: "absolute", right: 18, bottom: 18, width: 55, height: 55, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  actionRow: { flexDirection: "row", gap: 10 }, primaryWrap: { flex: 1.38 }, secondaryWrap: { flex: 0.62 }, boundaryGrid: { flexDirection: "row", gap: 10 }, boundaryCard: { flex: 1, minHeight: 160, justifyContent: "space-between" },
+  boundaryTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900", marginTop: 8 }, boundaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, countText: { fontSize: 12, fontWeight: "700", paddingBottom: 2 },
+  eventCard: { paddingVertical: 2, gap: 0 }, emptyCard: { flexDirection: "row", alignItems: "center", gap: 12 }, eventRow: { flexDirection: "row", gap: 10, paddingVertical: 14, alignItems: "flex-start" },
+  eventIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" }, eventCopy: { flex: 1, gap: 3 }, eventTitle: { fontSize: 14, lineHeight: 18, fontWeight: "800" }, eventDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, eventTime: { fontSize: 11, fontWeight: "700", marginTop: 2 },
+});
