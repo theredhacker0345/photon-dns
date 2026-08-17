@@ -21,6 +21,7 @@ const MAPPING = {
   "bubble.left.and.bubble.right.fill": "forum",
   "calendar": "calendar-month",
   "gearshape.fill": "settings",
+  "bookmark.fill": "bookmark",
 } as IconMapping;
 
 /**

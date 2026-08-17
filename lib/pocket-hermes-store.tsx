@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
 import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
 import { fetchProviderModels, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
+import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
 import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
@@ -23,7 +24,7 @@ type PublicHostConfig = {
   hasModelApiKey: boolean;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[] };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -44,6 +45,8 @@ type PocketHermesContextValue = PersistedState & {
   sendTestMessage: () => Promise<TestMessageResult>;
   testModel: () => Promise<ModelTestResult>;
   discoverModels: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
+  toggleFavoriteModel: (modelId: string) => void;
+  isFavoriteModel: (modelId: string) => boolean;
   prepareRuntime: (readiness?: HostReadinessSnapshot) => Promise<void>;
   stopHost: () => Promise<void>;
   addAutomation: (input: Pick<Automation, "title" | "expression" | "delivery">) => void;
@@ -66,7 +69,7 @@ const emptyConfig: PublicHostConfig = {
   hasModelApiKey: false,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null } };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [] };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -105,7 +108,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     let active = true;
     void (async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        const [saved, favoriteIds] = await Promise.all([AsyncStorage.getItem(STORAGE_KEY), loadFavoriteModelIds()]);
         const parsed = saved ? (JSON.parse(saved) as PersistedState) : initialState;
         const [tokenAvailable, modelKeyAvailable] = await Promise.all([hasSecret(TELEGRAM_TOKEN_KEY), hasSecret(MODEL_API_KEY)]);
         if (active) {
@@ -121,6 +124,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             modelCatalog: Array.isArray(parsed.modelCatalog) ? parsed.modelCatalog.slice(0, 200) : [],
             modelCatalogFetchedAt: typeof parsed.modelCatalogFetchedAt === "string" ? parsed.modelCatalogFetchedAt : null,
             providerConnection: parsed.providerConnection ?? initialState.providerConnection,
+            favoriteModelIds: favoriteIds,
           });
         }
       } catch {
@@ -309,6 +313,19 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
 
   const clearActivity = useCallback(() => { setState((current) => ({ ...current, events: [], drafts: [] })); }, []);
 
+  const toggleFavoriteModel = useCallback((modelId: string) => {
+    setState((current) => {
+      const exists = current.favoriteModelIds.includes(modelId);
+      const nextFavorites = exists ? current.favoriteModelIds.filter((id) => id !== modelId) : [...current.favoriteModelIds, modelId];
+      void saveFavoriteModelIds(nextFavorites);
+      return { ...current, favoriteModelIds: nextFavorites };
+    });
+  }, []);
+
+  const isFavoriteModel = useCallback((modelId: string) => {
+    return state.favoriteModelIds.includes(modelId);
+  }, [state.favoriteModelIds]);
+
   const clearSensitiveConfiguration = useCallback(async () => {
     await Promise.all([deleteSecret(TELEGRAM_TOKEN_KEY), deleteSecret(MODEL_API_KEY), clearNativeSupervisorConfiguration()]);
     setState((current) => ({
@@ -322,7 +339,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, []);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 
