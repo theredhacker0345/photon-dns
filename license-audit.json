@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-17T14:57:01.207Z",
+  "generatedAt": "2026-08-17T17:07:02.878Z",
   "sources": [
     "sbom.json",
     "sbom-js.json"
   ],
   "counts": {
-    "accepted": 770,
+    "accepted": 769,
     "manual-review": 0,
     "blocked": 0
   },
@@ -3437,12 +3437,6 @@
       "status": "accepted"
     },
     {
-      "name": "pip",
-      "version": "25.3",
-      "licenses": "MIT",
-      "status": "accepted"
-    },
-    {
       "name": "pirates",
       "version": "4.0.7",
       "licenses": "MIT",
@@ -3552,7 +3546,7 @@
     },
     {
       "name": "Pygments",
-      "version": "2.20.0",
+      "version": "2.21.0",
       "licenses": "BSD-2-Clause",
       "status": "accepted"
     },

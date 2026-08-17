@@ -65,6 +65,8 @@ export type NativeSupervisorStartConfig = {
   modelEndpoint?: string;
   modelApiKey?: string;
   modelName?: string;
+  /** Protected JSON payload assembled at launch time; never persisted in JS state. */
+  mcpConfigJson?: string;
   restartAfterBoot?: boolean;
   chargingAware?: boolean;
   lowBatteryPercent?: number;
@@ -85,6 +87,7 @@ type SupervisorModule = {
   listScheduleRuns(): Promise<NativeSupervisorScheduleRun[]>;
   preflightModel(config: Pick<NativeSupervisorStartConfig, "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight>;
   startSupervisor(config: NativeSupervisorStartConfig): Promise<{ status: "starting" }>;
+  updateMcpRuntimeConfig(mcpConfigJson?: string): Promise<{ status: "updated" }>;
   stopSupervisor(): Promise<{ status: "stopped" }>;
   clearConfiguration(): Promise<{ status: "cleared" }>;
 };

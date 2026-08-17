@@ -7,7 +7,9 @@ import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from 
 import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
 import { fetchProviderModels, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
-import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
+import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
+import { discoverRemoteMcpTools, type McpDiscoveryResult } from "@/lib/mcp-client";
+import { MAX_REMOTE_MCP_SERVERS, normalizeRemoteMcpEndpoint, validateRemoteMcpDraft, type McpAuthMode, type McpToolApproval, type McpToolManifestItem, type RemoteMcpServer } from "@/lib/mcp-contracts";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
 export type HostEvent = { id: string; title: string; detail: string; severity: "info" | "success" | "warning"; createdAt: string };
@@ -24,7 +26,7 @@ type PublicHostConfig = {
   hasModelApiKey: boolean;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[] };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[] };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -38,6 +40,7 @@ type SaveConfigurationInput = {
 type GatewayTestResult = { ok: boolean; message: string; botName?: string };
 type TestMessageResult = { ok: boolean; message: string; messageId?: number; deliveredAt?: string };
 type ModelTestResult = { ok: boolean; message: string };
+type SaveMcpServerInput = { id?: string; name: string; endpoint: string; authMode: McpAuthMode; credential?: string; enabled?: boolean };
 type PocketHermesContextValue = PersistedState & {
   hydrated: boolean;
   saveConfiguration: (input: SaveConfigurationInput) => Promise<{ ok: boolean; message: string }>;
@@ -46,6 +49,11 @@ type PocketHermesContextValue = PersistedState & {
   testModel: () => Promise<ModelTestResult>;
   discoverModels: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
   testProviderConnection: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
+  saveMcpServer: (input: SaveMcpServerInput) => Promise<McpDiscoveryResult>;
+  removeMcpServer: (serverId: string) => Promise<void>;
+  setMcpServerEnabled: (serverId: string, enabled: boolean) => void;
+  approveMcpTool: (serverId: string, toolName: string) => void;
+  revokeMcpToolApproval: (serverId: string, toolName: string) => void;
   toggleFavoriteModel: (modelId: string) => void;
   isFavoriteModel: (modelId: string) => boolean;
   prepareRuntime: (readiness?: HostReadinessSnapshot) => Promise<void>;
@@ -60,6 +68,7 @@ type PocketHermesContextValue = PersistedState & {
 const STORAGE_KEY = "pocket-hermes.control-plane.v1";
 const TELEGRAM_TOKEN_KEY = "pocket-hermes.telegram-token";
 const MODEL_API_KEY = "pocket-hermes.model-api-key";
+const MCP_CREDENTIAL_PREFIX = "pocket-hermes.mcp-credential.";
 const emptyConfig: PublicHostConfig = {
   hostName: "Pocket Agent Host",
   allowedChatId: "",
@@ -70,10 +79,39 @@ const emptyConfig: PublicHostConfig = {
   hasModelApiKey: false,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [] };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [] };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
+
+async function createMcpRuntimeConfig(
+  servers: RemoteMcpServer[],
+  tools: McpToolManifestItem[],
+  approvals: McpToolApproval[],
+) {
+  const now = Date.now();
+  const enabled = servers.filter((server) => server.enabled && server.connectionState === "verified");
+  const runtimeServers = await Promise.all(enabled.map(async (server) => {
+    const credential = server.authMode === "bearer" ? await readSecret(`${MCP_CREDENTIAL_PREFIX}${server.id}`) : null;
+    if (server.authMode === "bearer" && !credential) return null;
+    const serverTools = tools
+      .filter((tool) => tool.serverId === server.id)
+      .slice(0, 80)
+      .map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema }));
+    const approvedTools = approvals
+      .filter((approval) => approval.serverId === server.id && new Date(approval.expiresAt).getTime() > now && serverTools.some((tool) => tool.name === approval.toolName))
+      .map((approval) => ({ toolName: approval.toolName, expiresAt: approval.expiresAt }));
+    return {
+      id: server.id,
+      endpoint: server.endpoint,
+      authMode: server.authMode,
+      credential: credential ?? undefined,
+      tools: serverTools,
+      approvedTools,
+    };
+  }));
+  return JSON.stringify({ version: 1, servers: runtimeServers.filter(Boolean) });
+}
 
 async function saveSecret(key: string, value: string) {
   if (Platform.OS === "web") {
@@ -126,6 +164,9 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             modelCatalogFetchedAt: typeof parsed.modelCatalogFetchedAt === "string" ? parsed.modelCatalogFetchedAt : null,
             providerConnection: parsed.providerConnection ?? initialState.providerConnection,
             favoriteModelIds: favoriteIds,
+            mcpServers: Array.isArray(parsed.mcpServers) ? parsed.mcpServers.slice(0, MAX_REMOTE_MCP_SERVERS) : [],
+            mcpTools: Array.isArray(parsed.mcpTools) ? parsed.mcpTools.slice(0, MAX_REMOTE_MCP_SERVERS * 80) : [],
+            mcpApprovals: Array.isArray(parsed.mcpApprovals) ? parsed.mcpApprovals.filter((approval) => approval && typeof approval.expiresAt === "string" && Date.parse(approval.expiresAt) > Date.now()).slice(0, 240) : [],
           });
         }
       } catch {
@@ -142,6 +183,18 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     const safeState: PersistedState = { ...state, config: { ...state.config, hasTelegramToken: false, hasModelApiKey: false } };
     void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(safeState));
   }, [hydrated, state]);
+
+  useEffect(() => {
+    if (!hydrated || state.phase !== "running") return;
+    let cancelled = false;
+    void createMcpRuntimeConfig(state.mcpServers, state.mcpTools, state.mcpApprovals)
+      .then((mcpConfigJson) => {
+        if (!cancelled) return updateNativeMcpRuntimeConfig(mcpConfigJson);
+        return false;
+      })
+      .catch(() => false);
+    return () => { cancelled = true; };
+  }, [hydrated, state.mcpApprovals, state.mcpServers, state.mcpTools, state.phase]);
 
   const appendEvent = useCallback((next: Omit<HostEvent, "id" | "createdAt">) => {
     setState((current) => ({ ...current, events: [{ ...next, id: createId("event"), createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
@@ -207,8 +260,77 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     return result;
   }, []);
 
+  const saveMcpServer = useCallback(async (input: SaveMcpServerInput): Promise<McpDiscoveryResult> => {
+    const validation = validateRemoteMcpDraft(input);
+    if (validation) return { ok: false, message: validation, tools: [], latencyMs: null, checkedAt: null };
+    const serverId = input.id ?? createId("mcp");
+    const existing = state.mcpServers.find((server) => server.id === serverId);
+    if (!existing && state.mcpServers.length >= MAX_REMOTE_MCP_SERVERS) {
+      return { ok: false, message: `Pocket Agent Host supports up to ${MAX_REMOTE_MCP_SERVERS} remote MCP servers. Remove one before adding another.`, tools: [], latencyMs: null, checkedAt: null };
+    }
+    const suppliedCredential = input.credential?.trim() ?? "";
+    const credential = suppliedCredential || await readSecret(`${MCP_CREDENTIAL_PREFIX}${serverId}`) || "";
+    const discovery = await discoverRemoteMcpTools({ endpoint: input.endpoint, authMode: input.authMode, credential });
+    if (!discovery.ok) return discovery;
+    if (input.authMode === "bearer" && !credential) {
+      return { ok: false, message: "Add a bearer token before saving this connector.", tools: [], latencyMs: null, checkedAt: null };
+    }
+    if (suppliedCredential) await saveSecret(`${MCP_CREDENTIAL_PREFIX}${serverId}`, suppliedCredential);
+    if (input.authMode === "none" && existing?.hasCredential) await deleteSecret(`${MCP_CREDENTIAL_PREFIX}${serverId}`);
+    const nextServer: RemoteMcpServer = {
+      id: serverId,
+      name: input.name.trim(),
+      endpoint: normalizeRemoteMcpEndpoint(input.endpoint),
+      authMode: input.authMode,
+      enabled: input.enabled ?? existing?.enabled ?? true,
+      hasCredential: input.authMode === "bearer",
+      connectionState: "verified",
+      lastCheckedAt: discovery.checkedAt,
+      latencyMs: discovery.latencyMs,
+      toolCount: discovery.tools.length,
+    };
+    setState((current) => ({
+      ...current,
+      mcpServers: [nextServer, ...current.mcpServers.filter((server) => server.id !== serverId)].slice(0, MAX_REMOTE_MCP_SERVERS),
+      mcpTools: [...discovery.tools.map((tool) => ({ ...tool, serverId })), ...current.mcpTools.filter((tool) => tool.serverId !== serverId)].slice(0, MAX_REMOTE_MCP_SERVERS * 80),
+      mcpApprovals: current.mcpApprovals.filter((approval) => approval.serverId !== serverId),
+      events: [{ id: createId("event"), title: "Remote MCP connector verified", detail: `${nextServer.name}: ${discovery.tools.length} tools discovered. Every tool call requires owner approval.`, severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
+    }));
+    return discovery;
+  }, [state.mcpServers]);
+
+  const removeMcpServer = useCallback(async (serverId: string) => {
+    await deleteSecret(`${MCP_CREDENTIAL_PREFIX}${serverId}`);
+    setState((current) => ({
+      ...current,
+      mcpServers: current.mcpServers.filter((server) => server.id !== serverId),
+      mcpTools: current.mcpTools.filter((tool) => tool.serverId !== serverId),
+      mcpApprovals: current.mcpApprovals.filter((approval) => approval.serverId !== serverId),
+      events: [{ id: createId("event"), title: "Remote MCP connector removed", detail: "The protected connector credential and all outstanding tool approvals were removed from this device.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
+    }));
+  }, []);
+
+  const setMcpServerEnabled = useCallback((serverId: string, enabled: boolean) => {
+    setState((current) => ({ ...current, mcpServers: current.mcpServers.map((server) => server.id === serverId ? { ...server, enabled } : server) }));
+  }, []);
+
+  const approveMcpTool = useCallback((serverId: string, toolName: string) => {
+    if (!state.mcpTools.some((tool) => tool.serverId === serverId && tool.name === toolName)) return;
+    const now = new Date();
+    const approval: McpToolApproval = { id: createId("mcp-grant"), serverId, toolName, approvedAt: now.toISOString(), expiresAt: new Date(now.getTime() + 10 * 60_000).toISOString() };
+    setState((current) => ({ ...current, mcpApprovals: [approval, ...current.mcpApprovals.filter((item) => !(item.serverId === serverId && item.toolName === toolName))].slice(0, 240) }));
+  }, [state.mcpTools]);
+
+  const revokeMcpToolApproval = useCallback((serverId: string, toolName: string) => {
+    setState((current) => ({ ...current, mcpApprovals: current.mcpApprovals.filter((approval) => !(approval.serverId === serverId && approval.toolName === toolName)) }));
+  }, []);
+
   const prepareRuntime = useCallback(async (readiness?: HostReadinessSnapshot) => {
-    const [telegramToken, modelApiKey] = await Promise.all([readSecret(TELEGRAM_TOKEN_KEY), readSecret(MODEL_API_KEY)]);
+    const [telegramToken, modelApiKey, mcpConfigJson] = await Promise.all([
+      readSecret(TELEGRAM_TOKEN_KEY),
+      readSecret(MODEL_API_KEY),
+      createMcpRuntimeConfig(state.mcpServers, state.mcpTools, state.mcpApprovals),
+    ]);
     const currentConfig = state.config;
     const startable = canStartWorker({
       hostName: currentConfig.hostName,
@@ -229,6 +351,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
           chargingAware: currentConfig.policy.chargingAware,
           lowBatteryPercent: currentConfig.policy.lowBatteryPercent,
           minimumFreeStorageBytes: currentConfig.policy.minimumFreeStorageBytes,
+          mcpConfigJson,
         })
       : false;
     setState((current) => {
@@ -243,7 +366,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       }
       return { ...current, phase: "bridge_required", events: [{ id: createId("event"), title: "Runtime preparation queued", detail: "The control plane is ready. Install a custom Android build to launch the native foreground supervisor and bundled Hermes runtime.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
     });
-  }, [state.config]);
+  }, [state.config, state.mcpServers, state.mcpTools, state.mcpApprovals]);
 
   const testGateway = useCallback(async (): Promise<GatewayTestResult> => {
     const token = await readSecret(TELEGRAM_TOKEN_KEY);
@@ -351,7 +474,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, []);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

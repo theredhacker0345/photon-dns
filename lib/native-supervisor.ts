@@ -144,6 +144,17 @@ export async function startNativeSupervisor(config: NativeSupervisorStartConfig)
   }
 }
 
+/** Updates only the encrypted, approval-scoped remote MCP runtime payload on Android. */
+export async function updateNativeMcpRuntimeConfig(mcpConfigJson?: string): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    await PocketHermesSupervisorModule.updateMcpRuntimeConfig(mcpConfigJson);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function stopNativeSupervisor(): Promise<boolean> {
   if (Platform.OS === "web") return false;
   try {

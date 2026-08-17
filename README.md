@@ -14,6 +14,7 @@ Pocket Agent Host is designed for a dedicated, plugged-in Android phone. It bund
 |---|---|
 | **Remote control** | Private-owner Telegram gateway for sending tasks and receiving owner-directed responses. Group messages and unverified chats are rejected by policy. |
 | **Model access** | Select an OpenAI-compatible provider preset, enter its protected API token, fetch its current `/models` catalog, choose a model, and run native preflight before the worker starts. |
+| **Remote MCP connectors** | Add an owner-selected HTTPS MCP server, discover its tools, and grant a named tool a short, explicit approval before it can run through the private task boundary. |
 | **24/7 operation** | Android foreground service, persistent notification, opt-in boot recovery, charging/storage readiness gates, bounded recovery attempts, and a 30-minute wake-check daemon. |
 | **On-device control plane** | Dashboard, setup wizard, Agent console, Automations scheduler, Settings, task history, schedule run history, and local host events. |
 | **Host telemetry** | Native CPU and RAM readings, battery/charging state, storage readiness, freshness labels, and policy-driven low-battery or low-storage alerts. |
@@ -67,10 +68,11 @@ Embedded CPython 3.11 worker
         ├── Hermes Agent 0.20.1
         ├── private-owner Telegram gateway
         ├── durable task queue and cron scheduler
-        └── HTTPS model-provider preflight
+        ├── HTTPS model-provider preflight
+        └── owner-approved HTTPS remote MCP client
 ```
 
-The runtime has no interactive terminal surface. Its workspace is app-private, recovery is bounded, diagnostics are redacted, schedules and tasks are owner-scoped, and Telegram authorization fails closed unless a private owner identity is present. The authoritative implementation map is [`docs/implementation-traceability-matrix.md`](docs/implementation-traceability-matrix.md), with security details in [`docs/threat-model.md`](docs/threat-model.md).
+The runtime has no interactive terminal surface. Its workspace is app-private, recovery is bounded, diagnostics are redacted, schedules and tasks are owner-scoped, and Telegram authorization fails closed unless a private owner identity is present. Remote MCP connectors are HTTPS-only, reject directly addressed local/private network targets and redirects, do not launch local processes, and require a current owner tool grant. The authoritative implementation map is [`docs/implementation-traceability-matrix.md`](docs/implementation-traceability-matrix.md), with security details in [`docs/threat-model.md`](docs/threat-model.md) and connector details in [`docs/mcp-connectors.md`](docs/mcp-connectors.md).
 
 ## Build and development
 
@@ -114,7 +116,7 @@ Read [`docs/release-evidence.md`](docs/release-evidence.md) for the exact record
 
 Pocket Agent Host contains no analytics SDK, advertising SDK, account system, or Pocket Agent Host-operated cloud relay. Host readiness, CPU/RAM, battery, storage, task state, schedule state, and bounded diagnostics remain in application-private storage. Telegram traffic leaves the device through Telegram when the configured bot is active, and model prompts/responses leave through the HTTPS endpoint selected by the owner.
 
-Credentials are not printed in logs or included in ordinary activity records. Android builds use protected storage backed by Android Keystore-backed mechanisms. Owners can delete Telegram and model credentials from Settings, which invokes native deletion and stops the host. The app does not ship root access, unrestricted shell execution, a system-wide file scanner, or package installation.
+Credentials are not printed in logs or included in ordinary activity records. Android builds use protected storage backed by Android Keystore-backed mechanisms. Owners can delete Telegram and model credentials from Settings, which invokes native deletion and stops the host. MCP bearer credentials follow the same protected path; tool arguments and results may leave the device through an owner-selected MCP server when an approved tool is called. The app does not ship root access, unrestricted shell execution, a system-wide file scanner, or package installation.
 
 ## Licensing and attribution
 

@@ -28,6 +28,7 @@ data class PocketHermesWorkerConfig(
   val modelEndpoint: String?,
   val modelApiKey: String?,
   val modelName: String?,
+  val mcpConfigJson: String? = null,
   val restartAfterBoot: Boolean = false,
   val chargingAware: Boolean = true,
   val lowBatteryPercent: Int = 20,
@@ -65,6 +66,25 @@ class PocketHermesSupervisorService : Service() {
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     startForeground(NOTIFICATION_ID, createNotification())
+    if (intent?.action == ACTION_UPDATE_MCP_CONFIG) {
+      val existingConfig = activeConfig ?: loadWorkerConfig()
+      if (existingConfig != null) {
+        val updatedConfig = existingConfig.copy(
+          mcpConfigJson = intent.getStringExtra(EXTRA_MCP_CONFIG_JSON)?.trim()?.ifBlank { null },
+        )
+        activeConfig = updatedConfig
+        saveWorkerConfig(updatedConfig)
+        workerExecutor.execute {
+          try {
+            Python.getInstance().getModule("pocket_hermes_worker")
+              .callAttr("update_remote_mcp_config", updatedConfig.mcpConfigJson)
+          } catch (_: Exception) {
+            // The existing fail-closed worker policy remains active on a rejected update.
+          }
+        }
+      }
+      return START_STICKY
+    }
     val config = intent?.toWorkerConfig()?.also(::saveWorkerConfig) ?: loadWorkerConfig()
     if (config == null) {
       SupervisorRuntimeState.markDegraded("owner gateway configuration unavailable")
@@ -145,6 +165,7 @@ class PocketHermesSupervisorService : Service() {
             config.modelEndpoint,
             config.modelApiKey,
             config.modelName,
+            config.mcpConfigJson,
           )
         refreshWorkerHealth()
       } catch (error: Exception) {
@@ -235,6 +256,7 @@ class PocketHermesSupervisorService : Service() {
       .putString(PREF_MODEL_ENDPOINT, config.modelEndpoint)
       .putString(PREF_MODEL_API_KEY, config.modelApiKey)
       .putString(PREF_MODEL_NAME, config.modelName)
+      .putString(PREF_MCP_CONFIG_JSON, config.mcpConfigJson)
       .putBoolean(PREF_RESTART_AFTER_BOOT, config.restartAfterBoot)
       .putBoolean(PREF_CHARGING_AWARE, config.chargingAware)
       .putInt(PREF_LOW_BATTERY_PERCENT, config.lowBatteryPercent)
@@ -250,6 +272,7 @@ class PocketHermesSupervisorService : Service() {
         val endpoint = getString(PREF_MODEL_ENDPOINT, null)
         val apiKey = getString(PREF_MODEL_API_KEY, null)
         val modelName = getString(PREF_MODEL_NAME, null)
+        val mcpConfigJson = getString(PREF_MCP_CONFIG_JSON, null)
         if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || apiKey.isNullOrBlank() || modelName.isNullOrBlank()) null
         else PocketHermesWorkerConfig(
           token,
@@ -257,6 +280,7 @@ class PocketHermesSupervisorService : Service() {
           endpoint,
           apiKey,
           modelName,
+          mcpConfigJson,
           getBoolean(PREF_RESTART_AFTER_BOOT, false),
           getBoolean(PREF_CHARGING_AWARE, true),
           getInt(PREF_LOW_BATTERY_PERCENT, 20),
@@ -274,6 +298,7 @@ class PocketHermesSupervisorService : Service() {
     val endpoint = getStringExtra(EXTRA_MODEL_ENDPOINT)
     val apiKey = getStringExtra(EXTRA_MODEL_API_KEY)
     val modelName = getStringExtra(EXTRA_MODEL_NAME)
+    val mcpConfigJson = getStringExtra(EXTRA_MCP_CONFIG_JSON)
     if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || apiKey.isNullOrBlank() || modelName.isNullOrBlank()) return null
     return PocketHermesWorkerConfig(
       token,
@@ -281,6 +306,7 @@ class PocketHermesSupervisorService : Service() {
       endpoint,
       apiKey,
       modelName,
+      mcpConfigJson,
       getBooleanExtra(EXTRA_RESTART_AFTER_BOOT, false),
       getBooleanExtra(EXTRA_CHARGING_AWARE, true),
       getIntExtra(EXTRA_LOW_BATTERY_PERCENT, 20),
@@ -297,6 +323,7 @@ class PocketHermesSupervisorService : Service() {
     private const val PREF_MODEL_ENDPOINT = "model-endpoint"
     private const val PREF_MODEL_API_KEY = "model-api-key"
     private const val PREF_MODEL_NAME = "model-name"
+    private const val PREF_MCP_CONFIG_JSON = "mcp-config-json"
     private const val PREF_RESTART_AFTER_BOOT = "restart-after-boot"
     private const val PREF_CHARGING_AWARE = "charging-aware"
     private const val PREF_LOW_BATTERY_PERCENT = "low-battery-percent"
@@ -306,6 +333,8 @@ class PocketHermesSupervisorService : Service() {
     private const val EXTRA_MODEL_ENDPOINT = "expo.modules.pockethermessupervisor.MODEL_ENDPOINT"
     private const val EXTRA_MODEL_API_KEY = "expo.modules.pockethermessupervisor.MODEL_API_KEY"
     private const val EXTRA_MODEL_NAME = "expo.modules.pockethermessupervisor.MODEL_NAME"
+    private const val EXTRA_MCP_CONFIG_JSON = "expo.modules.pockethermessupervisor.MCP_CONFIG_JSON"
+    private const val ACTION_UPDATE_MCP_CONFIG = "expo.modules.pockethermessupervisor.UPDATE_MCP_CONFIG"
     private const val EXTRA_RESTART_AFTER_BOOT = "expo.modules.pockethermessupervisor.RESTART_AFTER_BOOT"
     private const val EXTRA_CHARGING_AWARE = "expo.modules.pockethermessupervisor.CHARGING_AWARE"
     private const val EXTRA_LOW_BATTERY_PERCENT = "expo.modules.pockethermessupervisor.LOW_BATTERY_PERCENT"
@@ -320,6 +349,7 @@ class PocketHermesSupervisorService : Service() {
         putExtra(EXTRA_MODEL_ENDPOINT, config.modelEndpoint)
         putExtra(EXTRA_MODEL_API_KEY, config.modelApiKey)
         putExtra(EXTRA_MODEL_NAME, config.modelName)
+        putExtra(EXTRA_MCP_CONFIG_JSON, config.mcpConfigJson)
         putExtra(EXTRA_RESTART_AFTER_BOOT, config.restartAfterBoot)
         putExtra(EXTRA_CHARGING_AWARE, config.chargingAware)
         putExtra(EXTRA_LOW_BATTERY_PERCENT, config.lowBatteryPercent)
@@ -334,6 +364,18 @@ class PocketHermesSupervisorService : Service() {
 
     fun stop(context: Context) {
       context.stopService(Intent(context, PocketHermesSupervisorService::class.java))
+    }
+
+    fun updateMcpRuntimeConfig(context: Context, mcpConfigJson: String?) {
+      val intent = Intent(context, PocketHermesSupervisorService::class.java).apply {
+        action = ACTION_UPDATE_MCP_CONFIG
+        putExtra(EXTRA_MCP_CONFIG_JSON, mcpConfigJson)
+      }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
     }
 
     fun clearPersistedConfiguration(context: Context) {

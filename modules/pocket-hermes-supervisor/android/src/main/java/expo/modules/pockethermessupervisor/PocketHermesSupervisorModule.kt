@@ -152,6 +152,7 @@ class PocketHermesSupervisorModule : Module() {
           modelEndpoint = config["modelEndpoint"]?.trim()?.ifBlank { null },
           modelApiKey = config["modelApiKey"]?.trim()?.ifBlank { null },
           modelName = config["modelName"]?.trim()?.ifBlank { null },
+          mcpConfigJson = config["mcpConfigJson"]?.trim()?.ifBlank { null },
           restartAfterBoot = config["restartAfterBoot"]?.toBooleanStrictOrNull() ?: false,
           chargingAware = config["chargingAware"]?.toBooleanStrictOrNull() ?: true,
           lowBatteryPercent = config["lowBatteryPercent"]?.toIntOrNull() ?: 20,
@@ -159,6 +160,17 @@ class PocketHermesSupervisorModule : Module() {
         ),
       )
       mapOf("status" to "starting")
+    }
+
+    AsyncFunction("updateMcpRuntimeConfig") { mcpConfigJson: String? ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      PocketHermesSupervisorService.updateMcpRuntimeConfig(
+        context,
+        mcpConfigJson?.trim()?.ifBlank { null },
+      )
+      mapOf("status" to "updated")
     }
 
     AsyncFunction("stopSupervisor") {

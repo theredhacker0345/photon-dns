@@ -2,13 +2,14 @@
 
 The module is intentionally narrow. It does not create a Python REPL, execute
 shell commands, install packages, open a browser, or enable Hermes' optional
-remote backends. Kotlin owns the Android foreground-service lifecycle and passes
-the already Keystore-protected owner configuration directly to ``start``.
+MCP loader. Kotlin owns the Android foreground-service lifecycle and passes the
+already Keystore-protected owner configuration directly to ``start``.
 """
 
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import os
 import re
@@ -17,7 +18,7 @@ import time
 from datetime import datetime
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,16 @@ _MAX_SCHEDULES = 16
 _MAX_SCHEDULE_RUNS = 72
 _MAX_SCHEDULE_TITLE = 120
 _MAX_SCHEDULE_RETRIES = 2
+_MAX_MCP_RESPONSE_BYTES = 96 * 1024
+_MAX_MCP_ARGUMENT_BYTES = 24 * 1024
+_MCP_COMMAND_RE = re.compile(r"^/mcp\s+([A-Za-z0-9_.-]{1,128})\s+([A-Za-z0-9_.-]{1,128})\s+(\{.*\})\s*$", re.DOTALL)
+
+
+class _NoMcpRedirects(HTTPRedirectHandler):
+    """Reject redirect responses so a public endpoint cannot pivot into a private host."""
+
+    def redirect_request(self, req: Request, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+        return None
 
 
 def _snapshot() -> dict[str, str | int | None]:
@@ -295,33 +306,42 @@ async def _drain_task_queue() -> None:
         next_task["updatedAt"] = int(time.time() * 1000)
         _write_tasks(tasks)
         try:
-            from gateway.config import Platform
-            from gateway.platforms.base import MessageEvent
-            from gateway.session import SessionSource
-            with _state_lock:
-                runner = _state.get("runner")
-                owner_chat_id = _state.get("owner_chat_id")
-            if runner is None or not isinstance(owner_chat_id, str):
-                raise RuntimeError("runtime is unavailable")
-            is_schedule = isinstance(next_task.get("scheduleRunId"), str)
-            source = SessionSource(
-                platform=Platform.TELEGRAM if is_schedule else Platform.LOCAL,
-                chat_id=owner_chat_id if is_schedule else f"pocket-hermes:{owner_chat_id}",
-                chat_type="dm",
-                user_id=owner_chat_id,
-                user_name="Pocket Agent Host owner",
-            )
-            event = MessageEvent(
-                text=str(next_task["body"]),
-                user_id=owner_chat_id,
-                user_name="Pocket Agent Host owner",
-                source=source,
-                internal=True,
-            )
-            response = await runner._handle_message(event)
-            next_task["status"] = "succeeded"
-            next_task["result"] = str(response or "Task completed without a text response.")[:_MAX_RESULT_TEXT]
-            next_task["reason"] = None
+            command = _MCP_COMMAND_RE.fullmatch(str(next_task["body"]))
+            if command is not None:
+                invocation = json.loads(invoke_remote_mcp_tool(command.group(1), command.group(2), command.group(3)))
+                if not invocation.get("ok"):
+                    raise RuntimeError(str(invocation.get("reason", "remote MCP tool failed")))
+                next_task["status"] = "succeeded"
+                next_task["result"] = json.dumps(invocation.get("result"), ensure_ascii=False)[:_MAX_RESULT_TEXT]
+                next_task["reason"] = None
+            else:
+                from gateway.config import Platform
+                from gateway.platforms.base import MessageEvent
+                from gateway.session import SessionSource
+                with _state_lock:
+                    runner = _state.get("runner")
+                    owner_chat_id = _state.get("owner_chat_id")
+                if runner is None or not isinstance(owner_chat_id, str):
+                    raise RuntimeError("runtime is unavailable")
+                is_schedule = isinstance(next_task.get("scheduleRunId"), str)
+                source = SessionSource(
+                    platform=Platform.TELEGRAM if is_schedule else Platform.LOCAL,
+                    chat_id=owner_chat_id if is_schedule else f"pocket-hermes:{owner_chat_id}",
+                    chat_type="dm",
+                    user_id=owner_chat_id,
+                    user_name="Pocket Agent Host owner",
+                )
+                event = MessageEvent(
+                    text=str(next_task["body"]),
+                    user_id=owner_chat_id,
+                    user_name="Pocket Agent Host owner",
+                    source=source,
+                    internal=True,
+                )
+                response = await runner._handle_message(event)
+                next_task["status"] = "succeeded"
+                next_task["result"] = str(response or "Task completed without a text response.")[:_MAX_RESULT_TEXT]
+                next_task["reason"] = None
         except Exception as exc:
             next_task["status"] = "failed"
             next_task["result"] = None
@@ -383,6 +403,143 @@ def _validate_model_configuration(model_endpoint: str | None, model_api_key: str
     return model_endpoint.rstrip("/")
 
 
+def _is_allowed_remote_mcp_endpoint(endpoint: str) -> bool:
+    try:
+        parsed = urlparse(endpoint)
+        hostname = parsed.hostname
+        if parsed.scheme != "https" or not hostname or parsed.username or parsed.password or parsed.port not in {None, 443}:
+            return False
+        normalized_host = hostname.lower()
+        if normalized_host == "localhost" or normalized_host.endswith(".localhost") or ":" in normalized_host:
+            return False
+        try:
+            return ipaddress.ip_address(normalized_host).is_global
+        except ValueError:
+            return True
+    except ValueError:
+        return False
+
+
+def _normalize_remote_mcp_configuration(raw: str | None) -> list[dict[str, Any]]:
+    """Accept only a bounded, approval-scoped remote MCP runtime payload."""
+    if not raw:
+        return []
+    if len(raw) > 262_144:
+        raise ValueError("Pocket Agent Host rejected oversized remote MCP configuration.")
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError) as error:
+        raise ValueError("Pocket Agent Host rejected invalid remote MCP configuration.") from error
+    if not isinstance(payload, dict) or payload.get("version") != 1 or not isinstance(payload.get("servers"), list):
+        raise ValueError("Pocket Agent Host rejected unsupported remote MCP configuration.")
+
+    normalized: list[dict[str, Any]] = []
+    for item in payload["servers"][:6]:
+        if not isinstance(item, dict):
+            continue
+        server_id = item.get("id")
+        endpoint = item.get("endpoint")
+        auth_mode = item.get("authMode")
+        credential = item.get("credential")
+        if not isinstance(server_id, str) or not server_id or not isinstance(endpoint, str) or not _is_allowed_remote_mcp_endpoint(endpoint):
+            continue
+        if auth_mode not in {"none", "bearer"} or (auth_mode == "bearer" and not isinstance(credential, str)):
+            continue
+        tools = item.get("tools") if isinstance(item.get("tools"), list) else []
+        approved = item.get("approvedTools") if isinstance(item.get("approvedTools"), list) else []
+        tool_names = {tool.get("name") for tool in tools[:80] if isinstance(tool, dict) and isinstance(tool.get("name"), str)}
+        grants: dict[str, int] = {}
+        for grant in approved[:80]:
+            if not isinstance(grant, dict) or grant.get("toolName") not in tool_names or not isinstance(grant.get("expiresAt"), str):
+                continue
+            try:
+                expires_at = int(datetime.fromisoformat(grant["expiresAt"].replace("Z", "+00:00")).timestamp() * 1000)
+            except ValueError:
+                continue
+            if expires_at > int(time.time() * 1000): grants[grant["toolName"]] = expires_at
+        normalized.append({"id": server_id, "endpoint": endpoint.rstrip("/"), "authMode": auth_mode, "credential": credential, "tools": tools[:80], "grants": grants})
+    return normalized
+
+
+def update_remote_mcp_config(mcp_config_json: str | None) -> str:
+    """Atomically apply only a newly validated remote MCP policy to a live worker."""
+    try:
+        remote_mcp_servers = _normalize_remote_mcp_configuration(mcp_config_json)
+        os.environ["HERMES_MCP_REMOTE_CONFIG"] = json.dumps({"version": 1, "servers": remote_mcp_servers}, separators=(",", ":"))
+        with _state_lock:
+            _state["remote_mcp_servers"] = remote_mcp_servers
+        return json.dumps({"ok": True, "serverCount": len(remote_mcp_servers)}, separators=(",", ":"))
+    except ValueError:
+        return json.dumps({"ok": False, "reason": "Pocket Agent Host rejected the remote MCP policy update."}, separators=(",", ":"))
+
+
+def _parse_mcp_json_response(raw: str) -> dict[str, Any] | None:
+    try:
+        decoded = json.loads(raw)
+        return decoded if isinstance(decoded, dict) else None
+    except ValueError:
+        for line in reversed(raw.splitlines()):
+            if line.startswith("data:"):
+                try:
+                    decoded = json.loads(line[5:].strip())
+                    return decoded if isinstance(decoded, dict) else None
+                except ValueError:
+                    continue
+    return None
+
+
+def _mcp_rpc_request(endpoint: str, body: dict[str, Any], headers: dict[str, str]) -> tuple[int, dict[str, Any] | None, str | None]:
+    request_headers = {"Accept": "application/json, text/event-stream", "Content-Type": "application/json", **headers}
+    request = Request(endpoint, data=json.dumps({"jsonrpc": "2.0", **body}).encode("utf-8"), headers=request_headers, method="POST")
+    opener = build_opener(_NoMcpRedirects())
+    with opener.open(request, timeout=15) as response:
+        raw = response.read(_MAX_MCP_RESPONSE_BYTES + 1)
+        if len(raw) > _MAX_MCP_RESPONSE_BYTES:
+            raise ValueError("remote MCP response exceeded the host limit")
+        return response.status, _parse_mcp_json_response(raw.decode("utf-8", errors="replace")), response.headers.get("mcp-session-id")
+
+
+def invoke_remote_mcp_tool(server_id: str, tool_name: str, arguments_json: str) -> str:
+    """Run one pre-discovered remote MCP tool only while its owner grant remains valid."""
+    if len(arguments_json) > _MAX_MCP_ARGUMENT_BYTES:
+        return json.dumps({"ok": False, "reason": "MCP tool arguments exceed the host limit."}, separators=(",", ":"))
+    try:
+        arguments = json.loads(arguments_json)
+        if not isinstance(arguments, dict):
+            raise ValueError("arguments must be a JSON object")
+        with _state_lock:
+            servers = list(_state.get("remote_mcp_servers") or [])
+        server = next((item for item in servers if item.get("id") == server_id), None)
+        manifest = {tool.get("name") for tool in server.get("tools", []) if isinstance(tool, dict)} if isinstance(server, dict) else set()
+        if not isinstance(server, dict) or tool_name not in manifest:
+            return json.dumps({"ok": False, "reason": "The requested MCP tool is not in the approved connector manifest."}, separators=(",", ":"))
+        expires_at = server.get("grants", {}).get(tool_name) if isinstance(server.get("grants"), dict) else None
+        if not isinstance(expires_at, int) or expires_at <= int(time.time() * 1000):
+            return json.dumps({"ok": False, "reason": "The owner approval for this MCP tool has expired or is missing."}, separators=(",", ":"))
+        headers: dict[str, str] = {}
+        if server.get("authMode") == "bearer":
+            credential = server.get("credential")
+            if not isinstance(credential, str) or not credential:
+                return json.dumps({"ok": False, "reason": "The connector credential is unavailable."}, separators=(",", ":"))
+            headers["Authorization"] = f"Bearer {credential}"
+        status, initialized, session_id = _mcp_rpc_request(server["endpoint"], {"id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "Pocket Agent Host", "version": "1.0"}}}, headers)
+        if status < 200 or status >= 300 or (initialized and initialized.get("error")):
+            return json.dumps({"ok": False, "reason": "The remote MCP server rejected initialization."}, separators=(",", ":"))
+        call_headers = {**headers, **({"mcp-session-id": session_id} if session_id else {})}
+        try:
+            _mcp_rpc_request(server["endpoint"], {"method": "notifications/initialized", "params": {}}, call_headers)
+        except Exception:
+            pass
+        status, response, _ = _mcp_rpc_request(server["endpoint"], {"id": 2, "method": "tools/call", "params": {"name": tool_name, "arguments": arguments}}, call_headers)
+        if status < 200 or status >= 300 or (response and response.get("error")):
+            return json.dumps({"ok": False, "reason": "The remote MCP tool returned an error."}, separators=(",", ":"))
+        return json.dumps({"ok": True, "result": response.get("result") if response else None}, separators=(",", ":"))[:_MAX_RESULT_TEXT]
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        return json.dumps({"ok": False, "reason": "The remote MCP tool could not be reached securely."}, separators=(",", ":"))
+    except Exception as error:
+        return json.dumps({"ok": False, "reason": f"MCP tool call failed: {type(error).__name__}"}, separators=(",", ":"))
+
+
 def _configure_process(
     telegram_token: str,
     owner_chat_id: str,
@@ -390,6 +547,7 @@ def _configure_process(
     model_endpoint: str | None,
     model_api_key: str | None,
     model_name: str | None,
+    mcp_config_json: str | None = None,
 ) -> None:
     """Configure only process-local, non-persisted values for the worker."""
     if not _TOKEN_RE.fullmatch(telegram_token):
@@ -397,6 +555,7 @@ def _configure_process(
     if not _CHAT_ID_RE.fullmatch(owner_chat_id):
         raise ValueError("Pocket Agent Host rejected a non-private owner identity.")
     model_endpoint = _validate_model_configuration(model_endpoint, model_api_key, model_name)
+    remote_mcp_servers = _normalize_remote_mcp_configuration(mcp_config_json)
 
     home = Path(hermes_home).resolve()
     home.mkdir(parents=True, exist_ok=True)
@@ -420,7 +579,11 @@ def _configure_process(
     # Disable interactive or self-mutating surfaces for this embedded profile.
     os.environ["HERMES_EXEC_ASK"] = "1"
     os.environ["HERMES_DISABLE_BROWSER"] = "1"
+    # The upstream MCP loader remains disabled. The embedded worker exposes only
+    # its bounded remote bridge, which validates the manifest and live grant.
     os.environ["HERMES_DISABLE_MCP"] = "1"
+    os.environ["HERMES_MCP_REMOTE_ONLY"] = "1"
+    os.environ["HERMES_MCP_REMOTE_CONFIG"] = json.dumps({"version": 1, "servers": remote_mcp_servers}, separators=(",", ":"))
     os.environ["HERMES_DISABLE_LAZY_DEPS"] = "1"
     os.environ["PIP_NO_INPUT"] = "1"
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
@@ -431,6 +594,7 @@ def _configure_process(
     with _state_lock:
         _state["hermes_home"] = str(home)
         _state["owner_chat_id"] = owner_chat_id
+        _state["remote_mcp_servers"] = remote_mcp_servers
 
 
 def preflight_model(model_endpoint: str, model_api_key: str, model_name: str) -> str:
@@ -461,6 +625,20 @@ def _run_gateway() -> None:
 
         def capture_runner(instance: Any, *args: Any, **kwargs: Any) -> None:
             original_init(instance, *args, **kwargs)
+            original_handle_message = instance._handle_message
+
+            async def handle_owner_mcp_command(event: Any) -> Any:
+                command = _MCP_COMMAND_RE.fullmatch(str(getattr(event, "text", "")))
+                with _state_lock:
+                    owner_chat_id = _state.get("owner_chat_id")
+                if command is None or str(getattr(event, "user_id", "")) != owner_chat_id:
+                    return await original_handle_message(event)
+                invocation = json.loads(await asyncio.to_thread(invoke_remote_mcp_tool, command.group(1), command.group(2), command.group(3)))
+                if not invocation.get("ok"):
+                    return f"Remote MCP command denied: {invocation.get('reason', 'unknown policy failure')}"
+                return json.dumps(invocation.get("result"), ensure_ascii=False)[:_MAX_RESULT_TEXT]
+
+            instance._handle_message = handle_owner_mcp_command
             with _state_lock:
                 _state["runner"] = instance
                 _state["last_heartbeat_at"] = int(time.time() * 1000)
@@ -514,6 +692,7 @@ def start(
     model_endpoint: str | None = None,
     model_api_key: str | None = None,
     model_name: str | None = None,
+    mcp_config_json: str | None = None,
 ) -> dict[str, str | int | None]:
     """Start exactly one owner-locked Telegram gateway in the app process."""
     with _state_lock:
@@ -527,6 +706,7 @@ def start(
             model_endpoint,
             model_api_key,
             model_name,
+            mcp_config_json,
         )
         _state["status"] = "starting"
         _state["reason"] = "launch requested"

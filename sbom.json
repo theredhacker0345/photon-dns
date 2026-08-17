@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:bbe32623-aa77-43df-a4d3-361a68dc56a0",
+  "serialNumber": "urn:uuid:c1f58e9a-2653-417d-8a64-a9a7b4324a5b",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-17T13:58:31.667Z",
+    "timestamp": "2026-08-17T17:07:01.794Z",
     "tools": {
       "components": [
         {
@@ -43,7 +43,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3095619d4f1a90531cec4d2f647e9e91003266e98e44a65fc4f3d0795e501ff9"
+          "content": "55b0595bfa9c8523896efa31f92da3dd712e11ac8fedf1d3f22033ffd35de0ce"
         }
       ],
       "properties": [
@@ -68,7 +68,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "6e3cc323318c6d6e6776e934a1e83680c942cdc1a7067d20319f8c0d8c829189"
+          "content": "4e81fe3487d287e284b5bf558f2b4781a36a03049ae9b29a7e8c4529256be305"
         }
       ],
       "properties": [
@@ -93,7 +93,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "17404a19349cd116cfc2c60c5859a37c536d066f89a58e0c2ac939f9ee8ad884"
+          "content": "32883bbeb82e300e099255d7122ca3a943007bb39ecbef04d26ce124eab7d659"
         }
       ],
       "properties": [
@@ -143,7 +143,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "d984e30bd999f5aca5b8c0080778525bfda64db9174de67ea5460a996177b8ce"
+          "content": "e4bf0efff3e88be1de946ce082abf42f0b5911f6b2a74f331412fac75e365be3"
         }
       ],
       "properties": [
@@ -168,7 +168,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8a1769b046a567583ab3a2ae1ea8f7cc33967974fb14f7a8b087bc6a315217f6"
+          "content": "e276db28a41f7095392f12285ecfa2a9abf26d532630a105caa3e1cd05369698"
         }
       ],
       "externalReferences": [
@@ -199,7 +199,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "2b4ee34443dc5effd8aef81e165cd1dd27f2f4701c1ac18ff0bf6b4052e049b2"
+          "content": "e657aef1f1ed7ef163735fa32f5d2f057d466182add15f1536add6198558a914"
         }
       ],
       "externalReferences": [
@@ -230,7 +230,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "64e64ac56a89f480bc01be5af175bd7e74b49f2eebd6c17ad9eddfc7169ea714"
+          "content": "8da3fdfbf0ab031af42dc1253aeeab87acfd0663f68f4e40ed00f8d107b8d8ac"
         }
       ],
       "properties": [
@@ -305,7 +305,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "84c60045c032671b1cd6966a15192f1c538d1b6c4b69f9e1d13b86bfd51fff92"
+          "content": "4658015051c1197f717214ea73349b9a4014211237041c412778d3443c6c7da3"
         }
       ],
       "properties": [
@@ -355,7 +355,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "c633ee8bd0c86fb8bdddb1b328ead8dcca31adc79501c8df4652ff73cf7feaef"
+          "content": "fc327da840a2679feed4956ffc13cfb4cdba620d61bc47e5fadb6c8dc5c589e7"
         }
       ],
       "properties": [
@@ -380,7 +380,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "f16d1ee7b20686eb9eb9a430145f21f73d7ba6b03d5ffbaab8f58f5553f2bc5a"
+          "content": "218df5b3644a90390235e51cc65c8857689e54d695cd8d0fae020b82a6dabf5e"
         }
       ],
       "externalReferences": [
@@ -411,7 +411,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8625a0f3246a28dfa175f548ed83b08ed0e0ec83ab647f5e8b51b8dd7f7c8191"
+          "content": "eafc34ce4e6bbfccde9631d50597a9670b87b33b776375148fa77628419958b9"
         }
       ],
       "properties": [
@@ -461,7 +461,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "635e47d9eebba8ba75467e247edbb8cb5c2737be32c9c8dc2982e35d1ecd2533"
+          "content": "a54f812145fb6126f9c5de732bfc517e7db048fd8c9e8ac05d994002845e310b"
         }
       ],
       "properties": [
@@ -486,7 +486,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "493e07af06792c2bc97581c96082d59ffaa3cc8d3f865ced6d0323c02b65245b"
+          "content": "b42f375de39ee0a3546125a5d2be56028880667308bddfe8fdd7ecf2233a2b11"
         }
       ],
       "properties": [
@@ -511,7 +511,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "827ce1485c31d6052a025194e44c78778d5bec37805c682e2e26300df4c6ccc7"
+          "content": "b781f0723034bc723ab8e673addc8610e635dbf6fe1ac803d55cfe9f640702e5"
         }
       ],
       "properties": [
@@ -536,7 +536,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3571dbc30fbc70cd2e45ac3e249ea408c4126476b1dc4a57f19bc5707cf5b669"
+          "content": "4247bd8cc1a3e86c79ba024654461c4e2e9b9ad3b64eeff2dae8b38939da05f1"
         }
       ],
       "properties": [
@@ -623,31 +623,6 @@
     },
     {
       "type": "library",
-      "name": "pip",
-      "version": "25.3",
-      "purl": "pkg:pypi/pip@25.3",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "6bb12fb62e5d9aff28c8930992045357bd37dee575cb4b0285a341f0c2d74e60"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.license-evidence",
-          "value": "MIT; MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "psutil",
       "version": "7.1.3",
       "purl": "pkg:pypi/psutil@7.1.3",
@@ -686,7 +661,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "4f3db635323dadb4fe5700a8ac28f67fff20ed944e24b300cdf5b690e4cd91d6"
+          "content": "e8f11dabb162bfa4381654d8a8735949c9bc0976ff27dd8d8395ab96cdfcb04c"
         }
       ],
       "properties": [
@@ -736,7 +711,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "64cfef5f416e2a5160a4d710785b8af5f402d5b86d02243619f574402d1682a6"
+          "content": "c633b72dd2d25df04edd3b73b33315c6e2bd843693ef7c63a36c0928bfbb4a93"
         }
       ],
       "properties": [
@@ -749,8 +724,8 @@
     {
       "type": "library",
       "name": "Pygments",
-      "version": "2.20.0",
-      "purl": "pkg:pypi/pygments@2.20.0",
+      "version": "2.21.0",
+      "purl": "pkg:pypi/pygments@2.21.0",
       "licenses": [
         {
           "license": {
@@ -761,7 +736,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "088ee6504311b66ee41caa907c47a908daa60718fb88a8757af6ffdeb14fc900"
+          "content": "e934a9ef039c61e9808d07f88d5baac9d42a8033570107a5ff43ede3d593c982"
         }
       ],
       "properties": [
@@ -811,7 +786,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9be1546ec3c176c3a02a6cd94c47700cf99a1c8376c26057a17d1389899b44d3"
+          "content": "aa21614a3d32465283484f6e022b3839c84ea54a6175d98bc2f89bcb1d00a447"
         }
       ],
       "properties": [
@@ -886,7 +861,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e31cceb06be421194f2c3290049b0327c91beaf5832aad25729bf87f15dc8c5a"
+          "content": "5d88df70104780e3e33d65dc76ae57190b397b0431397f7c11b02451b4586a0f"
         }
       ],
       "properties": [
@@ -961,7 +936,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "867668618f1bd4a143d551c93ee5a97b9cd714bdf6a6efe83f8d77076f5383bd"
+          "content": "dffd650ed39db4d2ee70008fbe4ac88acfc0d5464bf1267aed275948a5ed1539"
         }
       ],
       "properties": [
@@ -1036,7 +1011,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9705d33e50072724031ad5dbdefce7c00de6472baae228503b5346049d3c2a3d"
+          "content": "18add006d66f618503d9bfacafcdc64fbeff871e921580fcd58b6cfe0bb5fc01"
         }
       ],
       "properties": [
@@ -1061,7 +1036,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "c7d6700dccb66b2841de03d0cd2fa4c3e09851d850b077efc526104ea0353009"
+          "content": "410ce231ddbb984b4be6269c9f8f63d62b3b0875bd9bcb15100cf62f98f8f501"
         }
       ],
       "properties": [
@@ -1086,7 +1061,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "25995cbbd95d97a18dbccec8b0245a467c70ef3d51d7a790e69273bb07e02e4b"
+          "content": "092cc1236f70020271533ae4776b46b27cd041673c70aed50bea3dee2a701e1e"
         }
       ],
       "properties": [
@@ -1111,7 +1086,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "6fc51216b9c800d4d72cfb5834fe55a25505f3e6d8d7725759c21b3b973d48c4"
+          "content": "1183dee430b1873d532b9a8d71465029ff06e13938cee15670acf8a38c380e00"
         }
       ],
       "properties": [
@@ -1161,7 +1136,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "65f1a89bffe1fd4dcbeaa974c3ca6826b1a81df388c96494bad7b1c51851a43e"
+          "content": "c24b29c3b8e61d4ed5f055483fef30de1c7072c78577728e43fbfeb1cbc37b91"
         }
       ],
       "properties": [
@@ -1186,7 +1161,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ad9765bd963f2f39fc7b5888c0b32662a97eb0cebdbfe0639e79280b60aea9dd"
+          "content": "8bdd9499c2adb8b38664e0246dd83335f887d37da82876886c033ba3f5a5ccd4"
         }
       ],
       "properties": [
@@ -1211,7 +1186,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "1cfe3b1dde3c1ad5b1e329762a3530e04dc2f584fe56832dc3ba2211bb703fb3"
+          "content": "90d64207e2e82f6cf190abfe30c4c32f4c75ad998fc12e881ff948827f45a4f1"
         }
       ],
       "properties": [
@@ -1236,7 +1211,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "19380f6b78cf5143c707f799451196f76e4448ee82bb4980daaccc561dbe6557"
+          "content": "06f82d5d81f6b6c823241a1cb5603d98a9ef45dab7644ee25a0a9a53f2f7df4e"
         }
       ],
       "properties": [

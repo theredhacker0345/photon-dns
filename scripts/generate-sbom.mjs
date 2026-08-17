@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Generates a CycloneDX 1.6 SBOM for the Python distributions that Chaquopy
- * actually packages in the Android module. It rejects absent license evidence
- * and license labels outside the project’s approved FOSS family.
+ * Generates a CycloneDX 1.6 SBOM for Python distributions in Chaquopy's
+ * release payload, excluding its build environment and debug payload. It
+ * rejects absent license evidence and license labels outside the project’s
+ * approved FOSS family.
  *
  * Usage:
  *   node scripts/generate-sbom.mjs
@@ -129,7 +130,7 @@ async function main() {
   const requirements = await fs.readFile(requirementsPath, "utf8");
   const metadataDirs = explicitRoot
     ? await findMetadataDirectories(explicitRoot)
-    : await findMetadataDirectories(join(moduleRoot, "build"));
+    : await findMetadataDirectories(join(moduleRoot, "build", "python", "pip", "release"));
   if (metadataDirs.length === 0) {
     throw new Error("No Chaquopy site-packages metadata found. Build the Android module before generating a release SBOM.");
   }

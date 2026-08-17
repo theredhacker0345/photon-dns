@@ -56,6 +56,11 @@ describe("native Android host declaration contract", () => {
     const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
     expect(worker).toContain("def status_json()");
     expect(worker).toContain("def preflight_model(");
+    expect(worker).toContain("def invoke_remote_mcp_tool(");
+    expect(worker).toContain("def update_remote_mcp_config(");
+    expect(worker).toContain("_NoMcpRedirects");
+    expect(worker).toContain('os.environ["HERMES_DISABLE_MCP"] = "1"');
+    expect(worker).toContain("The owner approval for this MCP tool has expired or is missing.");
     expect(worker).toContain("def enqueue_task(");
     expect(worker).toContain("async def _drain_task_queue()");
     expect(worker).toContain("def validate_cron_expression(");
@@ -83,7 +88,14 @@ describe("native Android host declaration contract", () => {
     expect(module).toContain("AsyncFunction(\"deleteSchedule\")");
     expect(module).toContain("AsyncFunction(\"listScheduleRuns\")");
     expect(module).toContain("AsyncFunction(\"preflightModel\")");
+    expect(module).toContain("AsyncFunction(\"updateMcpRuntimeConfig\")");
     expect(module).toContain("AsyncFunction(\"clearConfiguration\")");
+    expect(module).toContain("mcpConfigJson");
+    expect(service).toContain("PREF_MCP_CONFIG_JSON");
+    expect(service).toContain("EXTRA_MCP_CONFIG_JSON");
+    expect(service).toContain("ACTION_UPDATE_MCP_CONFIG");
+    expect(service).toContain("fun updateMcpRuntimeConfig");
+    expect(service).toContain("update_remote_mcp_config");
     expect(service).toContain("fun clearPersistedConfiguration");
   });
 });

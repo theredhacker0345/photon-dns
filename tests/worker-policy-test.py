@@ -93,6 +93,9 @@ def main() -> None:
     expect_invalid(model_endpoint="http://models.example.test/v1")
     expect_invalid(model_api_key="")
     expect_invalid(model_name="")
+    assert not worker._is_allowed_remote_mcp_endpoint("https://[::1]/mcp")
+    assert not worker._is_allowed_remote_mcp_endpoint("https://100.64.0.9/mcp")
+    assert not worker._is_allowed_remote_mcp_endpoint("https://mcp.example.test:8443/mcp")
 
 
 if __name__ == "__main__":

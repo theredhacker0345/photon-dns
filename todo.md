@@ -169,3 +169,11 @@
 - [x] Restore managed build output so both the static client and server entry point deploy successfully
 - [x] Fix OpenAI preset endpoint handoff for the Settings connection test
 - [x] Add regression coverage for provider endpoint normalization and OpenAI preset testing
+- [x] Inspect embedded-worker and native supervisor boundaries for remote MCP integration
+- [x] Add secure remote-MCP server, manifest, grant, and approval contracts
+- [x] Add HTTPS-only MCP transport policy and protected connector credential handling
+- [x] Add compact Settings connector management and owner approval interfaces
+- [x] Add deterministic MCP policy, transport, and approval-flow tests
+- [x] Validate and document the MCP connector foundation; checkpoint and GitLab publication remain required completion steps
+- [x] Correct the Android Chaquopy Python executable resolution and complete native compilation validation
+- [x] Pin the reviewed embedded Python runtime closure and generate the SBOM from the Chaquopy release payload only
