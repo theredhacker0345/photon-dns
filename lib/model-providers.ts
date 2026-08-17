@@ -53,6 +53,14 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     catalogProtocol: "openai-compatible",
   },
   {
+    id: "kilo",
+    label: "Kilo Code",
+    description: "Kilo AI Gateway unified multi-model provider",
+    defaultEndpoint: "https://api.kilo.ai/api/gateway",
+    docsUrl: "https://kilo.ai/docs/gateway/models-and-providers",
+    catalogProtocol: "openai-compatible",
+  },
+  {
     id: "custom",
     label: "Custom compatible",
     description: "Any HTTPS OpenAI-compatible provider",

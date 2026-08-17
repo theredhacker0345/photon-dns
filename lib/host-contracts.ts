@@ -21,7 +21,7 @@ export const defaultHostRuntimePolicy: HostRuntimePolicy = {
   minimumFreeStorageBytes: 2 * 1024 * 1024 * 1024,
 };
 
-export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "custom";
+export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "kilo" | "custom";
 
 export type PublicModelConfiguration = {
   provider: ModelProviderId;

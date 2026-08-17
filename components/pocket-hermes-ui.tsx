@@ -59,10 +59,10 @@ export function PrimaryButton({ label, icon, onPress, disabled = false }: { labe
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.primaryButton, { backgroundColor: colors.primary }, disabled && styles.disabled, pressed && !disabled && styles.pressed]}>{icon ? <MaterialIcons name={icon} size={19} color="#FFFFFF" /> : null}<Text style={styles.primaryButtonText}>{label}</Text></Pressable>;
 }
 
-export function SecondaryButton({ label, icon, onPress, danger = false }: { label: string; icon?: keyof typeof MaterialIcons.glyphMap; onPress: () => void; danger?: boolean }) {
+export function SecondaryButton({ label, icon, onPress, danger = false, disabled = false }: { label: string; icon?: keyof typeof MaterialIcons.glyphMap; onPress: () => void; danger?: boolean; disabled?: boolean }) {
   const colors = useColors();
   const color = danger ? colors.error : colors.foreground;
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.secondaryButton, { borderColor: danger ? `${colors.error}66` : colors.border, backgroundColor: colors.surface }, pressed && styles.pressed]}>{icon ? <MaterialIcons name={icon} size={18} color={color} /> : null}<Text style={[styles.secondaryButtonText, { color }]}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.secondaryButton, { borderColor: danger ? `${colors.error}66` : colors.border, backgroundColor: colors.surface }, disabled && styles.disabled, pressed && !disabled && styles.pressed]}>{icon ? <MaterialIcons name={icon} size={18} color={color} /> : null}<Text style={[styles.secondaryButtonText, { color }]}>{label}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({

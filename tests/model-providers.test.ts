@@ -14,6 +14,7 @@ describe("provider model discovery", () => {
   it("exposes neutral provider presets with HTTPS endpoints", () => {
     expect(getProviderPreset("openai").defaultEndpoint).toBe("https://api.openai.com/v1");
     expect(getProviderPreset("openrouter").defaultEndpoint).toBe("https://openrouter.ai/api/v1");
+    expect(getProviderPreset("kilo")).toMatchObject({ label: "Kilo Code", defaultEndpoint: "https://api.kilo.ai/api/gateway", docsUrl: "https://kilo.ai/docs/gateway/models-and-providers" });
     expect(getProviderPreset("custom").defaultEndpoint).toBe("");
   });
 
@@ -42,6 +43,16 @@ describe("provider model discovery", () => {
 
   it("fails closed for a non-compatible payload", () => {
     expect(normalizeOpenAiCompatibleModels({ models: [{ name: "not-openai-shape" }] }, "custom", "now")).toEqual([]);
+  });
+
+  it("uses Kilo Code’s gateway models path and bearer token for a successful connection check", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: [{ id: "kilo-auto/frontier" }] }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchProviderModels({ provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway", apiKey: "kilo-secret" });
+    expect(result.ok).toBe(true);
+    expect(result.models[0]).toMatchObject({ id: "kilo-auto/frontier", provider: "kilo" });
+    expect(fetchMock).toHaveBeenCalledWith("https://api.kilo.ai/api/gateway/models", expect.objectContaining({ headers: { Accept: "application/json", Authorization: "Bearer kilo-secret" } }));
+    vi.unstubAllGlobals();
   });
 
   it("reports authenticated status and measured latency on a successful catalog check", async () => {

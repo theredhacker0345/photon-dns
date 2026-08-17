@@ -13,7 +13,7 @@ import { usePocketHermes } from "@/lib/pocket-hermes-store";
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection } = usePocketHermes();
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
   const [modelProvider, setModelProvider] = useState<ModelProviderId>(config.modelProvider);
@@ -25,6 +25,8 @@ export default function SettingsScreen() {
   const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
   const [saving, setSaving] = useState(false);
   const [testingModel, setTestingModel] = useState(false);
+  const [testingProvider, setTestingProvider] = useState(false);
+  const [providerTestResult, setProviderTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [discoveringModels, setDiscoveringModels] = useState(false);
 
   useEffect(() => {
@@ -36,6 +38,10 @@ export default function SettingsScreen() {
   }, [config.hasModelApiKey, config.modelProvider, config.modelEndpoint, modelCatalogFetchedAt, modelCatalog, discoverModels]);
 
   const save = async () => {
+    if (modelProvider === "kilo" && !providerTestResult?.ok) {
+      Alert.alert("Test Kilo Code first", "Use the Test Kilo Code connection button to verify the API key before saving this provider.");
+      return;
+    }
     setSaving(true);
     const result = await saveConfiguration({
       hostName,
@@ -63,6 +69,7 @@ export default function SettingsScreen() {
     setModelProvider(provider);
     setModelEndpoint(getProviderPreset(provider).defaultEndpoint);
     setModelName("");
+    setProviderTestResult(null);
   };
 
   const refreshModels = async () => {
@@ -73,6 +80,14 @@ export default function SettingsScreen() {
   };
 
   const selectModel = (model: ModelCatalogEntry) => setModelName(model.id);
+
+  const testConnection = async () => {
+    setTestingProvider(true);
+    setProviderTestResult(null);
+    const result = await testProviderConnection({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
+    setTestingProvider(false);
+    setProviderTestResult({ ok: result.ok, message: result.message });
+  };
 
   const clear = () => {
     Alert.alert("Clear local activity?", "This clears local drafts and event history. Your protected Telegram token is not removed.", [
@@ -107,10 +122,12 @@ export default function SettingsScreen() {
           <Label text="AI model provider" color={colors.muted} />
           <ModelProviderPicker selected={modelProvider} onChange={selectProvider} colors={colors} />
           <Label text="Model endpoint · HTTPS" color={colors.muted} />
-          <TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+          <TextInput value={modelEndpoint} onChangeText={(value) => { setModelEndpoint(value); setProviderTestResult(null); }} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Label text="Provider API token" color={colors.muted} />
-          <TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+          <TextInput value={modelApiKey} onChangeText={(value) => { setModelApiKey(value); setProviderTestResult(null); }} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
+          <SecondaryButton label={testingProvider ? `Testing ${getProviderPreset(modelProvider).label}…` : `Test ${getProviderPreset(modelProvider).label} connection`} icon="network-check" onPress={() => void testConnection()} disabled={testingProvider} />
+          {providerTestResult ? <View style={[styles.connectionResult, { backgroundColor: `${providerTestResult.ok ? colors.success : colors.error}12`, borderColor: `${providerTestResult.ok ? colors.success : colors.error}3A` }]}><MaterialIcons name={providerTestResult.ok ? "check-circle" : "error-outline"} size={18} color={providerTestResult.ok ? colors.success : colors.error} /><Text style={[styles.connectionResultText, { color: providerTestResult.ok ? colors.success : colors.error }]}>{providerTestResult.message}</Text></View> : null}
           <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} connection={providerConnection} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
           <Label text="Selected model" color={colors.muted} />
           <TextInput value={modelName} onChangeText={setModelName} placeholder="Choose a model above or enter its ID" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
@@ -149,7 +166,7 @@ export default function SettingsScreen() {
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });

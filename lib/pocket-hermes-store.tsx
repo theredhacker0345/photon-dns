@@ -45,6 +45,7 @@ type PocketHermesContextValue = PersistedState & {
   sendTestMessage: () => Promise<TestMessageResult>;
   testModel: () => Promise<ModelTestResult>;
   discoverModels: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
+  testProviderConnection: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
   toggleFavoriteModel: (modelId: string) => void;
   isFavoriteModel: (modelId: string) => boolean;
   prepareRuntime: (readiness?: HostReadinessSnapshot) => Promise<void>;
@@ -195,6 +196,13 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     return result;
   }, [appendEvent]);
 
+  const testProviderConnection = useCallback(async (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => {
+    const apiKey = input.apiKey?.trim() || await readSecret(MODEL_API_KEY) || "";
+    const result = await fetchProviderModels({ ...input, apiKey });
+    setState((current) => ({ ...current, providerConnection: result.connection }));
+    return result;
+  }, []);
+
   const prepareRuntime = useCallback(async (readiness?: HostReadinessSnapshot) => {
     const [telegramToken, modelApiKey] = await Promise.all([readSecret(TELEGRAM_TOKEN_KEY), readSecret(MODEL_API_KEY)]);
     const currentConfig = state.config;
@@ -339,7 +347,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, []);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

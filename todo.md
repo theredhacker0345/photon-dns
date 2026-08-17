@@ -149,3 +149,7 @@
 - [ ] Add deterministic test coverage for model favorites and push verified changes to GitLab
 - [x] Add persistent model favorites with bookmark toggles and a dedicated Favorites tab
 - [x] Research Kilo Code API integration feasibility and model catalog preset
+- [x] Add Kilo Code provider preset and model-provider contract support
+- [x] Expose Kilo Code in Setup and Settings provider selection
+- [x] Add pre-save provider connection test with success/error feedback
+- [x] Validate Kilo Code integration and publish the completed changes to GitLab
