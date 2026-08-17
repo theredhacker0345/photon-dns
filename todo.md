@@ -199,3 +199,8 @@
 - [x] Add Settings controls for warning and critical alert percentages
 - [x] Add deterministic history and threshold-policy regression coverage
 - [x] Validate, checkpoint, and publish the resource-history and threshold update to GitLab
+- [x] Research established FOSS repository README structures and onboarding conventions
+- [x] Audit current Pocket Agent Host documentation, screenshots, and release guidance for README accuracy
+- [x] Rewrite README with a polished project overview, setup path, architecture, security model, and contribution guide
+- [x] Verify README links, assets, commands, licensing language, and claims against the source tree
+- [ ] Validate, checkpoint, and publish the README refresh to GitLab
