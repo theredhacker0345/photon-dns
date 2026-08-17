@@ -91,6 +91,9 @@ export type NativeSupervisorStartConfig = {
   chargingAware?: boolean;
   lowBatteryPercent?: number;
   minimumFreeStorageBytes?: number;
+  maximumCpuPercent?: number;
+  maximumProcessRamBytes?: number;
+  maximumWorkspaceBytes?: number;
 };
 
 type SupervisorModule = {

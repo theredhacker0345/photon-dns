@@ -49,6 +49,25 @@ describe("native Android host declaration contract", () => {
     expect(service).toContain("EXTRA_MINIMUM_FREE_STORAGE_BYTES");
   });
 
+  it("threads bounded CPU, RAM, and private-workspace guardrails through the Android supervisor", () => {
+    const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
+    const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
+    const worker = read("python/pocket_hermes_worker.py");
+    expect(service).toContain("maximumCpuPercent");
+    expect(service).toContain("maximumProcessRamBytes");
+    expect(service).toContain("maximumWorkspaceBytes");
+    expect(service).toContain("PREF_MAXIMUM_CPU_PERCENT");
+    expect(service).toContain("PREF_MAXIMUM_PROCESS_RAM_BYTES");
+    expect(service).toContain("PREF_MAXIMUM_WORKSPACE_BYTES");
+    expect(service).toContain("resourceLimitBlock(config)");
+    expect(service).toContain("CPU_LIMIT_CONSECUTIVE_SAMPLES");
+    expect(module).toContain("maximumCpuPercent");
+    expect(module).toContain("maximumProcessRamBytes");
+    expect(module).toContain("maximumWorkspaceBytes");
+    expect(worker).toContain("def _workspace_limit_reason(");
+    expect(worker).toContain("def _normalize_maximum_workspace_bytes(");
+  });
+
   it("keeps worker health and diagnostics secret-free across the Python, Kotlin, and TypeScript boundary", () => {
     const worker = read("python/pocket_hermes_worker.py");
     const state = read("java/expo/modules/pockethermessupervisor/SupervisorRuntimeState.kt");

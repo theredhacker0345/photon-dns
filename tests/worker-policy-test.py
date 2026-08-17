@@ -47,6 +47,13 @@ def main() -> None:
         assert os.environ["TELEGRAM_ALLOW_ALL_USERS"] == "false"
         assert os.environ["TELEGRAM_GROUP_ALLOWED_USERS"] == ""
         assert os.environ["TELEGRAM_GROUP_ALLOWED_CHATS"] == ""
+        assert worker._workspace_limit_reason() is None
+        try:
+            worker._normalize_maximum_workspace_bytes(63 * 1024 * 1024)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("worker accepted an undersized private workspace quota")
 
         # Queue persistence is deliberately testable without starting Hermes or
         # contacting any external service. A synthetic running marker prevents
@@ -85,6 +92,27 @@ def main() -> None:
             pass
         else:
             raise AssertionError("worker accepted an invalid cron expression")
+        quota_file = os.path.join(home, "quota-test.bin")
+        with open(quota_file, "wb") as quota_handle:
+            quota_handle.truncate(64 * 1024 * 1024)
+        with worker._state_lock:
+            worker._state["maximum_workspace_bytes"] = 64 * 1024 * 1024
+        assert worker._workspace_limit_reason() is not None
+        try:
+            worker.enqueue_task("owner-test-quota", "Do not persist this quota-blocked task.")
+        except RuntimeError as error:
+            assert "workspace quota" in str(error).lower()
+        else:
+            raise AssertionError("worker persisted a task after the private workspace quota was reached")
+        try:
+            worker.upsert_schedule("schedule-test-quota", "Blocked", "0 9 * * *", "Do not persist this schedule.", True)
+        except RuntimeError as error:
+            assert "workspace quota" in str(error).lower()
+        else:
+            raise AssertionError("worker persisted a schedule after the private workspace quota was reached")
+        os.unlink(quota_file)
+        with worker._state_lock:
+            worker._state["maximum_workspace_bytes"] = 512 * 1024 * 1024
         with worker._state_lock:
             worker._state["status"] = "stopped"
             worker._state["runner"] = None
@@ -99,6 +127,7 @@ def main() -> None:
     expect_invalid(model_endpoint="http://models.example.test/v1")
     expect_invalid(model_api_key="")
     expect_invalid(model_name="")
+    expect_invalid(maximum_workspace_bytes=63 * 1024 * 1024)
     assert not worker._is_allowed_remote_mcp_endpoint("https://[::1]/mcp")
     assert not worker._is_allowed_remote_mcp_endpoint("https://100.64.0.9/mcp")
     assert not worker._is_allowed_remote_mcp_endpoint("https://mcp.example.test:8443/mcp")

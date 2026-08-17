@@ -178,6 +178,9 @@ class PocketHermesSupervisorModule : Module() {
           chargingAware = config["chargingAware"]?.toBooleanStrictOrNull() ?: true,
           lowBatteryPercent = config["lowBatteryPercent"]?.toIntOrNull() ?: 20,
           minimumFreeStorageBytes = config["minimumFreeStorageBytes"]?.toLongOrNull() ?: 2L * 1024L * 1024L * 1024L,
+          maximumCpuPercent = (config["maximumCpuPercent"]?.toIntOrNull() ?: 65).coerceIn(10, 95),
+          maximumProcessRamBytes = (config["maximumProcessRamBytes"]?.toLongOrNull() ?: 512L * 1024L * 1024L).coerceIn(128L * 1024L * 1024L, 8L * 1024L * 1024L * 1024L),
+          maximumWorkspaceBytes = (config["maximumWorkspaceBytes"]?.toLongOrNull() ?: 512L * 1024L * 1024L).coerceIn(64L * 1024L * 1024L, 8L * 1024L * 1024L * 1024L),
         ),
       )
       mapOf("status" to "starting")

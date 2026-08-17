@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { defaultHostRuntimePolicy, isSafeRuntimePolicy } from "../lib/host-contracts";
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName, validationMessage } from "../lib/pocket-hermes-policy";
 
 describe("Pocket Agent Host host policy", () => {
@@ -25,5 +26,12 @@ describe("Pocket Agent Host host policy", () => {
     expect(validationMessage({ hasTelegramToken: false, allowedChatId: "42" })).toContain("bot token");
     expect(normalizeHostName("   ")).toBe("Pocket Agent Host");
     expect(normalizeHostName(" Old Phone ")).toBe("Old Phone");
+  });
+
+  it("accepts only bounded CPU, RAM, and private-workspace resource guardrails", () => {
+    expect(isSafeRuntimePolicy(defaultHostRuntimePolicy)).toBe(true);
+    expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, maximumCpuPercent: 9 })).toBe(false);
+    expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, maximumProcessRamBytes: 127 * 1024 * 1024 })).toBe(false);
+    expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, maximumWorkspaceBytes: 63 * 1024 * 1024 })).toBe(false);
   });
 });

@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -11,6 +12,7 @@ import android.app.PendingIntent
 import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
+import android.os.Process
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.chaquo.python.Python
@@ -33,6 +35,9 @@ data class PocketHermesWorkerConfig(
   val chargingAware: Boolean = true,
   val lowBatteryPercent: Int = 20,
   val minimumFreeStorageBytes: Long = 2L * 1024L * 1024L * 1024L,
+  val maximumCpuPercent: Int = 65,
+  val maximumProcessRamBytes: Long = 512L * 1024L * 1024L,
+  val maximumWorkspaceBytes: Long = 512L * 1024L * 1024L,
 )
 
 /**
@@ -48,6 +53,8 @@ class PocketHermesSupervisorService : Service() {
   @Volatile private var activeConfig: PocketHermesWorkerConfig? = null
   @Volatile private var recoveryAttempts = 0
   @Volatile private var lastRecoveryAt = 0L
+  @Volatile private var consecutiveCpuLimitBreaches = 0
+  @Volatile private var resourceLimitReason: String? = null
 
   override fun onCreate() {
     super.onCreate()
@@ -99,6 +106,8 @@ class PocketHermesSupervisorService : Service() {
     }
     hostRequested = true
     activeConfig = config
+    consecutiveCpuLimitBreaches = 0
+    resourceLimitReason = null
     startWorker(config)
     return START_STICKY
   }
@@ -166,6 +175,7 @@ class PocketHermesSupervisorService : Service() {
             config.modelApiKey,
             config.modelName,
             config.mcpConfigJson,
+            config.maximumWorkspaceBytes,
           )
         refreshWorkerHealth()
       } catch (error: Exception) {
@@ -178,12 +188,46 @@ class PocketHermesSupervisorService : Service() {
   /** Evaluated for direct starts, recovery, and boot restoration. */
   private fun hostPolicyBlock(config: PocketHermesWorkerConfig): String? {
     if (filesDir.usableSpace < config.minimumFreeStorageBytes) return "host policy blocked runtime: insufficient free storage"
+    if (privateWorkspaceBytes() > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
+    if (processPssBytes() > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
     if (!config.chargingAware) return null
     val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
       ?: return "host policy blocked runtime: charging state unavailable"
     val status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
     val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
     return if (charging) null else "host policy blocked runtime: device is not charging"
+  }
+
+  /** Enforces only this host process and its app-private workspace, never device-wide resources. */
+  private fun resourceLimitBlock(config: PocketHermesWorkerConfig): String? {
+    if (privateWorkspaceBytes() > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
+    if (processPssBytes() > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
+    val cpuPercent = SupervisorRuntimeState.sampleCpuPercent()
+    consecutiveCpuLimitBreaches = if (cpuPercent > config.maximumCpuPercent) consecutiveCpuLimitBreaches + 1 else 0
+    return if (consecutiveCpuLimitBreaches >= CPU_LIMIT_CONSECUTIVE_SAMPLES) {
+      "host resource limit reached: sustained CPU guardrail"
+    } else null
+  }
+
+  private fun processPssBytes(): Long {
+    val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    return (activityManager.getProcessMemoryInfo(intArrayOf(Process.myPid())).firstOrNull()?.totalPss ?: 0).toLong() * 1024L
+  }
+
+  private fun privateWorkspaceBytes(): Long = File(filesDir, "pocket-hermes/runtime")
+    .walkTopDown()
+    .filter { it.isFile }
+    .sumOf { file -> runCatching { file.length() }.getOrDefault(0L) }
+
+  private fun stopForResourceLimit(reason: String) {
+    hostRequested = false
+    workerLaunchRequested = false
+    resourceLimitReason = reason
+    SupervisorRuntimeState.markDegraded(reason)
+    workerExecutor.execute {
+      runCatching { Python.getInstance().getModule("pocket_hermes_worker").callAttr("stop") }
+    }
+    stopSelf()
   }
 
   private fun stopWorker() {
@@ -193,7 +237,9 @@ class PocketHermesSupervisorService : Service() {
     workerExecutor.execute {
       try {
         Python.getInstance().getModule("pocket_hermes_worker").callAttr("stop")
-        SupervisorRuntimeState.markStopped("foreground service stopped")
+        val resourceLimit = resourceLimitReason
+        if (resourceLimit == null) SupervisorRuntimeState.markStopped("foreground service stopped")
+        else SupervisorRuntimeState.markDegraded(resourceLimit)
       } catch (error: Exception) {
         SupervisorRuntimeState.markDegraded("embedded worker stop failed: ${error.javaClass.simpleName}")
       }
@@ -212,6 +258,12 @@ class PocketHermesSupervisorService : Service() {
         health.optString("reason", "worker health unavailable"),
         health.optLong("lastHeartbeatAt", 0L).takeIf { it > 0L },
       )
+      activeConfig?.let { config ->
+        resourceLimitBlock(config)?.let { reason ->
+          stopForResourceLimit(reason)
+          return
+        }
+      }
       if (status == "running") {
         recoveryAttempts = 0
         SupervisorRuntimeState.clearRecoveryAttempts()
@@ -261,6 +313,9 @@ class PocketHermesSupervisorService : Service() {
       .putBoolean(PREF_CHARGING_AWARE, config.chargingAware)
       .putInt(PREF_LOW_BATTERY_PERCENT, config.lowBatteryPercent)
       .putLong(PREF_MINIMUM_FREE_STORAGE_BYTES, config.minimumFreeStorageBytes)
+      .putInt(PREF_MAXIMUM_CPU_PERCENT, config.maximumCpuPercent)
+      .putLong(PREF_MAXIMUM_PROCESS_RAM_BYTES, config.maximumProcessRamBytes)
+      .putLong(PREF_MAXIMUM_WORKSPACE_BYTES, config.maximumWorkspaceBytes)
       .commit()
   }
 
@@ -285,6 +340,9 @@ class PocketHermesSupervisorService : Service() {
           getBoolean(PREF_CHARGING_AWARE, true),
           getInt(PREF_LOW_BATTERY_PERCENT, 20),
           getLong(PREF_MINIMUM_FREE_STORAGE_BYTES, 2L * 1024L * 1024L * 1024L),
+          getInt(PREF_MAXIMUM_CPU_PERCENT, 65).coerceIn(10, 95),
+          getLong(PREF_MAXIMUM_PROCESS_RAM_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_PROCESS_RAM_BYTES, MAXIMUM_RESOURCE_BYTES),
+          getLong(PREF_MAXIMUM_WORKSPACE_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_WORKSPACE_BYTES, MAXIMUM_RESOURCE_BYTES),
         )
       }
     } catch (_: Exception) {
@@ -311,6 +369,9 @@ class PocketHermesSupervisorService : Service() {
       getBooleanExtra(EXTRA_CHARGING_AWARE, true),
       getIntExtra(EXTRA_LOW_BATTERY_PERCENT, 20),
       getLongExtra(EXTRA_MINIMUM_FREE_STORAGE_BYTES, 2L * 1024L * 1024L * 1024L),
+      getIntExtra(EXTRA_MAXIMUM_CPU_PERCENT, 65).coerceIn(10, 95),
+      getLongExtra(EXTRA_MAXIMUM_PROCESS_RAM_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_PROCESS_RAM_BYTES, MAXIMUM_RESOURCE_BYTES),
+      getLongExtra(EXTRA_MAXIMUM_WORKSPACE_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_WORKSPACE_BYTES, MAXIMUM_RESOURCE_BYTES),
     )
   }
 
@@ -328,6 +389,9 @@ class PocketHermesSupervisorService : Service() {
     private const val PREF_CHARGING_AWARE = "charging-aware"
     private const val PREF_LOW_BATTERY_PERCENT = "low-battery-percent"
     private const val PREF_MINIMUM_FREE_STORAGE_BYTES = "minimum-free-storage-bytes"
+    private const val PREF_MAXIMUM_CPU_PERCENT = "maximum-cpu-percent"
+    private const val PREF_MAXIMUM_PROCESS_RAM_BYTES = "maximum-process-ram-bytes"
+    private const val PREF_MAXIMUM_WORKSPACE_BYTES = "maximum-workspace-bytes"
     private const val EXTRA_TELEGRAM_TOKEN = "expo.modules.pockethermessupervisor.TELEGRAM_TOKEN"
     private const val EXTRA_OWNER_CHAT_ID = "expo.modules.pockethermessupervisor.OWNER_CHAT_ID"
     private const val EXTRA_MODEL_ENDPOINT = "expo.modules.pockethermessupervisor.MODEL_ENDPOINT"
@@ -339,6 +403,13 @@ class PocketHermesSupervisorService : Service() {
     private const val EXTRA_CHARGING_AWARE = "expo.modules.pockethermessupervisor.CHARGING_AWARE"
     private const val EXTRA_LOW_BATTERY_PERCENT = "expo.modules.pockethermessupervisor.LOW_BATTERY_PERCENT"
     private const val EXTRA_MINIMUM_FREE_STORAGE_BYTES = "expo.modules.pockethermessupervisor.MINIMUM_FREE_STORAGE_BYTES"
+    private const val EXTRA_MAXIMUM_CPU_PERCENT = "expo.modules.pockethermessupervisor.MAXIMUM_CPU_PERCENT"
+    private const val EXTRA_MAXIMUM_PROCESS_RAM_BYTES = "expo.modules.pockethermessupervisor.MAXIMUM_PROCESS_RAM_BYTES"
+    private const val EXTRA_MAXIMUM_WORKSPACE_BYTES = "expo.modules.pockethermessupervisor.MAXIMUM_WORKSPACE_BYTES"
+    private const val CPU_LIMIT_CONSECUTIVE_SAMPLES = 3
+    private const val MINIMUM_PROCESS_RAM_BYTES = 128L * 1024L * 1024L
+    private const val MINIMUM_WORKSPACE_BYTES = 64L * 1024L * 1024L
+    private const val MAXIMUM_RESOURCE_BYTES = 8L * 1024L * 1024L * 1024L
     private const val MAX_RECOVERY_ATTEMPTS = 3
     private const val RECOVERY_COOLDOWN_MS = 60_000L
 
@@ -354,6 +425,9 @@ class PocketHermesSupervisorService : Service() {
         putExtra(EXTRA_CHARGING_AWARE, config.chargingAware)
         putExtra(EXTRA_LOW_BATTERY_PERCENT, config.lowBatteryPercent)
         putExtra(EXTRA_MINIMUM_FREE_STORAGE_BYTES, config.minimumFreeStorageBytes)
+        putExtra(EXTRA_MAXIMUM_CPU_PERCENT, config.maximumCpuPercent)
+        putExtra(EXTRA_MAXIMUM_PROCESS_RAM_BYTES, config.maximumProcessRamBytes)
+        putExtra(EXTRA_MAXIMUM_WORKSPACE_BYTES, config.maximumWorkspaceBytes)
       }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         context.startForegroundService(intent)

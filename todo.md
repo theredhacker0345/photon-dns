@@ -180,3 +180,9 @@
 - [x] Define bounded context-usage telemetry and a safe manual context-compression contract
 - [x] Add an Agent Console context-usage indicator and manual Compress context action
 - [x] Validate, checkpoint, and publish the context-control update to GitLab
+- [x] Audit and document the existing app-private sandbox and terminal-exposure boundary
+- [x] Define safe owner-configurable CPU, RAM, and storage resource-limit policies
+- [x] Add resource-limit controls to the host policy UI and persistence contract
+- [x] Enforce resource limits in the Android supervisor and embedded worker lifecycle
+- [x] Add deterministic resource-policy and enforcement regression coverage
+- [ ] Validate, checkpoint, and publish the resource-control update to GitLab

@@ -351,6 +351,9 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
           chargingAware: currentConfig.policy.chargingAware,
           lowBatteryPercent: currentConfig.policy.lowBatteryPercent,
           minimumFreeStorageBytes: currentConfig.policy.minimumFreeStorageBytes,
+          maximumCpuPercent: currentConfig.policy.maximumCpuPercent,
+          maximumProcessRamBytes: currentConfig.policy.maximumProcessRamBytes,
+          maximumWorkspaceBytes: currentConfig.policy.maximumWorkspaceBytes,
           mcpConfigJson,
         })
       : false;

@@ -39,6 +39,7 @@ _state: dict[str, Any] = {
     "owner_chat_id": None,
     "task_drain_task": None,
     "scheduler_task": None,
+    "maximum_workspace_bytes": 512 * 1024 * 1024,
 }
 _MAX_TASKS = 24
 _MAX_TASK_TEXT = 12_000
@@ -49,6 +50,8 @@ _MAX_SCHEDULE_TITLE = 120
 _MAX_SCHEDULE_RETRIES = 2
 _MAX_MCP_RESPONSE_BYTES = 96 * 1024
 _MAX_MCP_ARGUMENT_BYTES = 24 * 1024
+_MIN_WORKSPACE_BYTES = 64 * 1024 * 1024
+_MAX_WORKSPACE_BYTES = 8 * 1024 * 1024 * 1024
 _MCP_COMMAND_RE = re.compile(r"^/mcp\s+([A-Za-z0-9_.-]{1,128})\s+([A-Za-z0-9_.-]{1,128})\s+(\{.*\})\s*$", re.DOTALL)
 
 
@@ -98,6 +101,45 @@ def set_storage_root(hermes_home: str) -> None:
     home.mkdir(parents=True, exist_ok=True)
     with _state_lock:
         _state["hermes_home"] = str(home)
+
+
+def _normalize_maximum_workspace_bytes(value: Any) -> int:
+    """Keep the private runtime quota predictable across Kotlin/Python restarts."""
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError("Pocket Agent Host rejected an invalid private workspace quota.") from error
+    if normalized < _MIN_WORKSPACE_BYTES or normalized > _MAX_WORKSPACE_BYTES:
+        raise ValueError("Pocket Agent Host workspace quota is outside the supported 64 MB to 8 GB range.")
+    return normalized
+
+
+def _workspace_usage_bytes(home: Path) -> int:
+    """Measure only the app-private runtime directory without following links."""
+    total = 0
+    for root, _, files in os.walk(home, followlinks=False):
+        for name in files:
+            try:
+                total += (Path(root) / name).stat(follow_symlinks=False).st_size
+            except OSError:
+                continue
+    return total
+
+
+def _workspace_limit_reason(reserved_bytes: int = 0) -> str | None:
+    with _state_lock:
+        home = _state.get("hermes_home")
+        maximum = _state.get("maximum_workspace_bytes")
+    if not isinstance(home, str) or not home:
+        return "Private workspace is unavailable until the Android host starts."
+    try:
+        quota = _normalize_maximum_workspace_bytes(maximum)
+        used = _workspace_usage_bytes(Path(home))
+    except (OSError, ValueError):
+        return "Private workspace usage could not be measured safely."
+    if used + max(0, reserved_bytes) > quota:
+        return "Private workspace quota reached. Clear local activity or increase the owner storage limit before sending more work."
+    return None
 
 
 def _read_tasks() -> list[dict[str, Any]]:
@@ -304,6 +346,17 @@ async def _drain_task_queue() -> None:
         next_task = next((task for task in tasks if task.get("status") == "queued"), None)
         if next_task is None:
             return
+        workspace_block = _workspace_limit_reason(_MAX_RESULT_TEXT)
+        if workspace_block is not None:
+            next_task["status"] = "failed"
+            next_task["result"] = None
+            next_task["reason"] = workspace_block
+            next_task["updatedAt"] = int(time.time() * 1000)
+            _write_tasks(tasks)
+            schedule_run_id = next_task.get("scheduleRunId")
+            if isinstance(schedule_run_id, str):
+                _complete_schedule_run(schedule_run_id, "failed", workspace_block)
+            continue
         next_task["status"] = "running"
         next_task["updatedAt"] = int(time.time() * 1000)
         _write_tasks(tasks)
@@ -550,6 +603,7 @@ def _configure_process(
     model_api_key: str | None,
     model_name: str | None,
     mcp_config_json: str | None = None,
+    maximum_workspace_bytes: int = 512 * 1024 * 1024,
 ) -> None:
     """Configure only process-local, non-persisted values for the worker."""
     if not _TOKEN_RE.fullmatch(telegram_token):
@@ -558,6 +612,7 @@ def _configure_process(
         raise ValueError("Pocket Agent Host rejected a non-private owner identity.")
     model_endpoint = _validate_model_configuration(model_endpoint, model_api_key, model_name)
     remote_mcp_servers = _normalize_remote_mcp_configuration(mcp_config_json)
+    workspace_quota = _normalize_maximum_workspace_bytes(maximum_workspace_bytes)
 
     home = Path(hermes_home).resolve()
     home.mkdir(parents=True, exist_ok=True)
@@ -597,6 +652,7 @@ def _configure_process(
         _state["hermes_home"] = str(home)
         _state["owner_chat_id"] = owner_chat_id
         _state["remote_mcp_servers"] = remote_mcp_servers
+        _state["maximum_workspace_bytes"] = workspace_quota
 
 
 def preflight_model(model_endpoint: str, model_api_key: str, model_name: str) -> str:
@@ -695,6 +751,7 @@ def start(
     model_api_key: str | None = None,
     model_name: str | None = None,
     mcp_config_json: str | None = None,
+    maximum_workspace_bytes: int = 512 * 1024 * 1024,
 ) -> dict[str, str | int | None]:
     """Start exactly one owner-locked Telegram gateway in the app process."""
     with _state_lock:
@@ -709,6 +766,7 @@ def start(
             model_api_key,
             model_name,
             mcp_config_json,
+            maximum_workspace_bytes,
         )
         _state["status"] = "starting"
         _state["reason"] = "launch requested"
@@ -948,6 +1006,9 @@ def enqueue_task(task_id: str, body: str) -> str:
         running = _state.get("status") == "running" and _state.get("runner") is not None
     if not running:
         raise RuntimeError("Start the private Android host before submitting a task.")
+    workspace_block = _workspace_limit_reason(len(normalized_body.encode("utf-8")) + _MAX_RESULT_TEXT)
+    if workspace_block is not None:
+        raise RuntimeError(workspace_block)
     tasks = _read_tasks()
     if any(task.get("id") == normalized_id for task in tasks):
         return json.dumps(_public_task(next(task for task in tasks if task.get("id") == normalized_id)), separators=(",", ":"))
@@ -983,6 +1044,11 @@ def upsert_schedule(schedule_id: str, title: str, expression: str, body: str, en
     normalized_expression = validate_cron_expression(expression)
     if not normalized_id or len(normalized_id) > 96 or not normalized_title or len(normalized_title) > _MAX_SCHEDULE_TITLE or not normalized_body or len(normalized_body) > _MAX_TASK_TEXT:
         raise ValueError("Pocket Agent Host rejected an invalid schedule.")
+    workspace_block = _workspace_limit_reason(
+        len((normalized_title + normalized_expression + normalized_body).encode("utf-8")) + 4 * 1024,
+    )
+    if workspace_block is not None:
+        raise RuntimeError(workspace_block)
     schedules = _read_schedules()
     schedule = next((item for item in schedules if item.get("id") == normalized_id), None)
     if schedule is None:

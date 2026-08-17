@@ -12,6 +12,12 @@ export type HostRuntimePolicy = {
   restartAfterBoot: boolean;
   lowBatteryPercent: number;
   minimumFreeStorageBytes: number;
+  /** Sustained process CPU threshold; native supervision stops after repeated breaches. */
+  maximumCpuPercent: number;
+  /** Android process PSS guardrail; native supervision stops immediately on breach. */
+  maximumProcessRamBytes: number;
+  /** Private Hermes runtime-directory quota; no files are deleted automatically. */
+  maximumWorkspaceBytes: number;
 };
 
 export const defaultHostRuntimePolicy: HostRuntimePolicy = {
@@ -19,6 +25,9 @@ export const defaultHostRuntimePolicy: HostRuntimePolicy = {
   restartAfterBoot: false,
   lowBatteryPercent: 20,
   minimumFreeStorageBytes: 2 * 1024 * 1024 * 1024,
+  maximumCpuPercent: 65,
+  maximumProcessRamBytes: 512 * 1024 * 1024,
+  maximumWorkspaceBytes: 512 * 1024 * 1024,
 };
 
 export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "kilo" | "custom";
@@ -103,7 +112,16 @@ export function isSafeRuntimePolicy(policy: HostRuntimePolicy) {
     && policy.lowBatteryPercent >= 5
     && policy.lowBatteryPercent <= 80
     && Number.isSafeInteger(policy.minimumFreeStorageBytes)
-    && policy.minimumFreeStorageBytes >= 512 * 1024 * 1024;
+    && policy.minimumFreeStorageBytes >= 512 * 1024 * 1024
+    && Number.isInteger(policy.maximumCpuPercent)
+    && policy.maximumCpuPercent >= 10
+    && policy.maximumCpuPercent <= 95
+    && Number.isSafeInteger(policy.maximumProcessRamBytes)
+    && policy.maximumProcessRamBytes >= 128 * 1024 * 1024
+    && policy.maximumProcessRamBytes <= 8 * 1024 * 1024 * 1024
+    && Number.isSafeInteger(policy.maximumWorkspaceBytes)
+    && policy.maximumWorkspaceBytes >= 64 * 1024 * 1024
+    && policy.maximumWorkspaceBytes <= 8 * 1024 * 1024 * 1024;
 }
 
 export function isTerminalTaskStatus(status: HostTaskStatus) {
