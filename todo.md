@@ -137,3 +137,4 @@
 - [x] Add model catalog search and filter bar
 - [x] Push the completed provider diagnostics and model-search update to GitLab and verify the remote commit
 - [x] Treat GitLab push and remote verification as required completion criteria for each future source change
+- [x] Assess GPLv3 relicensing compatibility across Pocket Agent Host code, bundled dependencies, notices, and distribution obligations before changing any license
