@@ -141,4 +141,4 @@
 - [x] Replace the project MIT license with GPLv3 and update all license-facing metadata and notices
 - [x] Add CONTRIBUTORS and a copyright/contribution policy for future code submissions
 - [x] Regenerate compliance evidence and validate relicensing changes before GitLab publication
-- [ ] Push the verified GPLv3 update to GitLab and confirm the remote commit
+- [x] Push the verified GPLv3 update to GitLab and confirm the remote commit
