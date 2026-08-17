@@ -208,7 +208,7 @@
 - [x] Run deterministic, build, and release-preflight checks and capture each reproducible failure
 - [x] Publish a prioritized verified-gap report distinguishing working behavior, preview-only behavior, and unsupported claims
 - [x] Repair every in-scope defect or misleading behavior found by the audit and add regression coverage
-- [ ] Revalidate, checkpoint, and publish the complete functionality audit and repair set to GitLab
+- [x] Revalidate, checkpoint, and publish the complete functionality audit and repair set to GitLab
 - [x] Recheck charging and storage policy from the native foreground supervision loop and stop safely when a running host becomes unsafe
 - [x] Deliver native ongoing-notification warnings for configured low-battery and free-storage conditions
 - [x] Expose validated low-battery and free-storage reserve controls in Settings and correct private-owner chat guidance
