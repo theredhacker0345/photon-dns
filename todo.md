@@ -203,4 +203,4 @@
 - [x] Audit current Pocket Agent Host documentation, screenshots, and release guidance for README accuracy
 - [x] Rewrite README with a polished project overview, setup path, architecture, security model, and contribution guide
 - [x] Verify README links, assets, commands, licensing language, and claims against the source tree
-- [ ] Validate, checkpoint, and publish the README refresh to GitLab
+- [x] Validate, checkpoint, and publish the README refresh to GitLab
