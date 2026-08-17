@@ -191,4 +191,4 @@
 - [x] Add visual near-limit warnings for CPU, RAM, and private workspace storage
 - [x] Add a Settings recommended-limits preset based on live device capacity
 - [x] Add deterministic warning and recommendation-policy regression coverage
-- [ ] Validate, checkpoint, and publish the warning and recommendation update to GitLab
+- [x] Validate, checkpoint, and publish the warning and recommendation update to GitLab
