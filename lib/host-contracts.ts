@@ -21,7 +21,10 @@ export const defaultHostRuntimePolicy: HostRuntimePolicy = {
   minimumFreeStorageBytes: 2 * 1024 * 1024 * 1024,
 };
 
+export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "custom";
+
 export type PublicModelConfiguration = {
+  provider: ModelProviderId;
   endpoint: string;
   model: string;
   hasApiKey: boolean;
@@ -108,7 +111,8 @@ export function isTerminalTaskStatus(status: HostTaskStatus) {
 }
 
 export function canStartWorker(config: PublicHostConfiguration) {
-  return config.telegramConfigured
+  return Boolean(config.model.provider)
+    && config.telegramConfigured
     && Boolean(config.ownerChatId.trim())
     && config.model.hasApiKey
     && Boolean(config.model.model.trim())

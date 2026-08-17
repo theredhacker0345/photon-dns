@@ -4,7 +4,8 @@ import { PropsWithChildren, createContext, useCallback, useContext, useEffect, u
 import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
-import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy } from "@/lib/host-contracts";
+import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
+import { fetchProviderModels, type ModelCatalogEntry, type ModelDiscoveryResult } from "@/lib/model-providers";
 import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
@@ -15,16 +16,18 @@ export type AgentDraft = { id: string; body: string; createdAt: string };
 type PublicHostConfig = {
   hostName: string;
   allowedChatId: string;
+  modelProvider: ModelProviderId;
   modelEndpoint: string;
   modelName: string;
   hasTelegramToken: boolean;
   hasModelApiKey: boolean;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[] };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
+  modelProvider: ModelProviderId;
   modelEndpoint: string;
   modelName?: string;
   telegramToken: string;
@@ -40,6 +43,7 @@ type PocketHermesContextValue = PersistedState & {
   testGateway: () => Promise<GatewayTestResult>;
   sendTestMessage: () => Promise<TestMessageResult>;
   testModel: () => Promise<ModelTestResult>;
+  discoverModels: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
   prepareRuntime: (readiness?: HostReadinessSnapshot) => Promise<void>;
   stopHost: () => Promise<void>;
   addAutomation: (input: Pick<Automation, "title" | "expression" | "delivery">) => void;
@@ -55,13 +59,14 @@ const MODEL_API_KEY = "pocket-hermes.model-api-key";
 const emptyConfig: PublicHostConfig = {
   hostName: "Pocket Agent Host",
   allowedChatId: "",
-  modelEndpoint: "",
+  modelProvider: "openai",
+  modelEndpoint: "https://api.openai.com/v1",
   modelName: "",
   hasTelegramToken: false,
   hasModelApiKey: false,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [] };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -113,6 +118,8 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
               hasTelegramToken: tokenAvailable,
               hasModelApiKey: modelKeyAvailable,
             },
+            modelCatalog: Array.isArray(parsed.modelCatalog) ? parsed.modelCatalog.slice(0, 200) : [],
+            modelCatalogFetchedAt: typeof parsed.modelCatalogFetchedAt === "string" ? parsed.modelCatalogFetchedAt : null,
           });
         }
       } catch {
@@ -154,9 +161,10 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
 
     setState((current) => ({
       ...current,
-      config: {
+        config: {
         hostName: normalizeHostName(input.hostName),
         allowedChatId,
+        modelProvider: input.modelProvider,
         modelEndpoint: endpoint,
         modelName,
         hasTelegramToken: true,
@@ -169,6 +177,18 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     return { ok: true, message: "Secure configuration saved. Add model details before starting the embedded runtime." };
   }, [state.config.modelName, state.config.policy]);
 
+  const discoverModels = useCallback(async (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => {
+    const apiKey = input.apiKey?.trim() || await readSecret(MODEL_API_KEY) || "";
+    const result = await fetchProviderModels({ ...input, apiKey });
+    if (result.ok) {
+      setState((current) => ({ ...current, modelCatalog: result.models, modelCatalogFetchedAt: result.fetchedAt }));
+      appendEvent({ title: "Model catalog refreshed", detail: result.message, severity: "success" });
+    } else {
+      appendEvent({ title: "Model catalog unavailable", detail: result.message, severity: "warning" });
+    }
+    return result;
+  }, [appendEvent]);
+
   const prepareRuntime = useCallback(async (readiness?: HostReadinessSnapshot) => {
     const [telegramToken, modelApiKey] = await Promise.all([readSecret(TELEGRAM_TOKEN_KEY), readSecret(MODEL_API_KEY)]);
     const currentConfig = state.config;
@@ -176,7 +196,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       hostName: currentConfig.hostName,
       ownerChatId: currentConfig.allowedChatId,
       telegramConfigured: currentConfig.hasTelegramToken,
-      model: { endpoint: currentConfig.modelEndpoint, model: currentConfig.modelName, hasApiKey: currentConfig.hasModelApiKey },
+      model: { provider: currentConfig.modelProvider, endpoint: currentConfig.modelEndpoint, model: currentConfig.modelName, hasApiKey: currentConfig.hasModelApiKey },
       policy: currentConfig.policy,
     });
     const policyBlock = readiness ? getRuntimePolicyBlock(currentConfig.policy, readiness) : null;
@@ -297,7 +317,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, []);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, testGateway, sendTestMessage, testModel, discoverModels, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

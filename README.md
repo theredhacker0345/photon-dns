@@ -4,7 +4,7 @@
 
 **Pocket Agent Host** is a FOSS Android control plane that turns a spare phone into a private, self-hosted AI agent host. The phone runs an app-private embedded CPython/Hermes runtime under an Android foreground supervisor, while the owner controls the host remotely through a private Telegram bot.
 
-> **Status:** The source is published at [`gitlab.com/theredhacker0345/pocket-agent-host`](https://gitlab.com/theredhacker0345/pocket-agent-host) under immutable tag [`v1.0.0`](https://gitlab.com/theredhacker0345/pocket-agent-host/-/tree/v1.0.0). The app is prepared as an F-Droid-oriented release candidate. A fresh APK built from the public tag and physical-device acceptance testing remain required before claiming an F-Droid publication.
+> **Status:** The source is published at [`gitlab.com/theredhacker0345/pocket-agent-host`](https://gitlab.com/theredhacker0345/pocket-agent-host) on the default branch. The previously used release tags were removed while their commits remain reachable in repository history. The app is prepared as an F-Droid-oriented release candidate; a fresh APK and physical-device acceptance testing remain required before claiming F-Droid publication.
 
 ## What it does
 
@@ -13,7 +13,7 @@ Pocket Agent Host is designed for a dedicated, plugged-in Android phone. It bund
 | Area | Included behavior |
 |---|---|
 | **Remote control** | Private-owner Telegram gateway for sending tasks and receiving owner-directed responses. Group messages and unverified chats are rejected by policy. |
-| **Model access** | OpenAI-compatible HTTPS endpoint, model name, and API key entered during Host Setup or later in Settings. Native model preflight runs before the worker starts. |
+| **Model access** | Select an OpenAI-compatible provider preset, enter its protected API token, fetch its current `/models` catalog, choose a model, and run native preflight before the worker starts. |
 | **24/7 operation** | Android foreground service, persistent notification, opt-in boot recovery, charging/storage readiness gates, bounded recovery attempts, and a 30-minute wake-check daemon. |
 | **On-device control plane** | Dashboard, setup wizard, Agent console, Automations scheduler, Settings, task history, schedule run history, and local host events. |
 | **Host telemetry** | Native CPU and RAM readings, battery/charging state, storage readiness, freshness labels, and policy-driven low-battery or low-storage alerts. |
@@ -35,7 +35,7 @@ The launcher artwork used above is the same source icon shipped through the Andr
 
 ## User flow
 
-The first launch opens a four-step Host Setup flow. The owner names the phone, enters the Telegram bot token and private owner chat ID, enters the OpenAI-compatible model endpoint/model/key, and chooses the runtime policy. The app validates the required fields before handing configuration to the Android supervisor.
+The first launch opens a four-step Host Setup flow. The owner names the phone, enters the Telegram bot token and private owner chat ID, selects an OpenAI-compatible model provider, enters its protected API token, refreshes the provider’s current model catalog, chooses a model, and selects the runtime policy. The app validates the required fields before handing configuration to the Android supervisor.
 
 After setup, the owner can run a Telegram gateway test, inspect charging and storage readiness, start or pause the supervisor, submit a durable task from the Agent console, create a validated five-field cron schedule, and review bounded local history. Settings can remove protected credentials; deletion stops the host and clears native configuration rather than merely hiding the fields.
 
@@ -43,11 +43,12 @@ After setup, the owner can run a Telegram gateway test, inspect charging and sto
 
 | Field | Example | Handling |
 |---|---|---|
-| **Model endpoint** | `https://provider.example/v1` | Must be HTTPS and OpenAI-compatible. The native preflight checks the endpoint before worker startup. |
-| **Model name** | `gpt-4o-mini` or a provider-specific compatible model | Stored as protected host configuration and handed to the embedded worker only when needed. |
-| **Model API key** | Provider-issued secret | Stored through Android protected storage and excluded from normal UI state, telemetry, activity history, and diagnostics. |
+| **Provider** | OpenAI, OpenRouter, Groq, Mistral AI, or Custom compatible | Selects the provider preset and its compatible model-list endpoint. Custom endpoints remain available for other HTTPS OpenAI-compatible services. |
+| **Model endpoint** | `https://provider.example/v1` | Must be HTTPS and OpenAI-compatible. The app requests `GET /models` and the native preflight checks the endpoint before worker startup. |
+| **Provider API token** | Provider-issued secret | Stored through Android protected storage and excluded from normal UI state, telemetry, activity history, model records, and diagnostics. |
+| **Selected model** | `gpt-4o-mini` or a provider-specific compatible model | Choose from the fetched catalog or enter an ID manually; stored as non-secret host configuration. |
 
-The provider is selected by the owner. Pocket Agent Host does not operate a model relay or claim ownership of prompts and responses; prompts and responses travel to the configured provider when the agent is used. See [`docs/privacy.md`](docs/privacy.md).
+The catalog is refreshed explicitly from Host Setup or Settings and displays the latest successful result without high-frequency background polling. The provider is selected by the owner. Pocket Agent Host does not operate a model relay or claim ownership of prompts and responses; prompts and responses travel to the configured provider when the agent is used. See [`docs/privacy.md`](docs/privacy.md) and [`docs/provider-model-discovery-research.md`](docs/provider-model-discovery-research.md).
 
 ## Architecture
 
@@ -126,8 +127,6 @@ Contributions should preserve the private-owner boundary, keep native-only state
 ## References
 
 [1]: https://gitlab.com/theredhacker0345/pocket-agent-host "Pocket Agent Host GitLab repository"
-
-[2]: https://gitlab.com/theredhacker0345/pocket-agent-host/-/tree/v1.0.0 "Pocket Agent Host v1.0.0 source tag"
 
 [3]: https://github.com/NousResearch/hermes-agent "Hermes Agent upstream repository"
 

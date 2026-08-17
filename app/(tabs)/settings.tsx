@@ -1,17 +1,22 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
+import { ModelCatalog } from "@/components/model-catalog";
+import { ModelProviderPicker } from "@/components/model-provider-picker";
 import { PageHeader, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import type { ModelProviderId } from "@/lib/host-contracts";
+import { getProviderPreset, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { config, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels } = usePocketHermes();
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
+  const [modelProvider, setModelProvider] = useState<ModelProviderId>(config.modelProvider);
   const [modelEndpoint, setModelEndpoint] = useState(config.modelEndpoint);
   const [modelName, setModelName] = useState(config.modelName);
   const [modelApiKey, setModelApiKey] = useState("");
@@ -20,12 +25,22 @@ export default function SettingsScreen() {
   const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
   const [saving, setSaving] = useState(false);
   const [testingModel, setTestingModel] = useState(false);
+  const [discoveringModels, setDiscoveringModels] = useState(false);
+
+  useEffect(() => {
+    const stale = !modelCatalogFetchedAt || Date.now() - new Date(modelCatalogFetchedAt).getTime() > 6 * 60 * 60 * 1000;
+    const hasCurrentProvider = modelCatalog.some((model) => model.provider === config.modelProvider);
+    if (!config.hasModelApiKey || (!stale && hasCurrentProvider)) return;
+    setDiscoveringModels(true);
+    void discoverModels({ provider: config.modelProvider, endpoint: config.modelEndpoint }).finally(() => setDiscoveringModels(false));
+  }, [config.hasModelApiKey, config.modelProvider, config.modelEndpoint, modelCatalogFetchedAt, modelCatalog, discoverModels]);
 
   const save = async () => {
     setSaving(true);
     const result = await saveConfiguration({
       hostName,
       allowedChatId,
+      modelProvider,
       modelEndpoint,
       modelName,
       telegramToken: token,
@@ -36,9 +51,28 @@ export default function SettingsScreen() {
     if (result.ok) {
       setToken("");
       setModelApiKey("");
+      if (modelEndpoint && (modelApiKey.trim() || config.hasModelApiKey)) {
+        setDiscoveringModels(true);
+        void discoverModels({ provider: modelProvider, endpoint: modelEndpoint }).finally(() => setDiscoveringModels(false));
+      }
     }
     Alert.alert(result.ok ? "Host configuration saved" : "Check your setup", result.message);
   };
+
+  const selectProvider = (provider: ModelProviderId) => {
+    setModelProvider(provider);
+    setModelEndpoint(getProviderPreset(provider).defaultEndpoint);
+    setModelName("");
+  };
+
+  const refreshModels = async () => {
+    setDiscoveringModels(true);
+    const result = await discoverModels({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
+    setDiscoveringModels(false);
+    if (!result.ok) Alert.alert("Model catalog unavailable", result.message);
+  };
+
+  const selectModel = (model: ModelCatalogEntry) => setModelName(model.id);
 
   const clear = () => {
     Alert.alert("Clear local activity?", "This clears local drafts and event history. Your protected Telegram token is not removed.", [
@@ -70,13 +104,17 @@ export default function SettingsScreen() {
         <PressableCard style={[styles.formCard, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}22` }]}>
           <Label text="Host name" color={colors.muted} />
           <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Agent Host" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Label text="Model endpoint" color={colors.muted} />
+          <Label text="AI model provider" color={colors.muted} />
+          <ModelProviderPicker selected={modelProvider} onChange={selectProvider} colors={colors} />
+          <Label text="Model endpoint · HTTPS" color={colors.muted} />
           <TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Label text="Model name" color={colors.muted} />
-          <TextInput value={modelName} onChangeText={setModelName} placeholder="e.g. gpt-4o-mini" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Label text="Model API key" color={colors.muted} />
-          <TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={config.hasModelApiKey ? "Leave blank to keep saved key" : "Paste provider API key"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Text style={[styles.helper, { color: colors.muted }]}>An HTTPS endpoint, model name, and protected key are required before the native worker can process Telegram tasks. This preview never sends requests to the provider.</Text>
+          <Label text="Provider API token" color={colors.muted} />
+          <TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+          <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
+          <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
+          <Label text="Selected model" color={colors.muted} />
+          <TextInput value={modelName} onChangeText={setModelName} placeholder="Choose a model above or enter its ID" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+          <Text style={[styles.helper, { color: colors.muted }]}>Refresh whenever the provider changes its catalog. The last successful catalog is kept locally without the API token.</Text>
         </PressableCard>
 
         <SectionHeading eyebrow="REMOTE ACCESS" title="Telegram gateway" />

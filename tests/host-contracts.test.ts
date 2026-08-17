@@ -7,6 +7,7 @@ import {
   isAllowedModelEndpoint,
   isSafeRuntimePolicy,
   isTerminalTaskStatus,
+  type PublicHostConfiguration,
 } from "../lib/host-contracts";
 
 describe("Pocket Agent Host cross-layer host contract", () => {
@@ -24,11 +25,11 @@ describe("Pocket Agent Host cross-layer host contract", () => {
   });
 
   it("does not permit a worker start until Telegram, model, and policy requirements are all satisfied", () => {
-    const base = {
+    const base: PublicHostConfiguration = {
       hostName: "Pocket Agent Host",
       ownerChatId: "123456",
       telegramConfigured: true,
-      model: { endpoint: "https://model.example/v1", model: "small-host-model", hasApiKey: true },
+      model: { provider: "openai", endpoint: "https://model.example/v1", model: "small-host-model", hasApiKey: true },
       policy: defaultHostRuntimePolicy,
     };
     expect(canStartWorker(base)).toBe(true);

@@ -7,6 +7,10 @@ import { PressableCard, PrimaryButton, SecondaryButton } from "@/components/pock
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type HostReadiness, useHostReadiness } from "@/hooks/use-host-readiness";
+import { ModelCatalog } from "@/components/model-catalog";
+import { ModelProviderPicker } from "@/components/model-provider-picker";
+import type { ModelProviderId } from "@/lib/host-contracts";
+import { getProviderPreset, type ModelCatalogEntry } from "@/lib/model-providers";
 import { isValidTelegramChatId } from "@/lib/pocket-hermes-policy";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
 
@@ -21,10 +25,11 @@ const steps = [
 
 export default function HostSetupScreen() {
   const colors = useColors();
-  const { config, saveConfiguration } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, saveConfiguration, discoverModels } = usePocketHermes();
   const [step, setStep] = useState<SetupStep>(0);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
+  const [modelProvider, setModelProvider] = useState<ModelProviderId>(config.modelProvider);
   const [modelEndpoint, setModelEndpoint] = useState(config.modelEndpoint);
   const [modelName, setModelName] = useState(config.modelName);
   const [modelApiKey, setModelApiKey] = useState("");
@@ -32,24 +37,46 @@ export default function HostSetupScreen() {
   const [chargingAware, setChargingAware] = useState(true);
   const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
   const [saving, setSaving] = useState(false);
+  const [discoveringModels, setDiscoveringModels] = useState(false);
   const readiness = useHostReadiness();
+
+  const selectProvider = (provider: ModelProviderId) => {
+    setModelProvider(provider);
+    setModelEndpoint(getProviderPreset(provider).defaultEndpoint);
+    setModelName("");
+  };
+
+  const refreshModels = async () => {
+    setDiscoveringModels(true);
+    const result = await discoverModels({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
+    setDiscoveringModels(false);
+    if (!result.ok) Alert.alert("Model catalog unavailable", result.message);
+  };
+
+  const selectModel = (model: ModelCatalogEntry) => setModelName(model.id);
 
   const current = steps[step];
   const hasUsableToken = Boolean(token.trim()) || config.hasTelegramToken;
   const stepReady = useMemo(() => {
     if (step === 0) return Boolean(hostName.trim());
     if (step === 1) return hasUsableToken && isValidTelegramChatId(allowedChatId.trim());
-    if (step === 2) return !modelEndpoint.trim() || /^https:\/\//i.test(modelEndpoint.trim());
+    if (step === 2) return Boolean(modelEndpoint.trim()) && /^https:\/\//i.test(modelEndpoint.trim()) && Boolean(modelName.trim()) && (Boolean(modelApiKey.trim()) || config.hasModelApiKey);
     return true;
-  }, [allowedChatId, hasUsableToken, hostName, modelEndpoint, step]);
+  }, [allowedChatId, config.hasModelApiKey, hasUsableToken, hostName, modelApiKey, modelEndpoint, modelName, step]);
 
   const validationHint = step === 0
     ? "Give this phone a recognisable name."
     : step === 1
       ? !hasUsableToken ? "Add a Telegram bot token to continue." : "Use a numeric owner chat ID. Group IDs may begin with a minus sign."
-      : step === 2 && modelEndpoint.trim() && !/^https:\/\//i.test(modelEndpoint.trim())
-        ? "Use a full HTTPS URL."
-        : "";
+      : step === 2 && !modelEndpoint.trim()
+        ? "Choose a provider endpoint."
+        : step === 2 && !/^https:\/\//i.test(modelEndpoint.trim())
+          ? "Use a full HTTPS URL."
+          : step === 2 && !modelApiKey.trim() && !config.hasModelApiKey
+            ? "Add the provider token, refresh the catalog, and choose a model."
+            : step === 2 && !modelName.trim()
+              ? "Refresh the catalog and choose a model before continuing."
+              : "";
 
   const continueSetup = async () => {
     if (!stepReady) return;
@@ -61,6 +88,7 @@ export default function HostSetupScreen() {
     const result = await saveConfiguration({
       hostName,
       allowedChatId,
+      modelProvider,
       modelEndpoint,
       modelName,
       modelApiKey,
@@ -104,7 +132,7 @@ export default function HostSetupScreen() {
 
         {step === 0 ? <DeviceStep hostName={hostName} setHostName={setHostName} colors={colors} /> : null}
         {step === 1 ? <TelegramStep token={token} setToken={setToken} allowedChatId={allowedChatId} setAllowedChatId={setAllowedChatId} hasTelegramToken={config.hasTelegramToken} colors={colors} /> : null}
-        {step === 2 ? <ModelStep modelEndpoint={modelEndpoint} setModelEndpoint={setModelEndpoint} modelName={modelName} setModelName={setModelName} modelApiKey={modelApiKey} setModelApiKey={setModelApiKey} hasModelApiKey={config.hasModelApiKey} colors={colors} /> : null}
+        {step === 2 ? <ModelStep modelProvider={modelProvider} setModelProvider={selectProvider} modelEndpoint={modelEndpoint} setModelEndpoint={setModelEndpoint} modelName={modelName} setModelName={setModelName} modelApiKey={modelApiKey} setModelApiKey={setModelApiKey} hasModelApiKey={config.hasModelApiKey} modelCatalog={modelCatalog} modelCatalogFetchedAt={modelCatalogFetchedAt} discoveringModels={discoveringModels} refreshModels={refreshModels} selectModel={selectModel} colors={colors} /> : null}
         {step === 3 ? <PolicyStep chargingAware={chargingAware} setChargingAware={setChargingAware} restartAfterBoot={restartAfterBoot} setRestartAfterBoot={setRestartAfterBoot} hostName={hostName} hasToken={hasUsableToken} allowedChatId={allowedChatId} modelEndpoint={modelEndpoint} readiness={readiness} colors={colors} /> : null}
 
         {validationHint ? <View style={[styles.validation, { backgroundColor: `${colors.warning}14` }]}><MaterialIcons name="info-outline" size={18} color={colors.warning} /><Text style={[styles.validationText, { color: colors.warning }]}>{validationHint}</Text></View> : null}
@@ -127,8 +155,8 @@ function TelegramStep({ token, setToken, allowedChatId, setAllowedChatId, hasTel
   return <View style={styles.stepContent}><PressableCard style={[styles.statusCard, { backgroundColor: `${colors.success}0E`, borderColor: `${colors.success}2A` }]}><MaterialIcons name={hasTelegramToken ? "lock" : "vpn-key"} size={19} color={colors.success} /><Text style={[styles.statusText, { color: colors.foreground }]}>{hasTelegramToken ? "A protected bot token is already saved." : "Your token is encrypted immediately after setup."}</Text></PressableCard><FieldLabel label="Telegram bot token" color={colors.muted} /><TextInput value={token} onChangeText={setToken} placeholder={hasTelegramToken ? "Leave blank to keep saved token" : "Paste token from BotFather"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Allowed owner chat ID" color={colors.muted} /><TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="numbers-and-punctuation" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><PressableCard style={[styles.chatHelp, { backgroundColor: `${colors.primary}0C`, borderColor: `${colors.primary}22` }]}><MaterialIcons name="help-outline" size={19} color={colors.primary} /><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>How to find your chat ID</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>Open Telegram, message @userinfobot, then copy its numeric ID here. For a group, add the bot first—the ID may begin with a minus sign.</Text></View></PressableCard><Text style={[styles.helper, { color: colors.muted }]}>The embedded gateway must reject every incoming chat except this owner allowlist.</Text></View>;
 }
 
-function ModelStep({ modelEndpoint, setModelEndpoint, modelName, setModelName, modelApiKey, setModelApiKey, hasModelApiKey, colors }: { modelEndpoint: string; setModelEndpoint: (value: string) => void; modelName: string; setModelName: (value: string) => void; modelApiKey: string; setModelApiKey: (value: string) => void; hasModelApiKey: boolean; colors: ReturnType<typeof useColors> }) {
-  return <View style={styles.stepContent}><FieldLabel label="Model endpoint · HTTPS" color={colors.muted} /><TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Model name" color={colors.muted} /><TextInput value={modelName} onChangeText={setModelName} placeholder="e.g. gpt-4o-mini" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Model API key" color={colors.muted} /><TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={hasModelApiKey ? "Leave blank to keep saved key" : "Paste provider API key"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><Text style={[styles.helper, { color: colors.muted }]}>The worker will not start until the endpoint, model name, and protected model key are saved. Model computation stays with your selected provider; the host remains on this phone.</Text><PressableCard style={styles.infoCard}><View style={[styles.infoIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="memory" size={19} color={colors.primary} /></View><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Keep the first install lightweight</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>No local model files are added during initial setup. Optional offline models remain a later, explicit download.</Text></View></PressableCard></View>;
+function ModelStep({ modelProvider, setModelProvider, modelEndpoint, setModelEndpoint, modelName, setModelName, modelApiKey, setModelApiKey, hasModelApiKey, modelCatalog, modelCatalogFetchedAt, discoveringModels, refreshModels, selectModel, colors }: { modelProvider: ModelProviderId; setModelProvider: (value: ModelProviderId) => void; modelEndpoint: string; setModelEndpoint: (value: string) => void; modelName: string; setModelName: (value: string) => void; modelApiKey: string; setModelApiKey: (value: string) => void; hasModelApiKey: boolean; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; discoveringModels: boolean; refreshModels: () => Promise<void>; selectModel: (model: ModelCatalogEntry) => void; colors: ReturnType<typeof useColors> }) {
+  return <View style={styles.stepContent}><FieldLabel label="AI model provider" color={colors.muted} /><ModelProviderPicker selected={modelProvider} onChange={setModelProvider} colors={colors} /><FieldLabel label="Model endpoint · HTTPS" color={colors.muted} /><TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Provider API token" color={colors.muted} /><TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><Text style={[styles.helper, { color: colors.muted }]}>The token is protected on Android. It is used to ask the selected provider for its current model catalog and later for agent inference.</Text><ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} /><FieldLabel label="Selected model" color={colors.muted} /><TextInput value={modelName} onChangeText={setModelName} placeholder="Choose a model above or enter its ID" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><PressableCard style={styles.infoCard}><View style={[styles.infoIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="memory" size={19} color={colors.primary} /></View><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Keep the first install lightweight</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>No local model files are added during initial setup. Optional offline models remain a later, explicit download.</Text></View></PressableCard></View>;
 }
 
 function PolicyStep({ chargingAware, setChargingAware, restartAfterBoot, setRestartAfterBoot, hostName, hasToken, allowedChatId, modelEndpoint, readiness, colors }: { chargingAware: boolean; setChargingAware: (value: boolean) => void; restartAfterBoot: boolean; setRestartAfterBoot: (value: boolean) => void; hostName: string; hasToken: boolean; allowedChatId: string; modelEndpoint: string; readiness: HostReadiness; colors: ReturnType<typeof useColors> }) {
