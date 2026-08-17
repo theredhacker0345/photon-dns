@@ -199,7 +199,11 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   const testProviderConnection = useCallback(async (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => {
     const apiKey = input.apiKey?.trim() || await readSecret(MODEL_API_KEY) || "";
     const result = await fetchProviderModels({ ...input, apiKey });
-    setState((current) => ({ ...current, providerConnection: result.connection }));
+    setState((current) => ({
+      ...current,
+      providerConnection: result.connection,
+      ...(result.ok ? { modelCatalog: result.models, modelCatalogFetchedAt: result.fetchedAt } : {}),
+    }));
     return result;
   }, []);
 

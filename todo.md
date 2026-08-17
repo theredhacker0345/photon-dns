@@ -153,3 +153,6 @@
 - [x] Expose Kilo Code in Setup and Settings provider selection
 - [x] Add pre-save provider connection test with success/error feedback
 - [x] Validate Kilo Code integration and publish the completed changes to GitLab
+- [x] Add loading spinner animation to provider connection test button
+- [x] Automatically fetch and populate model catalog after successful connection test for all providers
+- [x] Validate updated provider flow with deterministic tests and TypeScript check

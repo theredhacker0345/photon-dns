@@ -84,9 +84,12 @@ export default function SettingsScreen() {
   const testConnection = async () => {
     setTestingProvider(true);
     setProviderTestResult(null);
-    const result = await testProviderConnection({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
-    setTestingProvider(false);
-    setProviderTestResult({ ok: result.ok, message: result.message });
+    try {
+      const result = await testProviderConnection({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
+      setProviderTestResult({ ok: result.ok, message: result.message });
+    } finally {
+      setTestingProvider(false);
+    }
   };
 
   const clear = () => {
@@ -126,7 +129,7 @@ export default function SettingsScreen() {
           <Label text="Provider API token" color={colors.muted} />
           <TextInput value={modelApiKey} onChangeText={(value) => { setModelApiKey(value); setProviderTestResult(null); }} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
-          <SecondaryButton label={testingProvider ? `Testing ${getProviderPreset(modelProvider).label}…` : `Test ${getProviderPreset(modelProvider).label} connection`} icon="network-check" onPress={() => void testConnection()} disabled={testingProvider} />
+          <SecondaryButton label={testingProvider ? `Testing ${getProviderPreset(modelProvider).label}…` : `Test ${getProviderPreset(modelProvider).label} connection`} icon="network-check" onPress={() => void testConnection()} loading={testingProvider} disabled={testingProvider} />
           {providerTestResult ? <View style={[styles.connectionResult, { backgroundColor: `${providerTestResult.ok ? colors.success : colors.error}12`, borderColor: `${providerTestResult.ok ? colors.success : colors.error}3A` }]}><MaterialIcons name={providerTestResult.ok ? "check-circle" : "error-outline"} size={18} color={providerTestResult.ok ? colors.success : colors.error} /><Text style={[styles.connectionResultText, { color: providerTestResult.ok ? colors.success : colors.error }]}>{providerTestResult.message}</Text></View> : null}
           <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} connection={providerConnection} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
           <Label text="Selected model" color={colors.muted} />
