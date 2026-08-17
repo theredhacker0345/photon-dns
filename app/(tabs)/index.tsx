@@ -46,10 +46,8 @@ export default function HostScreen() {
         </View>
 
         <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={[styles.heroAura, { backgroundColor: `${colors.primary}19` }]} />
           <View style={styles.heroCopy}><RuntimePill phase={phase} /><Text style={[styles.heroTitle, { color: colors.foreground }]}>{phaseCopy.title}</Text><Text style={[styles.heroDetail, { color: colors.muted }]}>{phaseCopy.detail}</Text></View>
           <View style={styles.heroRail}><View style={styles.heroRailItem}><MaterialIcons name="phone-android" size={15} color={colors.primary} /><Text style={[styles.heroRailText, { color: colors.foreground }]}>On this phone</Text></View><View style={[styles.heroRailDivider, { backgroundColor: colors.border }]} /><View style={styles.heroRailItem}><MaterialIcons name="lock" size={15} color={colors.primary} /><Text style={[styles.heroRailText, { color: colors.foreground }]}>Owner locked</Text></View></View>
-          <View style={[styles.shield, { backgroundColor: colors.background, borderColor: `${colors.primary}33` }]}><MaterialIcons name="shield" size={30} color={colors.primary} /></View>
         </View>
 
         {phase === "unconfigured" ? <PrimaryButton label="Configure host" icon="lock-outline" onPress={() => router.push("/setup" as never)} /> : phase === "stopped" ? <PrimaryButton label="Prepare runtime" icon="play-arrow" onPress={() => void prepareRuntime(readiness)} disabled={!canPrepare} /> : (
@@ -78,16 +76,15 @@ function MetricCard({ icon, label, value, detail, color, colors }: { icon: Compo
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 16, paddingBottom: 34, gap: 22 },
+  content: { paddingTop: 16, paddingBottom: 30, gap: 18 },
   topline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   brandCopy: { gap: 4 }, wordmark: { fontSize: 17, fontWeight: "900", letterSpacing: 0.8 }, brandMeta: { flexDirection: "row", alignItems: "center", gap: 6 }, brandDot: { width: 6, height: 6, borderRadius: 3 }, caption: { fontSize: 10, fontWeight: "800", letterSpacing: 1.1 },
-  settingsButton: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1 }, pressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
-  hero: { minHeight: 236, borderRadius: 30, padding: 22, borderWidth: 1, overflow: "hidden", justifyContent: "space-between", gap: 17 }, heroAura: { width: 202, height: 202, borderRadius: 101, position: "absolute", right: -86, top: -58 },
-  heroCopy: { gap: 12, maxWidth: "84%" }, heroTitle: { fontSize: 30, lineHeight: 35, fontWeight: "900", letterSpacing: -0.9 }, heroDetail: { fontSize: 14, lineHeight: 20, fontWeight: "500", maxWidth: "88%" },
-  heroRail: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, gap: 9 }, heroRailItem: { flexDirection: "row", alignItems: "center", gap: 5 }, heroRailText: { fontSize: 11, fontWeight: "800" }, heroRailDivider: { width: StyleSheet.hairlineWidth, height: 16 },
-  shield: { position: "absolute", right: 18, bottom: 18, width: 55, height: 55, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1 },
-  actionRow: { flexDirection: "row", gap: 10 }, primaryWrap: { flex: 1.38 }, secondaryWrap: { flex: 0.62 }, boundaryGrid: { flexDirection: "row", gap: 10 }, boundaryCard: { flex: 1, minHeight: 160, justifyContent: "space-between" },
-  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 }, metricCard: { width: "48.6%", gap: 5, minHeight: 126 }, metricLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.8, marginTop: 4 }, metricValue: { fontSize: 15, lineHeight: 19, fontWeight: "900" }, metricDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" },
+  settingsButton: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1 }, pressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
+  hero: { borderRadius: 18, padding: 18, borderWidth: 1, gap: 16 },
+  heroCopy: { gap: 10 }, heroTitle: { fontSize: 26, lineHeight: 31, fontWeight: "900", letterSpacing: -0.7 }, heroDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500" },
+  heroRail: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 7, gap: 8 }, heroRailItem: { flexDirection: "row", alignItems: "center", gap: 5 }, heroRailText: { fontSize: 10, fontWeight: "800" }, heroRailDivider: { width: StyleSheet.hairlineWidth, height: 14 },
+  actionRow: { flexDirection: "row", gap: 8 }, primaryWrap: { flex: 1.4 }, secondaryWrap: { flex: 0.6 }, boundaryGrid: { flexDirection: "row", gap: 8 }, boundaryCard: { flex: 1, minHeight: 128, justifyContent: "space-between" },
+  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, metricCard: { width: "48.7%", gap: 4, minHeight: 112 }, metricLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8, marginTop: 3 }, metricValue: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, metricDetail: { fontSize: 10, lineHeight: 14, fontWeight: "600" },
   telemetryNotice: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: 1 }, telemetryNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, alertRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 3, marginTop: 2 }, alertCopy: { flex: 1, fontSize: 11, lineHeight: 15, fontWeight: "700" }, alertAction: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 }, alertActionText: { fontSize: 11, fontWeight: "900" },
   boundaryIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center" }, boundaryTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900", marginTop: 8 }, boundaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, countText: { fontSize: 12, fontWeight: "700", paddingBottom: 2 },
   eventCard: { paddingVertical: 2, gap: 0 }, emptyCard: { flexDirection: "row", alignItems: "center", gap: 12 }, eventRow: { flexDirection: "row", gap: 10, paddingVertical: 14, alignItems: "flex-start" },

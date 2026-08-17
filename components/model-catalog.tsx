@@ -16,7 +16,7 @@ const FILTERS: readonly { id: CatalogFilter; label: string }[] = [
   { id: "long-context", label: "Long context" },
 ];
 
-export function ModelCatalog({ provider, models, fetchedAt, selectedModel, loading, connection, onRefresh, onSelect, colors }: { provider: ModelProviderId; models: ModelCatalogEntry[]; fetchedAt: string | null; selectedModel: string; loading: boolean; connection: ProviderConnectionStatus; onRefresh: () => void; onSelect: (model: ModelCatalogEntry) => void; colors: CatalogColors }) {
+export function ModelCatalog({ provider, models, fetchedAt: _fetchedAt, selectedModel, loading, connection, onRefresh, onSelect, colors }: { provider: ModelProviderId; models: ModelCatalogEntry[]; fetchedAt: string | null; selectedModel: string; loading: boolean; connection: ProviderConnectionStatus; onRefresh: () => void; onSelect: (model: ModelCatalogEntry) => void; colors: CatalogColors }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<CatalogFilter>("all");
   const { toggleFavoriteModel, isFavoriteModel } = usePocketHermes();
@@ -24,15 +24,9 @@ export function ModelCatalog({ provider, models, fetchedAt, selectedModel, loadi
   const filteredModels = useMemo(() => filterModelCatalog(models, query, filter), [models, query, filter]);
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={styles.header}>
-        <View style={styles.headingCopy}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>MODEL CATALOG ({models.length})</Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>Select {provider.toUpperCase()} Model</Text>
-          <Text style={[styles.detail, { color: colors.muted }]}>
-            {fetchedAt ? `Catalog fetched ${fetchedAt}` : "Connect your token and refresh to discover available models"}
-          </Text>
-        </View>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.foreground }]}>{models.length ? `${models.length} ${provider.toUpperCase()} models` : `${provider.toUpperCase()} models`}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Refresh model catalog"
@@ -109,7 +103,7 @@ export function ModelCatalog({ provider, models, fetchedAt, selectedModel, loadi
                     <Text numberOfLines={1} style={[styles.modelId, { color: colors.foreground }]}>
                       {item.id}
                     </Text>
-                    <Text style={[styles.modelMeta, { color: colors.muted }]}>
+                      <Text numberOfLines={1} style={[styles.modelMeta, { color: colors.muted }]}>
                       {item.ownedBy ?? "Provider model"}
                       {item.contextWindow ? ` · ${item.contextWindow.toLocaleString()} context` : ""}
                       {item.capabilities?.length ? ` · ${item.capabilities.slice(0, 2).join(", ")}` : ""}
@@ -144,21 +138,21 @@ export function ModelCatalog({ provider, models, fetchedAt, selectedModel, loadi
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 18, padding: 14, gap: 12 },
-  header: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  card: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 10 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   headingCopy: { flex: 1, gap: 3 },
   eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
-  title: { fontSize: 16, fontWeight: "900" },
+  title: { flex: 1, fontSize: 15, fontWeight: "900" },
   detail: { fontSize: 11, lineHeight: 16, fontWeight: "600" },
-  refresh: { width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  searchBox: { minHeight: 45, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
+  refresh: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  searchBox: { minHeight: 42, borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8 },
   searchInput: { flex: 1, minHeight: 42, paddingVertical: 0, fontSize: 13, fontWeight: "600" },
   filterRow: { gap: 7 },
-  filterChip: { minHeight: 31, borderWidth: 1, borderRadius: 10, paddingHorizontal: 11, justifyContent: "center" },
+  filterChip: { minHeight: 29, borderWidth: 1, borderRadius: 9, paddingHorizontal: 10, justifyContent: "center" },
   filterText: { fontSize: 10, fontWeight: "900" },
-  row: { minHeight: 58, borderTopWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 9 },
+  row: { minHeight: 54, borderTopWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
   rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  modelIcon: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  modelIcon: { width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   rowCopy: { flex: 1, gap: 3 },
   modelId: { fontSize: 13, fontWeight: "900" },
   modelMeta: { fontSize: 10, fontWeight: "600" },

@@ -47,13 +47,8 @@ export default function FavoritesScreen() {
     <ScreenContainer edges={["top", "left", "right"]} className="p-5">
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
-          <View style={[styles.heroIcon, { backgroundColor: `${colors.primary}18` }]}>
-            <MaterialIcons name="bookmark" size={26} color={colors.primary} />
-          </View>
-          <Text style={[styles.heroTitle, { color: colors.foreground }]}>Model Favorites</Text>
-          <Text style={[styles.heroSubtitle, { color: colors.muted }]}>
-            Bookmark preferred AI models from the provider catalog for quick review and one-tap host assignment.
-          </Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>MODEL CATALOG</Text>
+          <Text style={[styles.heroTitle, { color: colors.foreground }]}>Favorites</Text>
         </View>
 
         {errorMsg ? (
@@ -66,7 +61,7 @@ export default function FavoritesScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.cardHeader}>
             <Text style={[styles.eyebrow, { color: colors.primary }]}>BOOKMARKED MODELS</Text>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{favoriteModels.length} Favorites saved</Text>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{favoriteModels.length} saved models</Text>
           </View>
 
           {favoriteModels.length ? (
@@ -136,19 +131,17 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, gap: 16, paddingBottom: 32 },
-  hero: { alignItems: "center", gap: 8, paddingVertical: 12 },
-  heroIcon: { width: 52, height: 52, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  heroTitle: { fontSize: 22, fontWeight: "900", textAlign: "center" },
-  heroSubtitle: { fontSize: 13, lineHeight: 18, textAlign: "center", fontWeight: "600", maxWidth: 320 },
+  container: { flexGrow: 1, gap: 14, paddingBottom: 30 },
+  hero: { gap: 3, paddingTop: 2 },
+  heroTitle: { fontSize: 25, lineHeight: 30, fontWeight: "900", letterSpacing: -0.55 },
   banner: { borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 8 },
   bannerText: { flex: 1, fontSize: 12, fontWeight: "700" },
-  card: { borderWidth: 1, borderRadius: 18, padding: 14, gap: 12 },
+  card: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 10 },
   cardHeader: { gap: 3 },
   eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
   cardTitle: { fontSize: 16, fontWeight: "900" },
-  row: { minHeight: 64, borderTopWidth: 1, flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
-  modelIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  row: { minHeight: 58, borderTopWidth: 1, flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 9 },
+  modelIcon: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   rowCopy: { flex: 1, gap: 3 },
   modelId: { fontSize: 13, fontWeight: "900" },
   modelMeta: { fontSize: 10, fontWeight: "600" },

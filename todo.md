@@ -156,3 +156,6 @@
 - [x] Add loading spinner animation to provider connection test button
 - [x] Automatically fetch and populate model catalog after successful connection test for all providers
 - [x] Validate updated provider flow with deterministic tests and TypeScript check
+- [x] Audit core screens and remove redundant visual elements for a minimal interface
+- [x] Apply the focused visual system to the host dashboard, settings, setup, and provider flow
+- [x] Verify responsive mobile layouts and validate the minimal GUI refinement

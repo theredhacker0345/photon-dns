@@ -14,7 +14,7 @@ export function PressableCard({ children, onPress, style }: { children: ReactNod
   );
 }
 
-export function PageHeader({ eyebrow, title, detail, icon }: { eyebrow: string; title: string; detail: string; icon: keyof typeof MaterialIcons.glyphMap }) {
+export function PageHeader({ eyebrow, title, detail }: { eyebrow: string; title: string; detail: string; icon: keyof typeof MaterialIcons.glyphMap }) {
   const colors = useColors();
   return (
     <View style={styles.pageHeader}>
@@ -22,9 +22,6 @@ export function PageHeader({ eyebrow, title, detail, icon }: { eyebrow: string; 
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{eyebrow}</Text>
         <Text style={[styles.pageTitle, { color: colors.foreground }]}>{title}</Text>
         <Text style={[styles.pageDetail, { color: colors.muted }]}>{detail}</Text>
-      </View>
-      <View style={[styles.pageIcon, { backgroundColor: `${colors.primary}16`, borderColor: `${colors.primary}26` }]}>
-        <MaterialIcons name={icon} size={22} color={colors.primary} />
       </View>
     </View>
   );
@@ -67,13 +64,12 @@ export function SecondaryButton({ label, icon, onPress, danger = false, disabled
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 24, padding: 18, gap: 12 },
+  card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.975 }] },
-  pageHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 16 },
-  pageHeaderCopy: { flex: 1, gap: 5 },
-  pageTitle: { fontSize: 29, lineHeight: 34, fontWeight: "900", letterSpacing: -0.75 },
-  pageDetail: { fontSize: 14, lineHeight: 20, fontWeight: "500", maxWidth: 308 },
-  pageIcon: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", borderWidth: 1, marginTop: 2 },
+  pageHeader: { alignItems: "flex-start" },
+  pageHeaderCopy: { gap: 3 },
+  pageTitle: { fontSize: 25, lineHeight: 30, fontWeight: "900", letterSpacing: -0.55 },
+  pageDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500", maxWidth: 330 },
   pill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", borderRadius: 20, paddingHorizontal: 11, paddingVertical: 7, gap: 7 },
   dot: { width: 7, height: 7, borderRadius: 4 },
   pillText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },
@@ -81,9 +77,9 @@ const styles = StyleSheet.create({
   headingCopy: { gap: 3, flexShrink: 1 },
   eyebrow: { fontSize: 11, letterSpacing: 1.1, fontWeight: "800" },
   sectionTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
-  primaryButton: { minHeight: 52, borderRadius: 17, paddingHorizontal: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  primaryButton: { minHeight: 50, borderRadius: 14, paddingHorizontal: 15, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
-  secondaryButton: { minHeight: 48, borderRadius: 16, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderWidth: 1 },
+  secondaryButton: { minHeight: 44, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderWidth: 1 },
   secondaryButtonText: { fontSize: 14, fontWeight: "800" },
   disabled: { opacity: 0.5 },
 });
