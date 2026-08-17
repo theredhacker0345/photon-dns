@@ -198,4 +198,4 @@
 - [x] Add a compact dashboard chart for CPU, RAM, and private workspace history
 - [x] Add Settings controls for warning and critical alert percentages
 - [x] Add deterministic history and threshold-policy regression coverage
-- [ ] Validate, checkpoint, and publish the resource-history and threshold update to GitLab
+- [x] Validate, checkpoint, and publish the resource-history and threshold update to GitLab
