@@ -55,6 +55,7 @@ class PocketHermesSupervisorService : Service() {
   @Volatile private var lastRecoveryAt = 0L
   @Volatile private var consecutiveCpuLimitBreaches = 0
   @Volatile private var resourceLimitReason: String? = null
+  @Volatile private var lastPolicyWarning: String? = null
 
   override fun onCreate() {
     super.onCreate()
@@ -101,6 +102,7 @@ class PocketHermesSupervisorService : Service() {
     val policyBlock = hostPolicyBlock(config)
     if (policyBlock != null) {
       SupervisorRuntimeState.markDegraded(policyBlock)
+      publishPolicyWarning(policyBlock)
       stopSelf(startId)
       return START_NOT_STICKY
     }
@@ -108,6 +110,7 @@ class PocketHermesSupervisorService : Service() {
     activeConfig = config
     consecutiveCpuLimitBreaches = 0
     resourceLimitReason = null
+    lastPolicyWarning = null
     startWorker(config)
     return START_STICKY
   }
@@ -123,7 +126,7 @@ class PocketHermesSupervisorService : Service() {
 
   private fun createChannel() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      val channel = NotificationChannel(
+      val hostChannel = NotificationChannel(
         CHANNEL_ID,
         "Pocket Agent Host host",
         NotificationManager.IMPORTANCE_LOW,
@@ -131,7 +134,15 @@ class PocketHermesSupervisorService : Service() {
         description = "Visible while Pocket Agent Host supervises the private agent host."
         setShowBadge(false)
       }
-      getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+      val policyChannel = NotificationChannel(
+        POLICY_ALERT_CHANNEL_ID,
+        "Pocket Agent Host safety alerts",
+        NotificationManager.IMPORTANCE_HIGH,
+      ).apply {
+        description = "Host battery and storage warnings that require owner attention."
+        setShowBadge(false)
+      }
+      getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(hostChannel, policyChannel))
     }
   }
 
@@ -155,6 +166,35 @@ class PocketHermesSupervisorService : Service() {
       .setSmallIcon(android.R.drawable.stat_notify_sync)
       .setOngoing(true)
       .build()
+  }
+
+  /**
+   * React alert hooks exist only while the UI is mounted. The foreground
+   * service therefore emits its own owner-visible warning for unattended hosts.
+   */
+  private fun publishPolicyWarning(message: String) {
+    if (message == lastPolicyWarning) return
+    lastPolicyWarning = message
+    val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      Notification.Builder(this, POLICY_ALERT_CHANNEL_ID)
+    } else {
+      @Suppress("DEPRECATION")
+      Notification.Builder(this)
+    }
+    val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+    if (launchIntent != null) {
+      val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      builder.setContentIntent(PendingIntent.getActivity(this, POLICY_ALERT_NOTIFICATION_ID, launchIntent, flags))
+    }
+    getSystemService(NotificationManager::class.java).notify(
+      POLICY_ALERT_NOTIFICATION_ID,
+      builder
+        .setContentTitle("Pocket Agent Host needs attention")
+        .setContentText(message)
+        .setSmallIcon(android.R.drawable.stat_notify_error)
+        .setAutoCancel(true)
+        .build(),
+    )
   }
 
   private fun startWorker(config: PocketHermesWorkerConfig) {
@@ -191,11 +231,32 @@ class PocketHermesSupervisorService : Service() {
     if (privateWorkspaceBytes() > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
     if (processPssBytes() > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
     if (!config.chargingAware) return null
-    val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-      ?: return "host policy blocked runtime: charging state unavailable"
+    val battery = currentBatterySnapshot() ?: return "host policy blocked runtime: charging state unavailable"
+    return if (battery.isCharging) null else "host policy blocked runtime: device is not charging"
+  }
+
+  private data class BatterySnapshot(val percent: Int?, val isCharging: Boolean)
+
+  private fun currentBatterySnapshot(): BatterySnapshot? {
+    val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return null
     val status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
     val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
-    return if (charging) null else "host policy blocked runtime: device is not charging"
+    val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+    val scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+    val percent = if (level >= 0 && scale > 0) (level * 100 / scale).coerceIn(0, 100) else null
+    return BatterySnapshot(percent, charging)
+  }
+
+  /** Warning-only policy signal for the active foreground host. */
+  private fun hostPolicyWarning(config: PocketHermesWorkerConfig): String? {
+    if (filesDir.usableSpace < config.minimumFreeStorageBytes) {
+      return "Free storage is below the configured host reserve. The host will stop safely."
+    }
+    val battery = currentBatterySnapshot()
+    if (!config.chargingAware && battery?.isCharging == false && battery.percent != null && battery.percent <= config.lowBatteryPercent) {
+      return "Battery is at ${battery.percent}%. Connect power or enable charging-aware host mode."
+    }
+    return null
   }
 
   /** Enforces only this host process and its app-private workspace, never device-wide resources. */
@@ -259,6 +320,12 @@ class PocketHermesSupervisorService : Service() {
         health.optLong("lastHeartbeatAt", 0L).takeIf { it > 0L },
       )
       activeConfig?.let { config ->
+        hostPolicyBlock(config)?.let { reason ->
+          publishPolicyWarning(reason)
+          stopForResourceLimit(reason)
+          return
+        }
+        hostPolicyWarning(config)?.let(::publishPolicyWarning)
         resourceLimitBlock(config)?.let { reason ->
           stopForResourceLimit(reason)
           return
@@ -378,6 +445,8 @@ class PocketHermesSupervisorService : Service() {
   companion object {
     private const val CHANNEL_ID = "pocket_hermes_host"
     private const val NOTIFICATION_ID = 2217
+    private const val POLICY_ALERT_CHANNEL_ID = "pocket_hermes_safety"
+    private const val POLICY_ALERT_NOTIFICATION_ID = 2218
     private const val WORKER_PREFERENCES = "pocket-hermes-worker"
     private const val PREF_TELEGRAM_TOKEN = "telegram-token"
     private const val PREF_OWNER_CHAT_ID = "owner-chat-id"

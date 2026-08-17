@@ -49,6 +49,16 @@ describe("native Android host declaration contract", () => {
     expect(service).toContain("EXTRA_MINIMUM_FREE_STORAGE_BYTES");
   });
 
+  it("rechecks active charging and storage policy and emits native owner-visible safety warnings", () => {
+    const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
+    expect(service).toContain("hostPolicyBlock(config)?.let");
+    expect(service).toContain("private fun hostPolicyWarning(config: PocketHermesWorkerConfig)");
+    expect(service).toContain("config.lowBatteryPercent");
+    expect(service).toContain("POLICY_ALERT_CHANNEL_ID");
+    expect(service).toContain("publishPolicyWarning");
+    expect(service).toContain("createNotificationChannels(listOf(hostChannel, policyChannel))");
+  });
+
   it("threads bounded CPU, RAM, and private-workspace guardrails through the Android supervisor", () => {
     const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
     const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");

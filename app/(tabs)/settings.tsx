@@ -9,7 +9,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import { useSupervisorTelemetry } from "@/hooks/use-supervisor-telemetry";
-import type { ModelProviderId } from "@/lib/host-contracts";
+import { defaultHostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
 import type { McpAuthMode } from "@/lib/mcp-contracts";
 import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
@@ -30,6 +30,8 @@ export default function SettingsScreen() {
   const [token, setToken] = useState("");
   const [chargingAware, setChargingAware] = useState(config.policy.chargingAware);
   const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
+  const [lowBatteryPercent, setLowBatteryPercent] = useState(String(config.policy.lowBatteryPercent));
+  const [minimumFreeStorageMb, setMinimumFreeStorageMb] = useState(String(Math.round(config.policy.minimumFreeStorageBytes / (1024 * 1024))));
   const [maximumCpuPercent, setMaximumCpuPercent] = useState(String(config.policy.maximumCpuPercent));
   const [maximumProcessRamMb, setMaximumProcessRamMb] = useState(String(Math.round(config.policy.maximumProcessRamBytes / (1024 * 1024))));
   const [maximumWorkspaceMb, setMaximumWorkspaceMb] = useState(String(Math.round(config.policy.maximumWorkspaceBytes / (1024 * 1024))));
@@ -48,6 +50,8 @@ export default function SettingsScreen() {
   const [mcpResult, setMcpResult] = useState<{ ok: boolean; message: string } | null>(null);
   const editingResourcePolicy = {
     ...config.policy,
+    lowBatteryPercent: Number(lowBatteryPercent),
+    minimumFreeStorageBytes: Number(minimumFreeStorageMb) * 1024 * 1024,
     maximumCpuPercent: Number(maximumCpuPercent),
     maximumProcessRamBytes: Number(maximumProcessRamMb) * 1024 * 1024,
     maximumWorkspaceBytes: Number(maximumWorkspaceMb) * 1024 * 1024,
@@ -85,6 +89,8 @@ export default function SettingsScreen() {
         ...config.policy,
         chargingAware,
         restartAfterBoot,
+        lowBatteryPercent: Number(lowBatteryPercent),
+        minimumFreeStorageBytes: Number(minimumFreeStorageMb) * 1024 * 1024,
         maximumCpuPercent: Number(maximumCpuPercent),
         maximumProcessRamBytes: Number(maximumProcessRamMb) * 1024 * 1024,
         maximumWorkspaceBytes: Number(maximumWorkspaceMb) * 1024 * 1024,
@@ -256,7 +262,7 @@ export default function SettingsScreen() {
         <SecondaryButton label={testingModel ? "Testing saved model…" : "Test saved model endpoint"} icon="network-check" onPress={testingModel ? () => undefined : verifyModel} />
 
         <SectionHeading eyebrow="RUNTIME POLICY" title="Host behavior" />
-        <PressableCard style={styles.settingRow}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Charging-aware host mode</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>The runtime can refuse long work when the device is not ready for a 24/7 session.</Text></View><Switch value={chargingAware} onValueChange={setChargingAware} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={chargingAware ? colors.success : colors.muted} /></PressableCard>
+        <PressableCard style={styles.settingRow}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Charging-aware host mode</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>The native host stops safely if power is removed while this protection is enabled.</Text></View><Switch value={chargingAware} onValueChange={setChargingAware} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={chargingAware ? colors.success : colors.muted} /></PressableCard>
         <PressableCard style={styles.settingRow}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Restart host after boot</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>When enabled, the Android boot receiver restarts the foreground host only after the device unlocks.</Text></View><Switch value={restartAfterBoot} onValueChange={setRestartAfterBoot} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={restartAfterBoot ? colors.success : colors.muted} /></PressableCard>
 
         <PressableCard style={styles.resourceCard}>
@@ -267,13 +273,15 @@ export default function SettingsScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="Apply recommended resource limits" onPress={applyRecommendedLimits} style={({ pressed }) => [styles.recommendationButton, { borderColor: colors.primary, backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="auto-fix-high" size={16} color={colors.primary} /><Text style={[styles.recommendationButtonText, { color: colors.primary }]}>Apply</Text></Pressable>
           </View>
             <View style={styles.resourceFields}>
+            <View style={styles.resourceField}><Label text="Battery warning · %" color={colors.muted} /><TextInput value={lowBatteryPercent} onChangeText={setLowBatteryPercent} keyboardType="number-pad" maxLength={2} placeholder={String(defaultHostRuntimePolicy.lowBatteryPercent)} placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
+            <View style={styles.resourceField}><Label text="Free storage reserve · MB" color={colors.muted} /><TextInput value={minimumFreeStorageMb} onChangeText={setMinimumFreeStorageMb} keyboardType="number-pad" maxLength={4} placeholder={String(defaultHostRuntimePolicy.minimumFreeStorageBytes / (1024 * 1024))} placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="CPU guard · %" color={colors.muted} /><TextInput value={maximumCpuPercent} onChangeText={setMaximumCpuPercent} keyboardType="number-pad" maxLength={2} placeholder="65" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="RAM guard · MB" color={colors.muted} /><TextInput value={maximumProcessRamMb} onChangeText={setMaximumProcessRamMb} keyboardType="number-pad" maxLength={4} placeholder="512" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="Workspace quota · MB" color={colors.muted} /><TextInput value={maximumWorkspaceMb} onChangeText={setMaximumWorkspaceMb} keyboardType="number-pad" maxLength={4} placeholder="512" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="Visual warning · %" color={colors.muted} /><TextInput value={warningThresholdPercent} onChangeText={setWarningThresholdPercent} keyboardType="number-pad" maxLength={2} placeholder="80" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="Visual critical · %" color={colors.muted} /><TextInput value={criticalThresholdPercent} onChangeText={setCriticalThresholdPercent} keyboardType="number-pad" maxLength={2} placeholder="95" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
           </View>
-          <Text style={[styles.helper, { color: colors.muted }]}>Choose warnings from 50–90% and a critical alert above it (up to 99%). These visual alerts do not change Android enforcement: CPU is sustained, while RAM and workspace breaches stop or refuse work immediately.</Text>
+          <Text style={[styles.helper, { color: colors.muted }]}>Battery warning accepts 5–80%. The free-storage reserve must be at least 512 MB. With charging-aware mode off, the Android host sends a native warning at the battery threshold; crossing the storage reserve, a RAM/workspace limit, or a sustained CPU limit stops or refuses work safely.</Text>
           {resourceWarnings.length ? <View style={[styles.resourceWarning, { backgroundColor: `${resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning}14`, borderColor: `${resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning}52` }]}><MaterialIcons name="warning-amber" size={19} color={resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning} /><View style={styles.warningCopy}>{resourceWarnings.map((warning) => <View key={warning.resource}><Text style={[styles.warningTitle, { color: warning.severity === "critical" ? colors.error : colors.warning }]}>{warning.title}</Text><Text style={[styles.warningDetail, { color: colors.muted }]}>{warning.detail}</Text></View>)}</View></View> : null}
         </PressableCard>
 
