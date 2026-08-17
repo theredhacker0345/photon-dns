@@ -186,3 +186,9 @@
 - [x] Enforce resource limits in the Android supervisor and embedded worker lifecycle
 - [x] Add deterministic resource-policy and enforcement regression coverage
 - [x] Validate, checkpoint, and publish the resource-control update to GitLab
+- [x] Audit capacity telemetry for hardware-aware resource recommendations
+- [x] Define conservative warning thresholds and recommended-limit calculations
+- [x] Add visual near-limit warnings for CPU, RAM, and private workspace storage
+- [x] Add a Settings recommended-limits preset based on live device capacity
+- [x] Add deterministic warning and recommendation-policy regression coverage
+- [ ] Validate, checkpoint, and publish the warning and recommendation update to GitLab

@@ -8,6 +8,7 @@ import com.chaquo.python.android.AndroidPlatform
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.json.JSONObject
+import java.io.File
 
 class PocketHermesSupervisorModule : Module() {
   override fun definition() = ModuleDefinition {
@@ -27,8 +28,11 @@ class PocketHermesSupervisorModule : Module() {
       mapOf(
         "agentStatus" to if (SupervisorRuntimeState.isRunning) SupervisorRuntimeState.workerStatus else "stopped",
         "cpuPercent" to SupervisorRuntimeState.sampleCpuPercent(),
+        "cpuCoreCount" to Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
         "ramUsedBytes" to usedBytes,
         "ramTotalBytes" to memoryInfo.totalMem,
+        "storageFreeBytes" to context.filesDir.usableSpace.coerceAtLeast(0L),
+        "workspaceUsedBytes" to directoryBytes(File(context.filesDir, "pocket-hermes/runtime")),
         "sampledAt" to System.currentTimeMillis().toString(),
       )
     }
@@ -242,6 +246,12 @@ class PocketHermesSupervisorModule : Module() {
     worker.callAttr("set_storage_root", java.io.File(context.filesDir, "pocket-hermes/runtime").apply { mkdirs() }.absolutePath)
     }
   }
+
+  /** Reads only the app-private Hermes runtime directory; no shared storage is inspected. */
+  private fun directoryBytes(directory: File): Long = directory
+    .walkTopDown()
+    .filter { it.isFile }
+    .sumOf { file -> runCatching { file.length() }.getOrDefault(0L) }
 
   private fun scheduleMap(schedule: JSONObject): Map<String, Any?> = mapOf(
     "id" to schedule.optString("id"),

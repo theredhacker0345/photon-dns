@@ -8,16 +8,19 @@ import { PageHeader, PressableCard, PrimaryButton, RuntimePill, SectionHeading, 
 import { ScreenContainer } from "@/components/screen-container";
 import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
+import { useSupervisorTelemetry } from "@/hooks/use-supervisor-telemetry";
 import type { ModelProviderId } from "@/lib/host-contracts";
 import type { McpAuthMode } from "@/lib/mcp-contracts";
 import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
+import { getRecommendedResourceLimits, getResourceLimitWarnings } from "@/lib/resource-guardrails";
 import { useThemeContext } from "@/lib/theme-provider";
 
 export default function SettingsScreen() {
   const colors = useColors();
   const { themeId, setThemeId } = useThemeContext();
   const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
+  const { telemetry } = useSupervisorTelemetry();
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
   const [modelProvider, setModelProvider] = useState<ModelProviderId>(config.modelProvider);
@@ -41,6 +44,14 @@ export default function SettingsScreen() {
   const [mcpCredential, setMcpCredential] = useState("");
   const [savingMcp, setSavingMcp] = useState(false);
   const [mcpResult, setMcpResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const editingResourcePolicy = {
+    ...config.policy,
+    maximumCpuPercent: Number(maximumCpuPercent),
+    maximumProcessRamBytes: Number(maximumProcessRamMb) * 1024 * 1024,
+    maximumWorkspaceBytes: Number(maximumWorkspaceMb) * 1024 * 1024,
+  };
+  const resourceWarnings = getResourceLimitWarnings({ telemetry, policy: editingResourcePolicy });
+  const recommendedLimits = getRecommendedResourceLimits({ telemetry, policy: config.policy });
 
   useEffect(() => {
     const stale = !modelCatalogFetchedAt || Date.now() - new Date(modelCatalogFetchedAt).getTime() > 6 * 60 * 60 * 1000;
@@ -139,6 +150,17 @@ export default function SettingsScreen() {
     Alert.alert(result.ok ? "Model endpoint verified" : "Model endpoint needs attention", result.message);
   };
 
+  const applyRecommendedLimits = () => {
+    if (!recommendedLimits) {
+      Alert.alert("Android capacity required", "Install Pocket Agent Host on the dedicated Android phone and wait for a native capacity sample before applying recommendations.");
+      return;
+    }
+    setMaximumCpuPercent(String(recommendedLimits.maximumCpuPercent));
+    setMaximumProcessRamMb(String(Math.round(recommendedLimits.maximumProcessRamBytes / (1024 * 1024))));
+    setMaximumWorkspaceMb(String(Math.round(recommendedLimits.maximumWorkspaceBytes / (1024 * 1024))));
+    Alert.alert("Recommended limits applied", "Review the values, then choose Save protected setup to apply them to the Android supervisor.");
+  };
+
   const verifyMcp = async () => {
     setSavingMcp(true);
     setMcpResult(null);
@@ -234,12 +256,17 @@ export default function SettingsScreen() {
         <PressableCard style={styles.resourceCard}>
           <View style={styles.securityHeader}><View style={[styles.lockIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name="tune" size={18} color={colors.primary} /></View><Text style={[styles.securityTitle, { color: colors.foreground }]}>Host resource guardrails</Text></View>
           <Text style={[styles.helper, { color: colors.muted }]}>These limits supervise only Pocket Agent Host’s private process and workspace. They do not expose a terminal, install packages, or give the model access to the rest of your phone.</Text>
+          <View style={[styles.recommendationCard, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35` }]}>
+            <View style={styles.recommendationCopy}><Text style={[styles.recommendationTitle, { color: colors.foreground }]}>Recommended for this phone</Text><Text style={[styles.recommendationDetail, { color: colors.muted }]}>{recommendedLimits ? `${recommendedLimits.deviceSummary}. Conservative limits leave room for Android.` : "Available after the installed Android host reports this phone’s capacity."}</Text></View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Apply recommended resource limits" onPress={applyRecommendedLimits} style={({ pressed }) => [styles.recommendationButton, { borderColor: colors.primary, backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="auto-fix-high" size={16} color={colors.primary} /><Text style={[styles.recommendationButtonText, { color: colors.primary }]}>Apply</Text></Pressable>
+          </View>
           <View style={styles.resourceFields}>
             <View style={styles.resourceField}><Label text="CPU guard · %" color={colors.muted} /><TextInput value={maximumCpuPercent} onChangeText={setMaximumCpuPercent} keyboardType="number-pad" maxLength={2} placeholder="65" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="RAM guard · MB" color={colors.muted} /><TextInput value={maximumProcessRamMb} onChangeText={setMaximumProcessRamMb} keyboardType="number-pad" maxLength={4} placeholder="512" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="Workspace quota · MB" color={colors.muted} /><TextInput value={maximumWorkspaceMb} onChangeText={setMaximumWorkspaceMb} keyboardType="number-pad" maxLength={4} placeholder="512" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
           </View>
           <Text style={[styles.helper, { color: colors.muted }]}>CPU is a sustained guard: the host stops after three consecutive 15-second samples above the target. RAM and workspace breaches stop or refuse new work immediately; local data is never deleted automatically.</Text>
+          {resourceWarnings.length ? <View style={[styles.resourceWarning, { backgroundColor: `${resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning}14`, borderColor: `${resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning}52` }]}><MaterialIcons name="warning-amber" size={19} color={resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning} /><View style={styles.warningCopy}>{resourceWarnings.map((warning) => <View key={warning.resource}><Text style={[styles.warningTitle, { color: warning.severity === "critical" ? colors.error : colors.warning }]}>{warning.title}</Text><Text style={[styles.warningDetail, { color: colors.muted }]}>{warning.detail}</Text></View>)}</View></View> : null}
         </PressableCard>
 
         <PressableCard style={styles.runtimeGuide}><View style={[styles.guideIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name="terminal" size={20} color={colors.primary} /></View><View style={styles.guideCopy}><Text style={[styles.guideTitle, { color: colors.foreground }]}>No separate terminal</Text><Text style={[styles.guideDetail, { color: colors.muted }]}>The production build privately embeds and supervises the Hermes runtime. Termux does not appear on the phone.</Text></View></PressableCard>
@@ -290,5 +317,5 @@ function Label({ text, color }: { text: string; color: string }) { return <Text 
 const styles = StyleSheet.create({
   content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" },
-  settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });

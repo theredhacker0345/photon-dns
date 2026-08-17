@@ -68,6 +68,15 @@ describe("native Android host declaration contract", () => {
     expect(worker).toContain("def _normalize_maximum_workspace_bytes(");
   });
 
+  it("exposes only app-private capacity telemetry for guardrail warnings and recommendations", () => {
+    const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
+    expect(module).toContain('"cpuCoreCount"');
+    expect(module).toContain('"storageFreeBytes"');
+    expect(module).toContain('"workspaceUsedBytes"');
+    expect(module).toContain('File(context.filesDir, "pocket-hermes/runtime")');
+    expect(module).toContain("private fun directoryBytes");
+  });
+
   it("keeps worker health and diagnostics secret-free across the Python, Kotlin, and TypeScript boundary", () => {
     const worker = read("python/pocket_hermes_worker.py");
     const state = read("java/expo/modules/pockethermessupervisor/SupervisorRuntimeState.kt");

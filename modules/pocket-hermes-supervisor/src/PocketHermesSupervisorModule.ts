@@ -3,8 +3,11 @@ import { requireNativeModule } from "expo-modules-core";
 export type NativeSupervisorTelemetry = {
   agentStatus: "running" | "starting" | "degraded" | "stopped";
   cpuPercent: number;
+  cpuCoreCount: number;
   ramUsedBytes: number;
   ramTotalBytes: number;
+  storageFreeBytes: number;
+  workspaceUsedBytes: number;
   sampledAt: string;
 };
 

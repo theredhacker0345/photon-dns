@@ -1,8 +1,11 @@
 export type SupervisorTelemetry = {
   agentStatus: "running" | "starting" | "degraded" | "stopped";
   cpuPercent: number;
+  cpuCoreCount?: number;
   ramUsedBytes: number;
   ramTotalBytes: number;
+  storageFreeBytes?: number;
+  workspaceUsedBytes?: number;
   sampledAt: string;
   source: "native";
 };
@@ -12,8 +15,11 @@ export type SupervisorTelemetryStatus = "loading" | "sampling" | "live" | "stale
 type NativeTelemetryCandidate = {
   agentStatus?: unknown;
   cpuPercent?: unknown;
+  cpuCoreCount?: unknown;
   ramUsedBytes?: unknown;
   ramTotalBytes?: unknown;
+  storageFreeBytes?: unknown;
+  workspaceUsedBytes?: unknown;
   sampledAt?: unknown;
 };
 
@@ -30,6 +36,10 @@ function isFiniteNonNegative(value: unknown): value is number {
 
 function normalizeStatus(value: unknown): SupervisorTelemetry["agentStatus"] {
   return value === "running" || value === "starting" || value === "degraded" || value === "stopped" ? value : "degraded";
+}
+
+function optionalNonNegative(value: unknown): number | undefined {
+  return isFiniteNonNegative(value) ? value : undefined;
 }
 
 /**
@@ -53,8 +63,11 @@ export function normalizeSupervisorTelemetry(raw: unknown, fallbackSampledAt = n
   return {
     agentStatus: normalizeStatus(candidate.agentStatus),
     cpuPercent: Math.min(100, Math.round(candidate.cpuPercent)),
+    cpuCoreCount: optionalNonNegative(candidate.cpuCoreCount),
     ramUsedBytes: candidate.ramUsedBytes,
     ramTotalBytes: candidate.ramTotalBytes,
+    storageFreeBytes: optionalNonNegative(candidate.storageFreeBytes),
+    workspaceUsedBytes: optionalNonNegative(candidate.workspaceUsedBytes),
     sampledAt: normalizeSampledAt(candidate.sampledAt, fallbackSampledAt),
     source: "native",
   };
