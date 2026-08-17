@@ -135,3 +135,5 @@
 - [x] Add provider selection, protected AI API token entry, live model discovery, and refreshable model catalog
 - [x] Add provider connection latency and authentication status badge
 - [x] Add model catalog search and filter bar
+- [ ] Push the completed provider diagnostics and model-search update to GitLab and verify the remote commit
+- [ ] Treat GitLab push and remote verification as required completion criteria for each future source change
