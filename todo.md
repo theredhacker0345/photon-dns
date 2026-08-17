@@ -179,4 +179,4 @@
 - [x] Pin the reviewed embedded Python runtime closure and generate the SBOM from the Chaquopy release payload only
 - [x] Define bounded context-usage telemetry and a safe manual context-compression contract
 - [x] Add an Agent Console context-usage indicator and manual Compress context action
-- [ ] Validate, checkpoint, and publish the context-control update to GitLab
+- [x] Validate, checkpoint, and publish the context-control update to GitLab
