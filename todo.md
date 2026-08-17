@@ -70,13 +70,21 @@
 
 # Final Release and F-Droid Submission
 
-- [ ] Restore or provision the sandbox Android/Chaquopy build toolchain
-- [ ] Rebuild the pinned Android wheel artifacts
-- [ ] Generate the final ARM64 release APK
-- [ ] Validate APK size, SHA-256, package ID, version, and native worker contents
-- [ ] Prepare and validate the F-Droid submission checklist
-- [ ] Save a checkpoint containing the final release metadata and checklist
+- [x] Restore or provision the sandbox Android/Chaquopy build toolchain
+- [x] Rebuild the pinned Android wheel artifacts
+- [x] Generate the final ARM64 release APK
+- [x] Validate APK size, SHA-256, package ID, version, and native worker contents
+- [x] Prepare and validate the F-Droid submission checklist
+- [x] Save a checkpoint containing the final release metadata and checklist
 
-- [ ] Final APK build and F-Droid checklist requested by user on 2026-08-17
+- [x] Final APK build and F-Droid checklist requested by user on 2026-08-17
 
 **Note:** The sandbox reset removed the previous local Android SDK, CPython toolchain, and `.artifacts/wheels/`; these must be regenerated before the APK can be rebuilt.
+
+# APK Size Optimization
+
+- [x] Audit APK contents and identify largest avoidable payloads
+- [x] Research Chaquopy, ABI, and Android packaging size-reduction options
+- [x] Produce an arm64-v8a-only APK variant and measure the reduction
+- [x] Evaluate Python dependency pruning and release-resource shrinking
+- [x] Validate optimized APK and document trade-offs

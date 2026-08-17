@@ -1,25 +1,18 @@
-import { Href, Link } from "expo-router";
-import { openBrowserAsync, WebBrowserPresentationStyle } from "expo-web-browser";
-import { type ComponentProps } from "react";
+import { Link, type LinkProps } from "expo-router";
+import type { PropsWithChildren } from "react";
 
-type Props = Omit<ComponentProps<typeof Link>, "href"> & { href: Href & string };
-
-export function ExternalLink({ href, ...rest }: Props) {
+/**
+ * Lightweight external link wrapper. The control plane does not require the
+ * native in-app browser module; Expo Router delegates external navigation to
+ * the platform when the link is opened.
+ */
+export function ExternalLink({
+  href,
+  children,
+}: PropsWithChildren<Pick<LinkProps, "href">>) {
   return (
-    <Link
-      target="_blank"
-      {...rest}
-      href={href}
-      onPress={async (event) => {
-        if (process.env.EXPO_OS !== "web") {
-          // Prevent the default behavior of linking to the default browser on native.
-          event.preventDefault();
-          // Open the link in an in-app browser.
-          await openBrowserAsync(href, {
-            presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-          });
-        }
-      }}
-    />
+    <Link href={href} target="_blank">
+      {children}
+    </Link>
   );
 }
