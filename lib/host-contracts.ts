@@ -18,6 +18,10 @@ export type HostRuntimePolicy = {
   maximumProcessRamBytes: number;
   /** Private Hermes runtime-directory quota; no files are deleted automatically. */
   maximumWorkspaceBytes: number;
+  /** Display-only threshold for a visual near-limit warning. */
+  warningThresholdPercent: number;
+  /** Display-only threshold for a visual critical resource warning. */
+  criticalThresholdPercent: number;
 };
 
 export const defaultHostRuntimePolicy: HostRuntimePolicy = {
@@ -28,6 +32,8 @@ export const defaultHostRuntimePolicy: HostRuntimePolicy = {
   maximumCpuPercent: 65,
   maximumProcessRamBytes: 512 * 1024 * 1024,
   maximumWorkspaceBytes: 512 * 1024 * 1024,
+  warningThresholdPercent: 80,
+  criticalThresholdPercent: 95,
 };
 
 export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "kilo" | "custom";
@@ -121,7 +127,13 @@ export function isSafeRuntimePolicy(policy: HostRuntimePolicy) {
     && policy.maximumProcessRamBytes <= 8 * 1024 * 1024 * 1024
     && Number.isSafeInteger(policy.maximumWorkspaceBytes)
     && policy.maximumWorkspaceBytes >= 64 * 1024 * 1024
-    && policy.maximumWorkspaceBytes <= 8 * 1024 * 1024 * 1024;
+    && policy.maximumWorkspaceBytes <= 8 * 1024 * 1024 * 1024
+    && Number.isInteger(policy.warningThresholdPercent)
+    && policy.warningThresholdPercent >= 50
+    && policy.warningThresholdPercent <= 90
+    && Number.isInteger(policy.criticalThresholdPercent)
+    && policy.criticalThresholdPercent > policy.warningThresholdPercent
+    && policy.criticalThresholdPercent <= 99;
 }
 
 export function isTerminalTaskStatus(status: HostTaskStatus) {

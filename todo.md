@@ -192,3 +192,10 @@
 - [x] Add a Settings recommended-limits preset based on live device capacity
 - [x] Add deterministic warning and recommendation-policy regression coverage
 - [x] Validate, checkpoint, and publish the warning and recommendation update to GitLab
+- [x] Audit native telemetry polling and retained-state boundaries for dashboard history
+- [x] Define bounded resource-history sampling and owner-configurable warning-threshold policy
+- [x] Persist warning-threshold preferences through the host policy; alert thresholds remain display-only and do not require native enforcement handoff
+- [x] Add a compact dashboard chart for CPU, RAM, and private workspace history
+- [x] Add Settings controls for warning and critical alert percentages
+- [x] Add deterministic history and threshold-policy regression coverage
+- [ ] Validate, checkpoint, and publish the resource-history and threshold update to GitLab

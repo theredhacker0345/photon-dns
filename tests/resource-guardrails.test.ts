@@ -19,11 +19,15 @@ const telemetry: SupervisorTelemetry = {
 };
 
 describe("resource guardrail presentation", () => {
-  it("only warns when private process or workspace usage reaches the conservative 80% threshold", () => {
+  it("uses the owner-configured warning and critical threshold percentages", () => {
     const warnings = getResourceLimitWarnings({ telemetry, policy: defaultHostRuntimePolicy });
     expect(warnings.map((warning) => warning.resource)).toEqual(["cpu", "ram", "workspace"]);
     expect(warnings.find((warning) => warning.resource === "cpu")?.severity).toBe("warning");
     expect(warnings.find((warning) => warning.resource === "ram")?.severity).toBe("warning");
+    const delayedWarnings = getResourceLimitWarnings({ telemetry: { ...telemetry, ramUsedBytes: 400 * mib, workspaceUsedBytes: 440 * mib }, policy: { ...defaultHostRuntimePolicy, warningThresholdPercent: 90, criticalThresholdPercent: 95 } });
+    expect(delayedWarnings).toHaveLength(0);
+    const criticalWarnings = getResourceLimitWarnings({ telemetry: { ...telemetry, cpuPercent: 62 }, policy: { ...defaultHostRuntimePolicy, maximumCpuPercent: 65, warningThresholdPercent: 80, criticalThresholdPercent: 90 } });
+    expect(criticalWarnings.find((warning) => warning.resource === "cpu")?.severity).toBe("critical");
   });
 
   it("does not invent workspace pressure when Android has not supplied a private-workspace reading", () => {

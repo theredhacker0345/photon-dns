@@ -33,6 +33,8 @@ export default function SettingsScreen() {
   const [maximumCpuPercent, setMaximumCpuPercent] = useState(String(config.policy.maximumCpuPercent));
   const [maximumProcessRamMb, setMaximumProcessRamMb] = useState(String(Math.round(config.policy.maximumProcessRamBytes / (1024 * 1024))));
   const [maximumWorkspaceMb, setMaximumWorkspaceMb] = useState(String(Math.round(config.policy.maximumWorkspaceBytes / (1024 * 1024))));
+  const [warningThresholdPercent, setWarningThresholdPercent] = useState(String(config.policy.warningThresholdPercent));
+  const [criticalThresholdPercent, setCriticalThresholdPercent] = useState(String(config.policy.criticalThresholdPercent));
   const [saving, setSaving] = useState(false);
   const [testingModel, setTestingModel] = useState(false);
   const [testingProvider, setTestingProvider] = useState(false);
@@ -49,6 +51,8 @@ export default function SettingsScreen() {
     maximumCpuPercent: Number(maximumCpuPercent),
     maximumProcessRamBytes: Number(maximumProcessRamMb) * 1024 * 1024,
     maximumWorkspaceBytes: Number(maximumWorkspaceMb) * 1024 * 1024,
+    warningThresholdPercent: Number(warningThresholdPercent),
+    criticalThresholdPercent: Number(criticalThresholdPercent),
   };
   const resourceWarnings = getResourceLimitWarnings({ telemetry, policy: editingResourcePolicy });
   const recommendedLimits = getRecommendedResourceLimits({ telemetry, policy: config.policy });
@@ -84,6 +88,8 @@ export default function SettingsScreen() {
         maximumCpuPercent: Number(maximumCpuPercent),
         maximumProcessRamBytes: Number(maximumProcessRamMb) * 1024 * 1024,
         maximumWorkspaceBytes: Number(maximumWorkspaceMb) * 1024 * 1024,
+        warningThresholdPercent: Number(warningThresholdPercent),
+        criticalThresholdPercent: Number(criticalThresholdPercent),
       },
     });
     setSaving(false);
@@ -260,12 +266,14 @@ export default function SettingsScreen() {
             <View style={styles.recommendationCopy}><Text style={[styles.recommendationTitle, { color: colors.foreground }]}>Recommended for this phone</Text><Text style={[styles.recommendationDetail, { color: colors.muted }]}>{recommendedLimits ? `${recommendedLimits.deviceSummary}. Conservative limits leave room for Android.` : "Available after the installed Android host reports this phone’s capacity."}</Text></View>
             <Pressable accessibilityRole="button" accessibilityLabel="Apply recommended resource limits" onPress={applyRecommendedLimits} style={({ pressed }) => [styles.recommendationButton, { borderColor: colors.primary, backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="auto-fix-high" size={16} color={colors.primary} /><Text style={[styles.recommendationButtonText, { color: colors.primary }]}>Apply</Text></Pressable>
           </View>
-          <View style={styles.resourceFields}>
+            <View style={styles.resourceFields}>
             <View style={styles.resourceField}><Label text="CPU guard · %" color={colors.muted} /><TextInput value={maximumCpuPercent} onChangeText={setMaximumCpuPercent} keyboardType="number-pad" maxLength={2} placeholder="65" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="RAM guard · MB" color={colors.muted} /><TextInput value={maximumProcessRamMb} onChangeText={setMaximumProcessRamMb} keyboardType="number-pad" maxLength={4} placeholder="512" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
             <View style={styles.resourceField}><Label text="Workspace quota · MB" color={colors.muted} /><TextInput value={maximumWorkspaceMb} onChangeText={setMaximumWorkspaceMb} keyboardType="number-pad" maxLength={4} placeholder="512" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
+            <View style={styles.resourceField}><Label text="Visual warning · %" color={colors.muted} /><TextInput value={warningThresholdPercent} onChangeText={setWarningThresholdPercent} keyboardType="number-pad" maxLength={2} placeholder="80" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
+            <View style={styles.resourceField}><Label text="Visual critical · %" color={colors.muted} /><TextInput value={criticalThresholdPercent} onChangeText={setCriticalThresholdPercent} keyboardType="number-pad" maxLength={2} placeholder="95" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
           </View>
-          <Text style={[styles.helper, { color: colors.muted }]}>CPU is a sustained guard: the host stops after three consecutive 15-second samples above the target. RAM and workspace breaches stop or refuse new work immediately; local data is never deleted automatically.</Text>
+          <Text style={[styles.helper, { color: colors.muted }]}>Choose warnings from 50–90% and a critical alert above it (up to 99%). These visual alerts do not change Android enforcement: CPU is sustained, while RAM and workspace breaches stop or refuse work immediately.</Text>
           {resourceWarnings.length ? <View style={[styles.resourceWarning, { backgroundColor: `${resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning}14`, borderColor: `${resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning}52` }]}><MaterialIcons name="warning-amber" size={19} color={resourceWarnings.some((warning) => warning.severity === "critical") ? colors.error : colors.warning} /><View style={styles.warningCopy}>{resourceWarnings.map((warning) => <View key={warning.resource}><Text style={[styles.warningTitle, { color: warning.severity === "critical" ? colors.error : colors.warning }]}>{warning.title}</Text><Text style={[styles.warningDetail, { color: colors.muted }]}>{warning.detail}</Text></View>)}</View></View> : null}
         </PressableCard>
 

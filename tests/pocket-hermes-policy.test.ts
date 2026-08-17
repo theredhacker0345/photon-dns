@@ -28,10 +28,12 @@ describe("Pocket Agent Host host policy", () => {
     expect(normalizeHostName(" Old Phone ")).toBe("Old Phone");
   });
 
-  it("accepts only bounded CPU, RAM, and private-workspace resource guardrails", () => {
+  it("accepts only bounded resource guardrails and ordered visual alert thresholds", () => {
     expect(isSafeRuntimePolicy(defaultHostRuntimePolicy)).toBe(true);
     expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, maximumCpuPercent: 9 })).toBe(false);
     expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, maximumProcessRamBytes: 127 * 1024 * 1024 })).toBe(false);
     expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, maximumWorkspaceBytes: 63 * 1024 * 1024 })).toBe(false);
+    expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, warningThresholdPercent: 49 })).toBe(false);
+    expect(isSafeRuntimePolicy({ ...defaultHostRuntimePolicy, criticalThresholdPercent: 80 })).toBe(false);
   });
 });
