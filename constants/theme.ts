@@ -5,8 +5,16 @@
 export {
   Colors,
   Fonts,
+  getThemePalette,
+  getThemeTokenPalette,
+  isThemeId,
   SchemeColors,
+  ThemeDefinitions,
   ThemeColors,
+  ThemeOptions,
+  resolveThemeScheme,
   type ColorScheme,
+  type ThemeDefinition,
   type ThemeColorPalette,
+  type ThemeId,
 } from "@/lib/_core/theme";

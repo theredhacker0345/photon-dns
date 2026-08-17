@@ -1,18 +1,21 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
 import { ModelCatalog } from "@/components/model-catalog";
 import { ModelProviderPicker } from "@/components/model-provider-picker";
 import { PageHeader, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
+import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import type { ModelProviderId } from "@/lib/host-contracts";
 import { getProviderPreset, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
+import { useThemeContext } from "@/lib/theme-provider";
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const { themeId, setThemeId } = useThemeContext();
   const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection } = usePocketHermes();
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
@@ -118,6 +121,33 @@ export default function SettingsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}><PageHeader eyebrow="DEVICE CONTROL" title="Host settings" detail="Secure this phone before you let it host an agent from anywhere." icon="security" /><RuntimePill phase={phase} /></View>
 
+        <SectionHeading eyebrow="APPEARANCE" title="Theme" />
+        <PressableCard style={styles.themeCard}>
+          <View style={styles.themeSelector}>
+            {ThemeOptions.map((theme) => {
+              const selected = themeId === theme.id;
+              return (
+                <Pressable
+                  key={theme.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${theme.label} theme`}
+                  accessibilityState={{ selected }}
+                  onPress={() => setThemeId(theme.id)}
+                  style={({ pressed }) => [
+                    styles.themeOption,
+                    { backgroundColor: selected ? `${colors.primary}16` : colors.background, borderColor: selected ? colors.primary : colors.border },
+                    pressed && styles.themeOptionPressed,
+                  ]}
+                >
+                  <View style={[styles.themeDot, { backgroundColor: theme.previewColor }]} />
+                  <Text numberOfLines={1} style={[styles.themeOptionTitle, { color: selected ? colors.primary : colors.foreground }]}>{theme.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.helper, { color: colors.muted }]}>{ThemeOptions.find((theme) => theme.id === themeId)?.description}</Text>
+        </PressableCard>
+
         <SectionHeading eyebrow="IDENTITY" title="This phone" />
         <PressableCard style={[styles.formCard, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}22` }]}>
           <Label text="Host name" color={colors.muted} />
@@ -169,7 +199,7 @@ export default function SettingsScreen() {
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", gap: 7 }, themeOption: { flex: 1, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });

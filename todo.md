@@ -161,3 +161,6 @@
 - [x] Verify responsive mobile layouts and validate the minimal GUI refinement
 - [x] Restore managed web build script after checkpoint publication failure
 - [x] Recover the existing GitLab authentication path and verify publication of the minimal UI checkpoint
+- [x] Define and document the focused Pocket Agent Host theme palette choices
+- [x] Add a persistent theme selector to Settings and apply it across all screens
+- [x] Correct the static export cache failure and validate the themes update

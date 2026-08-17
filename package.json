@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "pnpm dev:metro",
     "dev:metro": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 npx expo start --web --port ${EXPO_PORT:-8081}",
-    "build": "expo export --platform web",
+    "build": "cross-env POCKET_AGENT_STATIC_EXPORT=1 expo export --platform web",
     "check": "tsc --noEmit",
     "lint": "expo lint",
     "format": "prettier --write .",

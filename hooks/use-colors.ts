@@ -1,12 +1,11 @@
-import { Colors, type ColorScheme, type ThemeColorPalette } from "@/constants/theme";
-import { useColorScheme } from "./use-color-scheme";
+import { Colors, getThemePalette, type ColorScheme, type ThemeColorPalette } from "@/constants/theme";
+import { useThemeContext } from "@/lib/theme-provider";
 
 /**
- * Returns the current theme's color palette.
- * Usage: const colors = useColors(); then colors.text, colors.background, etc.
+ * Returns the selected theme's runtime palette. An explicit light/dark override
+ * remains available for diagnostic previews.
  */
 export function useColors(colorSchemeOverride?: ColorScheme): ThemeColorPalette {
-  const colorSchema = useColorScheme();
-  const scheme = (colorSchemeOverride ?? colorSchema ?? "light") as ColorScheme;
-  return Colors[scheme];
+  const { colorScheme, themeId } = useThemeContext();
+  return colorSchemeOverride ? Colors[colorSchemeOverride] : getThemePalette(themeId, colorScheme);
 }

@@ -1,65 +1,90 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-native";
 import { colorScheme as nativewindColorScheme, vars } from "nativewind";
 
-import { SchemeColors, type ColorScheme } from "@/constants/theme";
+import {
+  getThemeTokenPalette,
+  isThemeId,
+  resolveThemeScheme,
+  type ColorScheme,
+  type ThemeId,
+} from "@/constants/theme";
+
+export const THEME_PREFERENCE_STORAGE_KEY = "pocket-agent-host.theme-preference.v1";
 
 type ThemeContextValue = {
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
+  themeId: ThemeId;
+  setThemeId: (themeId: ThemeId) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme() ?? "light";
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(systemScheme);
+  const [themeId, setThemeIdState] = useState<ThemeId>("system");
+  const colorScheme = resolveThemeScheme(themeId, systemScheme);
+  const themePalette = useMemo(() => getThemeTokenPalette(themeId, systemScheme), [systemScheme, themeId]);
 
-  const applyScheme = useCallback((scheme: ColorScheme) => {
+  useEffect(() => {
+    let mounted = true;
+    void AsyncStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)
+      .then((storedTheme) => {
+        if (mounted && isThemeId(storedTheme)) setThemeIdState(storedTheme);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const applyTheme = useCallback((scheme: ColorScheme, palette: typeof themePalette) => {
     nativewindColorScheme.set(scheme);
     Appearance.setColorScheme?.(scheme);
     if (typeof document !== "undefined") {
       const root = document.documentElement;
       root.dataset.theme = scheme;
       root.classList.toggle("dark", scheme === "dark");
-      const palette = SchemeColors[scheme];
       Object.entries(palette).forEach(([token, value]) => {
         root.style.setProperty(`--color-${token}`, value);
       });
     }
   }, []);
 
+  const setThemeId = useCallback((nextThemeId: ThemeId) => {
+    setThemeIdState(nextThemeId);
+    void AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, nextThemeId).catch(() => undefined);
+  }, []);
+
   const setColorScheme = useCallback((scheme: ColorScheme) => {
-    setColorSchemeState(scheme);
-    applyScheme(scheme);
-  }, [applyScheme]);
+    setThemeId(scheme === "light" ? "cloud" : "midnight");
+  }, [setThemeId]);
 
   useEffect(() => {
-    applyScheme(colorScheme);
-  }, [applyScheme, colorScheme]);
+    applyTheme(colorScheme, themePalette);
+  }, [applyTheme, colorScheme, themePalette]);
 
   const themeVariables = useMemo(
     () =>
       vars({
-        "color-primary": SchemeColors[colorScheme].primary,
-        "color-background": SchemeColors[colorScheme].background,
-        "color-surface": SchemeColors[colorScheme].surface,
-        "color-foreground": SchemeColors[colorScheme].foreground,
-        "color-muted": SchemeColors[colorScheme].muted,
-        "color-border": SchemeColors[colorScheme].border,
-        "color-success": SchemeColors[colorScheme].success,
-        "color-warning": SchemeColors[colorScheme].warning,
-        "color-error": SchemeColors[colorScheme].error,
+        "color-primary": themePalette.primary,
+        "color-background": themePalette.background,
+        "color-surface": themePalette.surface,
+        "color-foreground": themePalette.foreground,
+        "color-muted": themePalette.muted,
+        "color-border": themePalette.border,
+        "color-success": themePalette.success,
+        "color-warning": themePalette.warning,
+        "color-error": themePalette.error,
       }),
-    [colorScheme],
+    [themePalette],
   );
 
   const value = useMemo(
-    () => ({
-      colorScheme,
-      setColorScheme,
-    }),
-    [colorScheme, setColorScheme],
+    () => ({ colorScheme, setColorScheme, themeId, setThemeId }),
+    [colorScheme, setColorScheme, setThemeId, themeId],
   );
 
   return (
@@ -71,8 +96,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useThemeContext(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
-  if (!ctx) {
-    throw new Error("useThemeContext must be used within ThemeProvider");
-  }
+  if (!ctx) throw new Error("useThemeContext must be used within ThemeProvider");
   return ctx;
 }
