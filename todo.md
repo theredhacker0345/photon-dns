@@ -102,3 +102,10 @@
 - [x] Audit FOSS policy, SBOM, and owner authorization tests
 - [x] Audit release packaging, F-Droid metadata, ABI filter, and APK integrity
 - [x] Add deterministic cross-workstream release-gate tests
+
+# Home Telemetry Display Fix
+
+- [x] Trace why Home does not show live CPU and RAM on an Android release build
+- [x] Make the dashboard distinguish live, sampling, and unavailable telemetry clearly
+- [x] Add deterministic coverage for the telemetry hook and Home metric rendering contract
+- [x] Validate the corrected CPU/RAM behavior and save a checkpoint

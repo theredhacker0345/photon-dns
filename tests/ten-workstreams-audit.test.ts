@@ -26,6 +26,8 @@ describe("Pocket Hermes ten-workstream release contracts", () => {
     expect(source).toContain("useHostReadiness");
     expect(source).toContain("prepareRuntime");
     expect(source).toContain("stopHost");
+    expect(source).toContain("getSupervisorTelemetryPresentation");
+    expect(source).toContain("telemetryNotice");
   });
 
   it("keeps agent and automation actions wired to persistent store operations", () => {
