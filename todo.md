@@ -159,3 +159,5 @@
 - [x] Audit core screens and remove redundant visual elements for a minimal interface
 - [x] Apply the focused visual system to the host dashboard, settings, setup, and provider flow
 - [x] Verify responsive mobile layouts and validate the minimal GUI refinement
+- [x] Restore managed web build script after checkpoint publication failure
+- [x] Recover the existing GitLab authentication path and verify publication of the minimal UI checkpoint
