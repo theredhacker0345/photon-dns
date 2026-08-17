@@ -55,6 +55,11 @@ describe("native Android host declaration contract", () => {
     const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
     const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
     expect(worker).toContain("def status_json()");
+    expect(worker).toContain("def context_status_json()");
+    expect(worker).toContain("def compress_owner_context()");
+    expect(worker).toContain("_context_compress_lock");
+    expect(worker).toContain("_handle_compress_command(event)");
+    expect(worker).toContain("This intentionally never serializes a transcript");
     expect(worker).toContain("def preflight_model(");
     expect(worker).toContain("def invoke_remote_mcp_tool(");
     expect(worker).toContain("def update_remote_mcp_config(");
@@ -79,6 +84,9 @@ describe("native Android host declaration contract", () => {
     expect(state).toContain("message.take(160)");
     expect(module).toContain("AsyncFunction(\"getHealth\")");
     expect(module).toContain("AsyncFunction(\"getDiagnostics\")");
+    expect(module).toContain("AsyncFunction(\"getContextStatus\")");
+    expect(module).toContain("AsyncFunction(\"compressContext\")");
+    expect(module).toContain("contextMap");
     expect(module).toContain("AsyncFunction(\"enqueueTask\")");
     expect(module).toContain("AsyncFunction(\"listTasks\")");
     expect(module).toContain("AsyncFunction(\"cancelTask\")");

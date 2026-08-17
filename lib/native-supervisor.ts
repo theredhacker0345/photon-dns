@@ -2,6 +2,8 @@ import { Platform } from "react-native";
 
 import PocketHermesSupervisorModule, {
   type NativeModelPreflight,
+  type NativeSupervisorContext,
+  type NativeSupervisorContextCompression,
   type NativeSupervisorDiagnostic,
   type NativeSupervisorHealth,
   type NativeSupervisorSchedule,
@@ -46,6 +48,26 @@ export async function getSupervisorDiagnostics(): Promise<NativeSupervisorDiagno
     return await PocketHermesSupervisorModule.getDiagnostics();
   } catch {
     return [];
+  }
+}
+
+/** Reads only the active owner session's token-window metadata; no transcript leaves the runtime. */
+export async function getNativeContextStatus(): Promise<NativeSupervisorContext | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.getContextStatus();
+  } catch {
+    return null;
+  }
+}
+
+/** Runs Hermes' supported owner-session manual compression path on Android. */
+export async function compressNativeContext(): Promise<NativeSupervisorContextCompression | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.compressContext();
+  } catch {
+    return null;
   }
 }
 

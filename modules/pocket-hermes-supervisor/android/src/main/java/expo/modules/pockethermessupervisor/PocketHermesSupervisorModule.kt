@@ -41,6 +41,27 @@ class PocketHermesSupervisorModule : Module() {
       SupervisorRuntimeState.diagnosticSnapshot()
     }
 
+    AsyncFunction("getContextStatus") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      val raw = workerModule(context).callAttr("context_status_json").toString()
+      contextMap(JSONObject(raw))
+    }
+
+    AsyncFunction("compressContext") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      val result = JSONObject(workerModule(context).callAttr("compress_owner_context").toString())
+      val contextPayload = result.optJSONObject("context") ?: JSONObject()
+      mapOf(
+        "ok" to result.optBoolean("ok", false),
+        "message" to result.optString("message", "Context compression is unavailable."),
+        "context" to contextMap(contextPayload),
+      )
+    }
+
     AsyncFunction("enqueueTask") { task: Map<String, String> ->
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Agent Host supervisor requires an Android application context."
@@ -198,6 +219,18 @@ class PocketHermesSupervisorModule : Module() {
     "updatedAt" to task.opt("updatedAt")?.toString(),
     "result" to task.opt("result")?.takeUnless { it == JSONObject.NULL }?.toString(),
     "reason" to task.opt("reason")?.takeUnless { it == JSONObject.NULL }?.toString(),
+  )
+
+  private fun contextMap(context: JSONObject): Map<String, Any?> = mapOf(
+    "available" to context.optBoolean("available", false),
+    "modelName" to context.opt("modelName")?.takeUnless { it == JSONObject.NULL }?.toString(),
+    "usedTokens" to context.optLong("usedTokens", 0L),
+    "totalTokens" to context.optLong("totalTokens", 0L),
+    "percentage" to context.optInt("percentage", 0),
+    "headroomTokens" to context.optLong("headroomTokens", 0L),
+    "thresholdTokens" to context.optLong("thresholdTokens", 0L),
+    "compressionCount" to context.optInt("compressionCount", 0),
+    "reason" to context.opt("reason")?.takeUnless { it == JSONObject.NULL }?.toString(),
   )
 
   private fun workerModule(context: Context) = run {

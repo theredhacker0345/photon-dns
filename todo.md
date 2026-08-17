@@ -177,3 +177,6 @@
 - [x] Validate and document the MCP connector foundation; checkpoint and GitLab publication remain required completion steps
 - [x] Correct the Android Chaquopy Python executable resolution and complete native compilation validation
 - [x] Pin the reviewed embedded Python runtime closure and generate the SBOM from the Chaquopy release payload only
+- [x] Define bounded context-usage telemetry and a safe manual context-compression contract
+- [x] Add an Agent Console context-usage indicator and manual Compress context action
+- [ ] Validate, checkpoint, and publish the context-control update to GitLab

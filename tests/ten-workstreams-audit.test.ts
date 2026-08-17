@@ -35,6 +35,9 @@ describe("Pocket Agent Host ten-workstream release contracts", () => {
     const automations = read("app/(tabs)/automations.tsx");
     expect(agent).toContain("enqueueNativeTask");
     expect(agent).toContain("listNativeTasks");
+    expect(agent).toContain("getNativeContextStatus");
+    expect(agent).toContain("compressNativeContext");
+    expect(agent).toContain("Compress context");
     expect(agent).toContain('accessibilityLabel="Submit owner task"');
     expect(automations).toContain("upsertNativeSchedule");
     expect(automations).toContain("setNativeScheduleEnabled");

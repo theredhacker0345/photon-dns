@@ -25,6 +25,26 @@ export type NativeSupervisorDiagnostic = {
 
 export type NativeModelPreflight = { ok: boolean; reason: string };
 
+/** Secret-free active owner-session context measurement from the embedded Hermes runtime. */
+export type NativeSupervisorContext = {
+  available: boolean;
+  modelName: string | null;
+  usedTokens: number;
+  totalTokens: number;
+  percentage: number;
+  headroomTokens: number;
+  thresholdTokens: number;
+  compressionCount: number;
+  reason: string | null;
+};
+
+/** Result of an owner-requested Hermes `/compress` operation. */
+export type NativeSupervisorContextCompression = {
+  ok: boolean;
+  message: string;
+  context: NativeSupervisorContext;
+};
+
 export type NativeSupervisorTask = {
   id: string;
   body: string;
@@ -77,6 +97,8 @@ type SupervisorModule = {
   getTelemetry(): Promise<NativeSupervisorTelemetry>;
   getHealth(): Promise<NativeSupervisorHealth>;
   getDiagnostics(): Promise<NativeSupervisorDiagnostic[]>;
+  getContextStatus(): Promise<NativeSupervisorContext>;
+  compressContext(): Promise<NativeSupervisorContextCompression>;
   enqueueTask(task: { id: string; body: string }): Promise<NativeSupervisorTask>;
   listTasks(): Promise<NativeSupervisorTask[]>;
   cancelTask(taskId: string): Promise<NativeSupervisorTask>;

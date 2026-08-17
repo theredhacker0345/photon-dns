@@ -15,6 +15,7 @@ import os
 import re
 import threading
 import time
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import datetime
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
@@ -25,6 +26,7 @@ from typing import Any
 _TOKEN_RE = re.compile(r"^\d+:[A-Za-z0-9_-]{30,}$")
 _CHAT_ID_RE = re.compile(r"^\d+$")
 _state_lock = threading.RLock()
+_context_compress_lock = threading.Lock()
 _state: dict[str, Any] = {
     "status": "stopped",
     "reason": "not started",
@@ -748,6 +750,192 @@ def status() -> dict[str, str | int | None]:
 def status_json() -> str:
     """Expose one compact, secret-free status payload to the Android bridge."""
     return json.dumps(_snapshot(), separators=(",", ":"))
+
+
+def _safe_positive_int(value: Any) -> int:
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _unavailable_context(reason: str) -> dict[str, Any]:
+    return {
+        "available": False,
+        "modelName": None,
+        "usedTokens": 0,
+        "totalTokens": 0,
+        "percentage": 0,
+        "headroomTokens": 0,
+        "thresholdTokens": 0,
+        "compressionCount": 0,
+        "reason": reason,
+    }
+
+
+def _owner_console_source(owner_chat_id: str) -> Any:
+    """Build the exact private LOCAL source used by Agent Console task dispatch."""
+    from gateway.config import Platform
+    from gateway.session import SessionSource
+
+    return SessionSource(
+        platform=Platform.LOCAL,
+        chat_id=f"pocket-hermes:{owner_chat_id}",
+        chat_type="dm",
+        user_id=owner_chat_id,
+        user_name="Pocket Agent Host owner",
+    )
+
+
+def _owner_console_session_key(runner: Any, owner_chat_id: str) -> str:
+    resolver = getattr(runner, "_session_key_for_source", None)
+    if callable(resolver):
+        try:
+            return str(resolver(_owner_console_source(owner_chat_id)))
+        except Exception:
+            pass
+    return f"pocket-hermes:{owner_chat_id}"
+
+
+async def _read_owner_context_status(runner: Any, owner_chat_id: str) -> dict[str, Any]:
+    """Read numeric context metadata from the owner-local session only.
+
+    This intentionally never serializes a transcript, prompt, tool payload, or
+    provider credential across the Python/Kotlin/JS bridge.
+    """
+    session_key = _owner_console_session_key(runner, owner_chat_id)
+    agent = None
+    running_agents = getattr(runner, "_running_agents", None)
+    if isinstance(running_agents, dict):
+        agent = running_agents.get(session_key)
+    if getattr(agent, "context_compressor", None) is None:
+        cache_lock = getattr(runner, "_agent_cache_lock", None)
+        cache = getattr(runner, "_agent_cache", None)
+        if cache_lock is not None and cache is not None:
+            try:
+                with cache_lock:
+                    cached = cache.get(session_key)
+                if cached:
+                    agent = cached[0]
+            except Exception:
+                agent = None
+    compressor = getattr(agent, "context_compressor", None)
+    if compressor is None:
+        return _unavailable_context("Context usage appears after the first completed owner task.")
+
+    used_tokens = _safe_positive_int(getattr(compressor, "last_prompt_tokens", 0))
+    total_tokens = _safe_positive_int(getattr(compressor, "context_length", 0))
+    if total_tokens <= 0:
+        return _unavailable_context("Hermes has not reported this model's context-window size yet.")
+    percentage = min(100, round((used_tokens / total_tokens) * 100))
+    return {
+        "available": True,
+        "modelName": str(getattr(agent, "model", "")).strip() or None,
+        "usedTokens": used_tokens,
+        "totalTokens": total_tokens,
+        "percentage": percentage,
+        "headroomTokens": max(0, total_tokens - used_tokens),
+        "thresholdTokens": _safe_positive_int(getattr(compressor, "threshold_tokens", 0)),
+        "compressionCount": _safe_positive_int(getattr(compressor, "compression_count", 0)),
+        "reason": None,
+    }
+
+
+def _context_status_payload() -> dict[str, Any]:
+    with _state_lock:
+        status = _state.get("status")
+        runner = _state.get("runner")
+        loop = _state.get("loop")
+        owner_chat_id = _state.get("owner_chat_id")
+    if status != "running" or runner is None or loop is None or not isinstance(owner_chat_id, str):
+        return _unavailable_context("Start the private Android host to view context usage.")
+    try:
+        future = asyncio.run_coroutine_threadsafe(_read_owner_context_status(runner, owner_chat_id), loop)
+        return future.result(timeout=5)
+    except (FutureTimeout, RuntimeError):
+        return _unavailable_context("The private runtime is busy. Try context usage again shortly.")
+    except Exception:
+        return _unavailable_context("Context usage is temporarily unavailable.")
+
+
+def context_status_json() -> str:
+    """Expose owner-session token-window metadata without exposing conversation content."""
+    return json.dumps(_context_status_payload(), separators=(",", ":"))
+
+
+def _compression_message(raw_result: Any) -> str:
+    """Map Hermes' detailed internal outcome to a stable, secret-free owner message."""
+    result = str(raw_result).lower()
+    if "not enough" in result or "nothing to" in result:
+        return "There is not enough earlier conversation to compress yet."
+    if any(marker in result for marker in ("failed", "cannot", "error", "denied", "unavailable")):
+        return "Hermes could not compress context safely. The existing conversation is unchanged."
+    return "Hermes completed the context-compression request. Usage will refresh after the next provider response."
+
+
+async def _compress_owner_context_async(runner: Any, owner_chat_id: str) -> dict[str, Any]:
+    """Invoke Hermes' supported `/compress` handler for the owner-local console session."""
+    session_key = _owner_console_session_key(runner, owner_chat_id)
+    running_agents = getattr(runner, "_running_agents", None)
+    if isinstance(running_agents, dict) and running_agents.get(session_key) is not None:
+        return {
+            "ok": False,
+            "message": "Wait for the current owner task to finish before compressing its context.",
+            "context": await _read_owner_context_status(runner, owner_chat_id),
+        }
+    from gateway.platforms.base import MessageEvent
+    source = _owner_console_source(owner_chat_id)
+    event = MessageEvent(
+        text="/compress",
+        user_id=owner_chat_id,
+        user_name="Pocket Agent Host owner",
+        source=source,
+        internal=True,
+    )
+    result = await runner._handle_compress_command(event)
+    return {
+        "ok": True,
+        "message": _compression_message(result),
+        "context": await _read_owner_context_status(runner, owner_chat_id),
+    }
+
+
+def compress_owner_context() -> str:
+    """Run one bounded manual compression request, never concurrently with a live owner turn."""
+    with _state_lock:
+        status = _state.get("status")
+        runner = _state.get("runner")
+        loop = _state.get("loop")
+        owner_chat_id = _state.get("owner_chat_id")
+    if status != "running" or runner is None or loop is None or not isinstance(owner_chat_id, str):
+        return json.dumps({
+            "ok": False,
+            "message": "Start the private Android host before compressing context.",
+            "context": _unavailable_context("Start the private Android host to view context usage."),
+        }, separators=(",", ":"))
+    if not _context_compress_lock.acquire(blocking=False):
+        return json.dumps({
+            "ok": False,
+            "message": "A context-compression request is already in progress.",
+            "context": _context_status_payload(),
+        }, separators=(",", ":"))
+    try:
+        future = asyncio.run_coroutine_threadsafe(_compress_owner_context_async(runner, owner_chat_id), loop)
+        return json.dumps(future.result(timeout=90), separators=(",", ":"))
+    except FutureTimeout:
+        return json.dumps({
+            "ok": False,
+            "message": "Context compression timed out safely. The existing conversation is unchanged.",
+            "context": _context_status_payload(),
+        }, separators=(",", ":"))
+    except Exception:
+        return json.dumps({
+            "ok": False,
+            "message": "Hermes could not start context compression safely.",
+            "context": _context_status_payload(),
+        }, separators=(",", ":"))
+    finally:
+        _context_compress_lock.release()
 
 
 def enqueue_task(task_id: str, body: str) -> str:

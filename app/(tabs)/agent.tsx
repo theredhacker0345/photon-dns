@@ -2,15 +2,19 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useCallback, useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { PageHeader, PressableCard, SectionHeading } from "@/components/pocket-hermes-ui";
+import { PageHeader, PressableCard, SecondaryButton, SectionHeading } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { cancelNativeTask, enqueueNativeTask, getSupervisorHealth, listNativeTasks } from "@/lib/native-supervisor";
-import type { NativeSupervisorTask } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
+import { cancelNativeTask, compressNativeContext, enqueueNativeTask, getNativeContextStatus, getSupervisorHealth, listNativeTasks } from "@/lib/native-supervisor";
+import type { NativeSupervisorContext, NativeSupervisorTask } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
 
 function formatTaskTime(value: string) {
   const timestamp = Number(value);
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(Number.isFinite(timestamp) ? timestamp : value));
+}
+
+function formatTokens(value: number) {
+  return new Intl.NumberFormat(undefined, { notation: value >= 1_000_000 ? "compact" : "standard", maximumFractionDigits: value >= 1_000_000 ? 1 : 0 }).format(value);
 }
 
 function taskTone(status: NativeSupervisorTask["status"], colors: ReturnType<typeof useColors>) {
@@ -19,19 +23,46 @@ function taskTone(status: NativeSupervisorTask["status"], colors: ReturnType<typ
   return colors.primary;
 }
 
+function ContextCard({ context, ready, compressing, onCompress }: { context: NativeSupervisorContext | null; ready: boolean; compressing: boolean; onCompress: () => void }) {
+  const colors = useColors();
+  const available = Boolean(context?.available);
+  const percentage = available ? Math.min(100, Math.max(0, context?.percentage ?? 0)) : 0;
+  const detail = Platform.OS === "web"
+    ? "Install the Android APK to inspect the live Hermes context window."
+    : available
+      ? `${formatTokens(context?.usedTokens ?? 0)} of ${formatTokens(context?.totalTokens ?? 0)} tokens in the active owner session.`
+      : context?.reason ?? "Context usage appears after the first completed owner task.";
+  const compressEnabled = ready && available && !compressing;
+
+  return <PressableCard style={styles.contextCard}>
+    <View style={styles.contextTopline}>
+      <View style={styles.contextLabelRow}><MaterialIcons name="data-usage" size={18} color={colors.primary} /><Text style={[styles.contextLabel, { color: colors.foreground }]}>Context window</Text></View>
+      <Text style={[styles.contextPercent, { color: available ? colors.primary : colors.muted }]}>{available ? `${percentage}%` : "—"}</Text>
+    </View>
+    <View style={[styles.contextTrack, { backgroundColor: colors.border }]}><View style={[styles.contextFill, { backgroundColor: colors.primary, width: `${percentage}%` }]} /></View>
+    <Text style={[styles.contextDetail, { color: colors.muted }]}>{detail}</Text>
+    {available && context?.thresholdTokens ? <Text style={[styles.contextMeta, { color: colors.muted }]}>Auto-compression threshold: {formatTokens(context.thresholdTokens)} tokens · Manual compresses: {context.compressionCount}</Text> : null}
+    <SecondaryButton label="Compress context" icon="compress" onPress={onCompress} disabled={!compressEnabled} loading={compressing} />
+    <Text style={[styles.contextHint, { color: colors.muted }]}>Creates a compact provider summary of earlier turns. If compression cannot finish safely, Hermes leaves the conversation unchanged.</Text>
+  </PressableCard>;
+}
+
 export default function AgentScreen() {
   const colors = useColors();
   const [body, setBody] = useState("");
   const [tasks, setTasks] = useState<NativeSupervisorTask[]>([]);
   const [hostState, setHostState] = useState<"running" | "starting" | "degraded" | "stopped" | "preview">(Platform.OS === "web" ? "preview" : "stopped");
+  const [context, setContext] = useState<NativeSupervisorContext | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
   const refresh = useCallback(async () => {
     if (Platform.OS === "web") return;
-    const [nextTasks, health] = await Promise.all([listNativeTasks(), getSupervisorHealth()]);
+    const [nextTasks, health, nextContext] = await Promise.all([listNativeTasks(), getSupervisorHealth(), getNativeContextStatus()]);
     setTasks(nextTasks.slice().reverse());
     setHostState(health?.state ?? "stopped");
+    setContext(nextContext);
   }, []);
 
   useEffect(() => {
@@ -68,6 +99,24 @@ export default function AgentScreen() {
     }
   };
 
+  const compress = async () => {
+    if (Platform.OS === "web") {
+      setNotice("Preview mode cannot inspect or compress the private Hermes context.");
+      return;
+    }
+    if (!isReady || !context?.available || compressing) return;
+    setCompressing(true);
+    const result = await compressNativeContext();
+    if (!result) {
+      setNotice("Context compression is unavailable. Confirm the private host is running, then try again.");
+    } else {
+      setContext(result.context);
+      setNotice(result.message);
+    }
+    setCompressing(false);
+    void refresh();
+  };
+
   const isReady = Platform.OS !== "web" && hostState === "running";
   const statusTitle = Platform.OS === "web" ? "Preview mode" : isReady ? "Private host is online" : hostState === "starting" ? "Private host is starting" : "Private host is offline";
   const statusDetail = Platform.OS === "web"
@@ -80,6 +129,7 @@ export default function AgentScreen() {
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <PageHeader eyebrow="PRIVATE RUNTIME TASKS" title="Agent console" detail="Submit owner tasks to the embedded Hermes runtime." icon="forum" />
       <PressableCard style={[styles.bridgeNotice, { backgroundColor: `${colors.primary}0A`, borderColor: `${colors.primary}28` }]}><View style={[styles.noticeIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name={isReady ? "verified-user" : "smartphone"} size={21} color={colors.primary} /></View><View style={styles.noticeCopy}><View style={styles.noticeTitleRow}><Text style={[styles.noticeTitle, { color: colors.foreground }]}>{statusTitle}</Text><View style={[styles.localBadge, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.localBadgeText, { color: colors.primary }]}>{Platform.OS === "web" ? "PREVIEW" : hostState.toUpperCase()}</Text></View></View><Text style={[styles.noticeDetail, { color: colors.muted }]}>{statusDetail}</Text></View></PressableCard>
+      <ContextCard context={context} ready={isReady} compressing={compressing} onCompress={() => void compress()} />
       {notice ? <View style={[styles.inlineNotice, { backgroundColor: colors.surface, borderColor: colors.border }]}><MaterialIcons name="info-outline" size={16} color={colors.primary} /><Text style={[styles.inlineNoticeText, { color: colors.muted }]}>{notice}</Text></View> : null}
       <SectionHeading eyebrow="RUNTIME HISTORY" title="Owner task queue" action={<Text style={[styles.count, { color: colors.muted }]}>{tasks.length ? `${tasks.length} tasks` : "Empty"}</Text>} />
       {tasks.length ? tasks.map((item) => { const tone = taskTone(item.status, colors); return <PressableCard key={item.id} style={styles.taskCard}><View style={styles.taskMeta}><Text style={[styles.taskLabel, { color: tone }]}>{item.status.toUpperCase()}</Text><Text style={[styles.taskTime, { color: colors.muted }]}>{formatTaskTime(item.updatedAt || item.createdAt)}</Text></View><Text style={[styles.taskBody, { color: colors.foreground }]}>{item.body}</Text>{item.result ? <View style={[styles.resultBox, { backgroundColor: colors.surface }]}><Text style={[styles.resultLabel, { color: colors.muted }]}>HERMES RESULT</Text><Text style={[styles.resultText, { color: colors.foreground }]}>{item.result}</Text></View> : null}{item.reason ? <Text style={[styles.reasonText, { color: colors.warning }]}>{item.reason}</Text> : null}{item.status === "queued" ? <Pressable accessibilityRole="button" onPress={() => void cancel(item.id)} style={({ pressed }) => [styles.cancel, { borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="close" size={14} color={colors.muted} /><Text style={[styles.cancelText, { color: colors.muted }]}>Cancel queued task</Text></Pressable> : null}</PressableCard>; }) : <View style={[styles.empty, { borderColor: colors.border }]}><MaterialIcons name="mark-chat-unread" size={27} color={colors.muted} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No runtime tasks yet</Text><Text style={[styles.emptyDetail, { color: colors.muted }]}>{Platform.OS === "web" ? "Install the Android APK to use the private task queue." : "Start the host, then submit an owner task below."}</Text></View>}
@@ -89,5 +139,5 @@ export default function AgentScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 }, content: { paddingTop: 16, paddingBottom: 20, gap: 20 }, bridgeNotice: { flexDirection: "row", gap: 12, alignItems: "flex-start" }, noticeIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" }, noticeCopy: { flex: 1, gap: 4 }, noticeTitleRow: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }, noticeTitle: { flex: 1, fontSize: 14, lineHeight: 18, fontWeight: "900" }, noticeDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, localBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 }, localBadgeText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.75 }, count: { fontSize: 12, fontWeight: "700", paddingBottom: 2 }, inlineNotice: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 14, padding: 11, marginTop: -6 }, inlineNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, taskCard: { gap: 11 }, taskMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, taskLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9 }, taskTime: { fontSize: 11, fontWeight: "600" }, taskBody: { fontSize: 15, lineHeight: 22, fontWeight: "600" }, resultBox: { borderRadius: 14, padding: 11, gap: 4 }, resultLabel: { fontSize: 9, letterSpacing: 0.8, fontWeight: "900" }, resultText: { fontSize: 13, lineHeight: 19, fontWeight: "500" }, reasonText: { fontSize: 12, lineHeight: 17, fontWeight: "800" }, cancel: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 7 }, cancelText: { fontSize: 11, fontWeight: "800" }, empty: { minHeight: 180, borderWidth: 1, borderStyle: "dashed", borderRadius: 22, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 }, emptyTitle: { fontSize: 15, fontWeight: "900" }, emptyDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500", textAlign: "center" }, composer: { flexDirection: "row", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 11, paddingBottom: 10, alignItems: "flex-end" }, composerInputWrap: { flex: 1, gap: 5 }, composerLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.9, marginLeft: 2 }, input: { minHeight: 48, maxHeight: 112, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingTop: 13, fontSize: 14, lineHeight: 19, fontWeight: "500" }, send: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" }, pressed: { opacity: 0.76, transform: [{ scale: 0.97 }] },
+  flex: { flex: 1 }, content: { paddingTop: 16, paddingBottom: 20, gap: 20 }, bridgeNotice: { flexDirection: "row", gap: 12, alignItems: "flex-start" }, noticeIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" }, noticeCopy: { flex: 1, gap: 4 }, noticeTitleRow: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }, noticeTitle: { flex: 1, fontSize: 14, lineHeight: 18, fontWeight: "900" }, noticeDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, localBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 }, localBadgeText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.75 }, contextCard: { gap: 10 }, contextTopline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, contextLabelRow: { flexDirection: "row", alignItems: "center", gap: 7 }, contextLabel: { fontSize: 15, fontWeight: "900" }, contextPercent: { fontSize: 16, fontWeight: "900", fontVariant: ["tabular-nums"] }, contextTrack: { height: 7, borderRadius: 99, overflow: "hidden" }, contextFill: { height: "100%", borderRadius: 99, minWidth: 0 }, contextDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, contextMeta: { fontSize: 11, lineHeight: 16, fontWeight: "600" }, contextHint: { fontSize: 10, lineHeight: 14, fontWeight: "500" }, count: { fontSize: 12, fontWeight: "700", paddingBottom: 2 }, inlineNotice: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 14, padding: 11, marginTop: -6 }, inlineNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, taskCard: { gap: 11 }, taskMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, taskLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9 }, taskTime: { fontSize: 11, fontWeight: "600" }, taskBody: { fontSize: 15, lineHeight: 22, fontWeight: "600" }, resultBox: { borderRadius: 14, padding: 11, gap: 4 }, resultLabel: { fontSize: 9, letterSpacing: 0.8, fontWeight: "900" }, resultText: { fontSize: 13, lineHeight: 19, fontWeight: "500" }, reasonText: { fontSize: 12, lineHeight: 17, fontWeight: "800" }, cancel: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 7 }, cancelText: { fontSize: 11, fontWeight: "800" }, empty: { minHeight: 180, borderWidth: 1, borderStyle: "dashed", borderRadius: 22, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 }, emptyTitle: { fontSize: 15, fontWeight: "900" }, emptyDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500", textAlign: "center" }, composer: { flexDirection: "row", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 11, paddingBottom: 10, alignItems: "flex-end" }, composerInputWrap: { flex: 1, gap: 5 }, composerLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.9, marginLeft: 2 }, input: { minHeight: 48, maxHeight: 112, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingTop: 13, fontSize: 14, lineHeight: 19, fontWeight: "500" }, send: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" }, pressed: { opacity: 0.76, transform: [{ scale: 0.97 }] },
 });

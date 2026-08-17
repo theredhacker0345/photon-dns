@@ -88,6 +88,12 @@ def main() -> None:
         with worker._state_lock:
             worker._state["status"] = "stopped"
             worker._state["runner"] = None
+        context = json.loads(worker.context_status_json())
+        assert context["available"] is False
+        assert context["usedTokens"] == 0
+        compression = json.loads(worker.compress_owner_context())
+        assert compression["ok"] is False
+        assert "Start the private Android host" in compression["message"]
 
     expect_invalid(owner_chat_id="-100123456789")
     expect_invalid(model_endpoint="http://models.example.test/v1")
