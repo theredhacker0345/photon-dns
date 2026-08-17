@@ -36,6 +36,19 @@ describe("native Android host declaration contract", () => {
     expect(service).toContain("markStarting");
   });
 
+  it("persists and enforces the same charging and storage policy for direct starts, recovery, and boot restoration", () => {
+    const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
+    expect(service).toContain("val chargingAware: Boolean = true");
+    expect(service).toContain("val minimumFreeStorageBytes");
+    expect(service).toContain("hostPolicyBlock(config)");
+    expect(service).toContain("Intent.ACTION_BATTERY_CHANGED");
+    expect(service).toContain("filesDir.usableSpace < config.minimumFreeStorageBytes");
+    expect(service).toContain("PREF_CHARGING_AWARE");
+    expect(service).toContain("PREF_MINIMUM_FREE_STORAGE_BYTES");
+    expect(service).toContain("EXTRA_CHARGING_AWARE");
+    expect(service).toContain("EXTRA_MINIMUM_FREE_STORAGE_BYTES");
+  });
+
   it("keeps worker health and diagnostics secret-free across the Python, Kotlin, and TypeScript boundary", () => {
     const worker = read("python/pocket_hermes_worker.py");
     const state = read("java/expo/modules/pockethermessupervisor/SupervisorRuntimeState.kt");
@@ -45,6 +58,11 @@ describe("native Android host declaration contract", () => {
     expect(worker).toContain("def preflight_model(");
     expect(worker).toContain("def enqueue_task(");
     expect(worker).toContain("async def _drain_task_queue()");
+    expect(worker).toContain("def validate_cron_expression(");
+    expect(worker).toContain("async def _scheduler_loop()");
+    expect(worker).toContain("_MAX_SCHEDULE_RETRIES = 2");
+    expect(worker).toContain("def upsert_schedule(");
+    expect(worker).toContain("def list_schedule_runs_json()");
     expect(worker).toContain("urlopen(request, timeout=12)");
     expect(worker).toContain("lastHeartbeatAt");
     expect(worker).toContain('os.environ["TELEGRAM_ALLOWED_USERS"] = owner_chat_id');
@@ -59,6 +77,11 @@ describe("native Android host declaration contract", () => {
     expect(module).toContain("AsyncFunction(\"enqueueTask\")");
     expect(module).toContain("AsyncFunction(\"listTasks\")");
     expect(module).toContain("AsyncFunction(\"cancelTask\")");
+    expect(module).toContain("AsyncFunction(\"upsertSchedule\")");
+    expect(module).toContain("AsyncFunction(\"listSchedules\")");
+    expect(module).toContain("AsyncFunction(\"setScheduleEnabled\")");
+    expect(module).toContain("AsyncFunction(\"deleteSchedule\")");
+    expect(module).toContain("AsyncFunction(\"listScheduleRuns\")");
     expect(module).toContain("AsyncFunction(\"preflightModel\")");
     expect(module).toContain("AsyncFunction(\"clearConfiguration\")");
     expect(service).toContain("fun clearPersistedConfiguration");

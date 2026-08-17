@@ -6,7 +6,9 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.app.PendingIntent
+import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -27,6 +29,9 @@ data class PocketHermesWorkerConfig(
   val modelApiKey: String?,
   val modelName: String?,
   val restartAfterBoot: Boolean = false,
+  val chargingAware: Boolean = true,
+  val lowBatteryPercent: Int = 20,
+  val minimumFreeStorageBytes: Long = 2L * 1024L * 1024L * 1024L,
 )
 
 /**
@@ -63,6 +68,12 @@ class PocketHermesSupervisorService : Service() {
     val config = intent?.toWorkerConfig()?.also(::saveWorkerConfig) ?: loadWorkerConfig()
     if (config == null) {
       SupervisorRuntimeState.markDegraded("owner gateway configuration unavailable")
+      stopSelf(startId)
+      return START_NOT_STICKY
+    }
+    val policyBlock = hostPolicyBlock(config)
+    if (policyBlock != null) {
+      SupervisorRuntimeState.markDegraded(policyBlock)
       stopSelf(startId)
       return START_NOT_STICKY
     }
@@ -143,6 +154,17 @@ class PocketHermesSupervisorService : Service() {
     }
   }
 
+  /** Evaluated for direct starts, recovery, and boot restoration. */
+  private fun hostPolicyBlock(config: PocketHermesWorkerConfig): String? {
+    if (filesDir.usableSpace < config.minimumFreeStorageBytes) return "host policy blocked runtime: insufficient free storage"
+    if (!config.chargingAware) return null
+    val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+      ?: return "host policy blocked runtime: charging state unavailable"
+    val status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+    val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+    return if (charging) null else "host policy blocked runtime: device is not charging"
+  }
+
   private fun stopWorker() {
     if (!::workerExecutor.isInitialized) return
     hostRequested = false
@@ -214,6 +236,9 @@ class PocketHermesSupervisorService : Service() {
       .putString(PREF_MODEL_API_KEY, config.modelApiKey)
       .putString(PREF_MODEL_NAME, config.modelName)
       .putBoolean(PREF_RESTART_AFTER_BOOT, config.restartAfterBoot)
+      .putBoolean(PREF_CHARGING_AWARE, config.chargingAware)
+      .putInt(PREF_LOW_BATTERY_PERCENT, config.lowBatteryPercent)
+      .putLong(PREF_MINIMUM_FREE_STORAGE_BYTES, config.minimumFreeStorageBytes)
       .commit()
   }
 
@@ -233,6 +258,9 @@ class PocketHermesSupervisorService : Service() {
           apiKey,
           modelName,
           getBoolean(PREF_RESTART_AFTER_BOOT, false),
+          getBoolean(PREF_CHARGING_AWARE, true),
+          getInt(PREF_LOW_BATTERY_PERCENT, 20),
+          getLong(PREF_MINIMUM_FREE_STORAGE_BYTES, 2L * 1024L * 1024L * 1024L),
         )
       }
     } catch (_: Exception) {
@@ -254,6 +282,9 @@ class PocketHermesSupervisorService : Service() {
       apiKey,
       modelName,
       getBooleanExtra(EXTRA_RESTART_AFTER_BOOT, false),
+      getBooleanExtra(EXTRA_CHARGING_AWARE, true),
+      getIntExtra(EXTRA_LOW_BATTERY_PERCENT, 20),
+      getLongExtra(EXTRA_MINIMUM_FREE_STORAGE_BYTES, 2L * 1024L * 1024L * 1024L),
     )
   }
 
@@ -267,12 +298,18 @@ class PocketHermesSupervisorService : Service() {
     private const val PREF_MODEL_API_KEY = "model-api-key"
     private const val PREF_MODEL_NAME = "model-name"
     private const val PREF_RESTART_AFTER_BOOT = "restart-after-boot"
+    private const val PREF_CHARGING_AWARE = "charging-aware"
+    private const val PREF_LOW_BATTERY_PERCENT = "low-battery-percent"
+    private const val PREF_MINIMUM_FREE_STORAGE_BYTES = "minimum-free-storage-bytes"
     private const val EXTRA_TELEGRAM_TOKEN = "expo.modules.pockethermessupervisor.TELEGRAM_TOKEN"
     private const val EXTRA_OWNER_CHAT_ID = "expo.modules.pockethermessupervisor.OWNER_CHAT_ID"
     private const val EXTRA_MODEL_ENDPOINT = "expo.modules.pockethermessupervisor.MODEL_ENDPOINT"
     private const val EXTRA_MODEL_API_KEY = "expo.modules.pockethermessupervisor.MODEL_API_KEY"
     private const val EXTRA_MODEL_NAME = "expo.modules.pockethermessupervisor.MODEL_NAME"
     private const val EXTRA_RESTART_AFTER_BOOT = "expo.modules.pockethermessupervisor.RESTART_AFTER_BOOT"
+    private const val EXTRA_CHARGING_AWARE = "expo.modules.pockethermessupervisor.CHARGING_AWARE"
+    private const val EXTRA_LOW_BATTERY_PERCENT = "expo.modules.pockethermessupervisor.LOW_BATTERY_PERCENT"
+    private const val EXTRA_MINIMUM_FREE_STORAGE_BYTES = "expo.modules.pockethermessupervisor.MINIMUM_FREE_STORAGE_BYTES"
     private const val MAX_RECOVERY_ATTEMPTS = 3
     private const val RECOVERY_COOLDOWN_MS = 60_000L
 
@@ -284,6 +321,9 @@ class PocketHermesSupervisorService : Service() {
         putExtra(EXTRA_MODEL_API_KEY, config.modelApiKey)
         putExtra(EXTRA_MODEL_NAME, config.modelName)
         putExtra(EXTRA_RESTART_AFTER_BOOT, config.restartAfterBoot)
+        putExtra(EXTRA_CHARGING_AWARE, config.chargingAware)
+        putExtra(EXTRA_LOW_BATTERY_PERCENT, config.lowBatteryPercent)
+        putExtra(EXTRA_MINIMUM_FREE_STORAGE_BYTES, config.minimumFreeStorageBytes)
       }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         context.startForegroundService(intent)

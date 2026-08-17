@@ -7,7 +7,7 @@ export type SupervisorTelemetry = {
   source: "native";
 };
 
-export type SupervisorTelemetryStatus = "loading" | "sampling" | "live" | "bridge-required";
+export type SupervisorTelemetryStatus = "loading" | "sampling" | "live" | "stale" | "bridge-required";
 
 type NativeTelemetryCandidate = {
   agentStatus?: unknown;
@@ -55,9 +55,21 @@ export function normalizeSupervisorTelemetry(raw: unknown, fallbackSampledAt = n
     cpuPercent: Math.min(100, Math.round(candidate.cpuPercent)),
     ramUsedBytes: candidate.ramUsedBytes,
     ramTotalBytes: candidate.ramTotalBytes,
-    sampledAt: typeof candidate.sampledAt === "string" ? candidate.sampledAt : fallbackSampledAt,
+    sampledAt: normalizeSampledAt(candidate.sampledAt, fallbackSampledAt),
     source: "native",
   };
+}
+
+function normalizeSampledAt(value: unknown, fallback: string) {
+  if (typeof value !== "string") return fallback;
+  const epochMillis = Number(value);
+  if (Number.isFinite(epochMillis) && epochMillis > 0) return new Date(epochMillis).toISOString();
+  return Number.isFinite(Date.parse(value)) ? value : fallback;
+}
+
+export function isSupervisorTelemetryFresh(telemetry: SupervisorTelemetry, now = Date.now()) {
+  const sampledAt = Date.parse(telemetry.sampledAt);
+  return Number.isFinite(sampledAt) && now - sampledAt <= 45_000;
 }
 
 export function formatTelemetryBytes(bytes: number) {
@@ -93,6 +105,15 @@ export function getSupervisorTelemetryPresentation({
       cpu: { value: "Sampling…", detail: "Calculating CPU baseline" },
       ram: { value: formatTelemetryBytes(telemetry.ramUsedBytes), detail: `of ${formatTelemetryBytes(telemetry.ramTotalBytes)}` },
       notice: "The first Android CPU reading establishes a baseline. Live CPU updates begin within 12 seconds.",
+    };
+  }
+
+  if (telemetry && status === "stale") {
+    return {
+      statusLabel: "Supervisor stale",
+      cpu: { value: "Stale", detail: "Waiting for Android refresh" },
+      ram: { value: formatTelemetryBytes(telemetry.ramUsedBytes), detail: "Last known process use" },
+      notice: "The Android supervisor has not supplied a fresh sample in 45 seconds. Keep the host app running and check its power policy.",
     };
   }
 

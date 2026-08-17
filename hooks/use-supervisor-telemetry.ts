@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { getSupervisorTelemetry, type SupervisorTelemetry } from "@/lib/native-supervisor";
-import type { SupervisorTelemetryStatus } from "@/lib/supervisor-telemetry";
+import { isSupervisorTelemetryFresh, type SupervisorTelemetryStatus } from "@/lib/supervisor-telemetry";
 
 export type SupervisorTelemetryState = {
   telemetry: SupervisorTelemetry | null;
@@ -21,7 +21,7 @@ export function useSupervisorTelemetry() {
       const telemetry = await getSupervisorTelemetry();
       if (!mounted) return;
       const status: SupervisorTelemetryStatus = telemetry
-        ? hasReceivedNativeSample.current ? "live" : "sampling"
+        ? !isSupervisorTelemetryFresh(telemetry) ? "stale" : hasReceivedNativeSample.current ? "live" : "sampling"
         : "bridge-required";
       if (telemetry) hasReceivedNativeSample.current = true;
       setState({ telemetry, status, refreshedAt: telemetry?.sampledAt ?? null });

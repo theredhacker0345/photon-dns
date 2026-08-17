@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getSupervisorTelemetryPresentation,
+  isSupervisorTelemetryFresh,
   normalizeSupervisorTelemetry,
   type SupervisorTelemetry,
 } from "../lib/supervisor-telemetry";
@@ -46,5 +47,11 @@ describe("Home telemetry contract", () => {
     expect(presentation.ram.value).toBe("1.5 GB");
     expect(presentation.ram.detail).toBe("of 4.0 GB");
     expect(presentation.notice).toBeNull();
+  });
+
+  it("marks an old Android sample stale rather than presenting it as live host telemetry", () => {
+    const stale = { ...liveTelemetry, sampledAt: new Date(0).toISOString() };
+    expect(isSupervisorTelemetryFresh(stale, 50_000)).toBe(false);
+    expect(getSupervisorTelemetryPresentation({ telemetry: stale, status: "stale", platform: "android" }).statusLabel).toBe("Supervisor stale");
   });
 });

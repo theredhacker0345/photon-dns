@@ -115,3 +115,24 @@ export function canStartWorker(config: PublicHostConfiguration) {
     && isAllowedModelEndpoint(config.model.endpoint)
     && isSafeRuntimePolicy(config.policy);
 }
+
+export type HostReadinessSnapshot = {
+  source: "native" | "preview" | "unavailable";
+  isCharging: boolean | null;
+  freeStorageBytes: number | null;
+};
+
+/**
+ * UI-side preflight only. Android repeats this check at service start and boot
+ * recovery, so the policy cannot be bypassed by a stale JavaScript snapshot.
+ */
+export function getRuntimePolicyBlock(policy: HostRuntimePolicy, readiness: HostReadinessSnapshot): string | null {
+  if (readiness.source !== "native") return null;
+  if (readiness.freeStorageBytes !== null && readiness.freeStorageBytes < policy.minimumFreeStorageBytes) {
+    return "Free storage is below this host’s configured runtime reserve.";
+  }
+  if (policy.chargingAware && readiness.isCharging !== true) {
+    return "This host is configured to run only while the phone is charging.";
+  }
+  return null;
+}

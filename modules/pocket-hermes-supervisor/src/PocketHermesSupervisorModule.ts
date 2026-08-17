@@ -35,6 +35,30 @@ export type NativeSupervisorTask = {
   reason: string | null;
 };
 
+export type NativeSupervisorSchedule = {
+  id: string;
+  title: string;
+  expression: string;
+  body: string;
+  enabled: boolean;
+  lastRunAt: string | null;
+  lastRunStatus: "queued" | "retrying" | "succeeded" | "failed" | null;
+  nextRetryAt: string | null;
+};
+
+export type NativeSupervisorScheduleRun = {
+  id: string;
+  scheduleId: string;
+  scheduleTitle: string;
+  status: "queued" | "running" | "retrying" | "succeeded" | "failed";
+  attempt: number;
+  createdAt: string;
+  updatedAt: string;
+  reason: string | null;
+};
+
+export type NativeSupervisorScheduleInput = Pick<NativeSupervisorSchedule, "id" | "title" | "expression" | "body" | "enabled">;
+
 export type NativeSupervisorStartConfig = {
   telegramToken: string;
   ownerChatId: string;
@@ -42,6 +66,9 @@ export type NativeSupervisorStartConfig = {
   modelApiKey?: string;
   modelName?: string;
   restartAfterBoot?: boolean;
+  chargingAware?: boolean;
+  lowBatteryPercent?: number;
+  minimumFreeStorageBytes?: number;
 };
 
 type SupervisorModule = {
@@ -51,6 +78,11 @@ type SupervisorModule = {
   enqueueTask(task: { id: string; body: string }): Promise<NativeSupervisorTask>;
   listTasks(): Promise<NativeSupervisorTask[]>;
   cancelTask(taskId: string): Promise<NativeSupervisorTask>;
+  upsertSchedule(schedule: NativeSupervisorScheduleInput): Promise<NativeSupervisorSchedule>;
+  listSchedules(): Promise<NativeSupervisorSchedule[]>;
+  setScheduleEnabled(scheduleId: string, enabled: boolean): Promise<NativeSupervisorSchedule>;
+  deleteSchedule(scheduleId: string): Promise<{ status: "deleted" }>;
+  listScheduleRuns(): Promise<NativeSupervisorScheduleRun[]>;
   preflightModel(config: Pick<NativeSupervisorStartConfig, "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight>;
   startSupervisor(config: NativeSupervisorStartConfig): Promise<{ status: "starting" }>;
   stopSupervisor(): Promise<{ status: "stopped" }>;

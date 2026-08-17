@@ -1,4 +1,4 @@
-import type { NativeModelPreflight, NativeSupervisorDiagnostic, NativeSupervisorHealth, NativeSupervisorStartConfig, NativeSupervisorTask, NativeSupervisorTelemetry } from "./PocketHermesSupervisorModule";
+import type { NativeModelPreflight, NativeSupervisorDiagnostic, NativeSupervisorHealth, NativeSupervisorSchedule, NativeSupervisorScheduleInput, NativeSupervisorScheduleRun, NativeSupervisorStartConfig, NativeSupervisorTask, NativeSupervisorTelemetry } from "./PocketHermesSupervisorModule";
 
 const unavailable = new Error("The Pocket Hermes Android supervisor is unavailable in web preview.");
 
@@ -19,6 +19,21 @@ const PocketHermesSupervisorModule = {
     throw unavailable;
   },
   async cancelTask(_taskId: string): Promise<NativeSupervisorTask> {
+    throw unavailable;
+  },
+  async upsertSchedule(_schedule: NativeSupervisorScheduleInput): Promise<NativeSupervisorSchedule> {
+    throw unavailable;
+  },
+  async listSchedules(): Promise<NativeSupervisorSchedule[]> {
+    throw unavailable;
+  },
+  async setScheduleEnabled(_scheduleId: string, _enabled: boolean): Promise<NativeSupervisorSchedule> {
+    throw unavailable;
+  },
+  async deleteSchedule(_scheduleId: string): Promise<{ status: "deleted" }> {
+    throw unavailable;
+  },
+  async listScheduleRuns(): Promise<NativeSupervisorScheduleRun[]> {
     throw unavailable;
   },
   async preflightModel(_config: Pick<NativeSupervisorStartConfig, "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight> {

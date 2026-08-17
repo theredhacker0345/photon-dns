@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import tempfile
+from datetime import datetime
 
 sys.path.insert(0, "modules/pocket-hermes-supervisor/android/src/main/python")
 import pocket_hermes_worker as worker  # noqa: E402
@@ -60,6 +61,30 @@ def main() -> None:
         assert json.loads(worker.list_tasks_json())[0]["body"] == "Summarize local host readiness."
         cancelled = json.loads(worker.cancel_task("owner-test-1"))
         assert cancelled["status"] == "cancelled"
+
+        saved_schedule = json.loads(worker.upsert_schedule(
+            "schedule-test-1",
+            "Daily readiness report",
+            "0 9 * * *",
+            "Summarize host readiness and send it to the owner.",
+            True,
+        ))
+        assert saved_schedule["enabled"] is True
+        assert saved_schedule["expression"] == "0 9 * * *"
+        assert worker._cron_matches("0 9 * * *", datetime(2026, 8, 17, 9, 0))
+        assert not worker._cron_matches("0 9 * * *", datetime(2026, 8, 17, 9, 1))
+        paused_schedule = json.loads(worker.set_schedule_enabled("schedule-test-1", False))
+        assert paused_schedule["enabled"] is False
+        assert len(json.loads(worker.list_schedules_json())) == 1
+        assert json.loads(worker.list_schedule_runs_json()) == []
+        worker.delete_schedule("schedule-test-1")
+        assert json.loads(worker.list_schedules_json()) == []
+        try:
+            worker.upsert_schedule("schedule-test-invalid", "Bad", "every morning", "Do not run", True)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("worker accepted an invalid cron expression")
         with worker._state_lock:
             worker._state["status"] = "stopped"
             worker._state["runner"] = None

@@ -73,6 +73,53 @@ class PocketHermesSupervisorModule : Module() {
       taskMap(JSONObject(raw))
     }
 
+    AsyncFunction("upsertSchedule") { schedule: Map<String, String> ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Hermes supervisor requires an Android application context."
+      }
+      val raw = workerModule(context).callAttr(
+        "upsert_schedule",
+        schedule["id"]?.trim().orEmpty(),
+        schedule["title"]?.trim().orEmpty(),
+        schedule["expression"]?.trim().orEmpty(),
+        schedule["body"]?.trim().orEmpty(),
+        schedule["enabled"]?.toBooleanStrictOrNull() ?: false,
+      ).toString()
+      scheduleMap(JSONObject(raw))
+    }
+
+    AsyncFunction("listSchedules") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Hermes supervisor requires an Android application context."
+      }
+      val schedules = org.json.JSONArray(workerModule(context).callAttr("list_schedules_json").toString())
+      (0 until schedules.length()).map { index -> scheduleMap(schedules.getJSONObject(index)) }
+    }
+
+    AsyncFunction("setScheduleEnabled") { scheduleId: String, enabled: Boolean ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Hermes supervisor requires an Android application context."
+      }
+      val raw = workerModule(context).callAttr("set_schedule_enabled", scheduleId.trim(), enabled).toString()
+      scheduleMap(JSONObject(raw))
+    }
+
+    AsyncFunction("deleteSchedule") { scheduleId: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Hermes supervisor requires an Android application context."
+      }
+      workerModule(context).callAttr("delete_schedule", scheduleId.trim())
+      mapOf("status" to "deleted")
+    }
+
+    AsyncFunction("listScheduleRuns") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Hermes supervisor requires an Android application context."
+      }
+      val runs = org.json.JSONArray(workerModule(context).callAttr("list_schedule_runs_json").toString())
+      (0 until runs.length()).map { index -> scheduleRunMap(runs.getJSONObject(index)) }
+    }
+
     AsyncFunction("preflightModel") { config: Map<String, String?> ->
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Hermes supervisor requires an Android application context."
@@ -106,6 +153,9 @@ class PocketHermesSupervisorModule : Module() {
           modelApiKey = config["modelApiKey"]?.trim()?.ifBlank { null },
           modelName = config["modelName"]?.trim()?.ifBlank { null },
           restartAfterBoot = config["restartAfterBoot"]?.toBooleanStrictOrNull() ?: false,
+          chargingAware = config["chargingAware"]?.toBooleanStrictOrNull() ?: true,
+          lowBatteryPercent = config["lowBatteryPercent"]?.toIntOrNull() ?: 20,
+          minimumFreeStorageBytes = config["minimumFreeStorageBytes"]?.toLongOrNull() ?: 2L * 1024L * 1024L * 1024L,
         ),
       )
       mapOf("status" to "starting")
@@ -136,5 +186,34 @@ class PocketHermesSupervisorModule : Module() {
     "updatedAt" to task.opt("updatedAt")?.toString(),
     "result" to task.opt("result")?.takeUnless { it == JSONObject.NULL }?.toString(),
     "reason" to task.opt("reason")?.takeUnless { it == JSONObject.NULL }?.toString(),
+  )
+
+  private fun workerModule(context: Context) = run {
+    if (!Python.isStarted()) Python.start(AndroidPlatform(context.applicationContext))
+    Python.getInstance().getModule("pocket_hermes_worker").also { worker ->
+    worker.callAttr("set_storage_root", java.io.File(context.filesDir, "pocket-hermes/runtime").apply { mkdirs() }.absolutePath)
+    }
+  }
+
+  private fun scheduleMap(schedule: JSONObject): Map<String, Any?> = mapOf(
+    "id" to schedule.optString("id"),
+    "title" to schedule.optString("title"),
+    "expression" to schedule.optString("expression"),
+    "body" to schedule.optString("body"),
+    "enabled" to schedule.optBoolean("enabled", false),
+    "lastRunAt" to schedule.opt("lastRunAt")?.takeUnless { it == JSONObject.NULL }?.toString(),
+    "lastRunStatus" to schedule.opt("lastRunStatus")?.takeUnless { it == JSONObject.NULL }?.toString(),
+    "nextRetryAt" to schedule.opt("nextRetryAt")?.takeUnless { it == JSONObject.NULL }?.toString(),
+  )
+
+  private fun scheduleRunMap(run: JSONObject): Map<String, Any?> = mapOf(
+    "id" to run.optString("id"),
+    "scheduleId" to run.optString("scheduleId"),
+    "scheduleTitle" to run.optString("scheduleTitle"),
+    "status" to run.optString("status", "failed"),
+    "attempt" to run.optInt("attempt", 0),
+    "createdAt" to run.opt("createdAt")?.toString(),
+    "updatedAt" to run.opt("updatedAt")?.toString(),
+    "reason" to run.opt("reason")?.takeUnless { it == JSONObject.NULL }?.toString(),
   )
 }

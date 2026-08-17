@@ -1,9 +1,12 @@
 import { Platform } from "react-native";
 
 import PocketHermesSupervisorModule, {
+  type NativeModelPreflight,
   type NativeSupervisorDiagnostic,
   type NativeSupervisorHealth,
-  type NativeModelPreflight,
+  type NativeSupervisorSchedule,
+  type NativeSupervisorScheduleInput,
+  type NativeSupervisorScheduleRun,
   type NativeSupervisorStartConfig,
   type NativeSupervisorTask,
 } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
@@ -72,6 +75,53 @@ export async function cancelNativeTask(taskId: string): Promise<NativeSupervisor
     return await PocketHermesSupervisorModule.cancelTask(taskId);
   } catch {
     return null;
+  }
+}
+
+/** Saves a validated, owner-only schedule in Android private storage. */
+export async function upsertNativeSchedule(schedule: NativeSupervisorScheduleInput): Promise<NativeSupervisorSchedule | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.upsertSchedule(schedule);
+  } catch {
+    return null;
+  }
+}
+
+export async function listNativeSchedules(): Promise<NativeSupervisorSchedule[]> {
+  if (Platform.OS === "web") return [];
+  try {
+    return await PocketHermesSupervisorModule.listSchedules();
+  } catch {
+    return [];
+  }
+}
+
+export async function setNativeScheduleEnabled(scheduleId: string, enabled: boolean): Promise<NativeSupervisorSchedule | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.setScheduleEnabled(scheduleId, enabled);
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteNativeSchedule(scheduleId: string): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    await PocketHermesSupervisorModule.deleteSchedule(scheduleId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function listNativeScheduleRuns(): Promise<NativeSupervisorScheduleRun[]> {
+  if (Platform.OS === "web") return [];
+  try {
+    return await PocketHermesSupervisorModule.listScheduleRuns();
+  } catch {
+    return [];
   }
 }
 

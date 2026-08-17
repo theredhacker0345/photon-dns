@@ -1,12 +1,15 @@
 import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 
 import type { HostReadiness } from "@/hooks/use-host-readiness";
+import type { HostRuntimePolicy } from "@/lib/host-contracts";
 
-const LOW_BATTERY_PERCENT = 25;
+const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const ALERT_STATE_KEY = "pocket-hermes.host-alert-cooldowns.v1";
 
-export function useHostAlerts(readiness: HostReadiness) {
+export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolicy) {
   const [permission, setPermission] = useState<Notifications.PermissionStatus | "unavailable">("unavailable");
   const sentAlerts = useRef(new Set<string>());
 
@@ -36,15 +39,22 @@ export function useHostAlerts(readiness: HostReadiness) {
 
   useEffect(() => {
     if (permission !== "granted") return;
-    const issue = readiness.isCharging === false && readiness.batteryPercent !== null && readiness.batteryPercent < LOW_BATTERY_PERCENT
+    const issue = readiness.isCharging === false && readiness.batteryPercent !== null && readiness.batteryPercent < policy.lowBatteryPercent
       ? { key: "low-battery", title: "Pocket Hermes needs power", body: `Battery is at ${readiness.batteryPercent}%. Plug in this host phone to keep the agent available.` }
       : readiness.storageReady === false
         ? { key: "low-storage", title: "Pocket Hermes needs storage", body: "Free space is below the host reserve. Clear space before running the embedded runtime." }
         : null;
     if (!issue || sentAlerts.current.has(issue.key)) return;
     sentAlerts.current.add(issue.key);
-    void Notifications.scheduleNotificationAsync({ content: { title: issue.title, body: issue.body, data: { route: "/(tabs)" } }, trigger: null });
-  }, [permission, readiness.batteryPercent, readiness.isCharging, readiness.storageReady]);
+    void (async () => {
+      const raw = await AsyncStorage.getItem(ALERT_STATE_KEY).catch(() => null);
+      const cooldowns = raw ? JSON.parse(raw) as Record<string, number> : {};
+      const lastSentAt = cooldowns[issue.key] ?? 0;
+      if (Date.now() - lastSentAt < ALERT_COOLDOWN_MS) return;
+      await Notifications.scheduleNotificationAsync({ content: { title: issue.title, body: issue.body, data: { route: "/(tabs)" } }, trigger: null });
+      await AsyncStorage.setItem(ALERT_STATE_KEY, JSON.stringify({ ...cooldowns, [issue.key]: Date.now() }));
+    })();
+  }, [permission, policy.lowBatteryPercent, readiness.batteryPercent, readiness.isCharging, readiness.storageReady]);
 
-  return { permission, enableAlerts, lowBatteryThreshold: LOW_BATTERY_PERCENT };
+  return { permission, enableAlerts, lowBatteryThreshold: policy.lowBatteryPercent };
 }

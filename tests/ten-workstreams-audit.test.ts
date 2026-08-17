@@ -36,8 +36,10 @@ describe("Pocket Hermes ten-workstream release contracts", () => {
     expect(agent).toContain("enqueueNativeTask");
     expect(agent).toContain("listNativeTasks");
     expect(agent).toContain('accessibilityLabel="Submit owner task"');
-    expect(automations).toContain("addAutomation");
-    expect(automations).toContain("setAutomationEnabled");
+    expect(automations).toContain("upsertNativeSchedule");
+    expect(automations).toContain("setNativeScheduleEnabled");
+    expect(automations).toContain("listNativeScheduleRuns");
+    expect(automations).toContain("Android APK required");
     expect(automations).toContain("<Modal");
   });
 

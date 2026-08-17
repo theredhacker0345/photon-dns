@@ -4,7 +4,7 @@ import { PropsWithChildren, createContext, useCallback, useContext, useEffect, u
 import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
-import { canStartWorker, defaultHostRuntimePolicy, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostRuntimePolicy } from "@/lib/host-contracts";
+import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy } from "@/lib/host-contracts";
 import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
@@ -40,7 +40,7 @@ type PocketHermesContextValue = PersistedState & {
   testGateway: () => Promise<GatewayTestResult>;
   sendTestMessage: () => Promise<TestMessageResult>;
   testModel: () => Promise<ModelTestResult>;
-  prepareRuntime: () => Promise<void>;
+  prepareRuntime: (readiness?: HostReadinessSnapshot) => Promise<void>;
   stopHost: () => Promise<void>;
   addAutomation: (input: Pick<Automation, "title" | "expression" | "delivery">) => void;
   setAutomationEnabled: (id: string, enabled: boolean) => void;
@@ -169,7 +169,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     return { ok: true, message: "Secure configuration saved. Add model details before starting the embedded runtime." };
   }, [state.config.modelName, state.config.policy]);
 
-  const prepareRuntime = useCallback(async () => {
+  const prepareRuntime = useCallback(async (readiness?: HostReadinessSnapshot) => {
     const [telegramToken, modelApiKey] = await Promise.all([readSecret(TELEGRAM_TOKEN_KEY), readSecret(MODEL_API_KEY)]);
     const currentConfig = state.config;
     const startable = canStartWorker({
@@ -179,7 +179,8 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       model: { endpoint: currentConfig.modelEndpoint, model: currentConfig.modelName, hasApiKey: currentConfig.hasModelApiKey },
       policy: currentConfig.policy,
     });
-    const supervisorStarted = telegramToken && modelApiKey && startable
+    const policyBlock = readiness ? getRuntimePolicyBlock(currentConfig.policy, readiness) : null;
+    const supervisorStarted = telegramToken && modelApiKey && startable && !policyBlock
       ? await startNativeSupervisor({
           telegramToken,
           ownerChatId: currentConfig.allowedChatId,
@@ -187,11 +188,17 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
           modelApiKey,
           modelName: currentConfig.modelName || undefined,
           restartAfterBoot: currentConfig.policy.restartAfterBoot,
+          chargingAware: currentConfig.policy.chargingAware,
+          lowBatteryPercent: currentConfig.policy.lowBatteryPercent,
+          minimumFreeStorageBytes: currentConfig.policy.minimumFreeStorageBytes,
         })
       : false;
     setState((current) => {
       if (!startable) {
         return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked", detail: "Save a Telegram owner lock, HTTPS model endpoint, model name, model credential, and a valid host policy first.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
+      }
+      if (policyBlock) {
+        return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked by host policy", detail: policyBlock, severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
       if (supervisorStarted) {
         return { ...current, phase: "running", events: [{ id: createId("event"), title: "Android supervisor started", detail: "Pocket Hermes is sampling this phone’s live process CPU and RAM through its foreground supervisor.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };

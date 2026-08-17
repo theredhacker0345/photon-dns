@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canStartWorker,
   defaultHostRuntimePolicy,
+  getRuntimePolicyBlock,
   isAllowedModelEndpoint,
   isSafeRuntimePolicy,
   isTerminalTaskStatus,
@@ -33,6 +34,12 @@ describe("Pocket Hermes cross-layer host contract", () => {
     expect(canStartWorker(base)).toBe(true);
     expect(canStartWorker({ ...base, model: { ...base.model, hasApiKey: false } })).toBe(false);
     expect(canStartWorker({ ...base, ownerChatId: "" })).toBe(false);
+  });
+
+  it("blocks native starts that violate the saved charging or storage policy while leaving preview unblocked", () => {
+    expect(getRuntimePolicyBlock(defaultHostRuntimePolicy, { source: "native", isCharging: false, freeStorageBytes: 4 * 1024 * 1024 * 1024 })).toContain("charging");
+    expect(getRuntimePolicyBlock(defaultHostRuntimePolicy, { source: "native", isCharging: true, freeStorageBytes: 1 })).toContain("storage");
+    expect(getRuntimePolicyBlock(defaultHostRuntimePolicy, { source: "preview", isCharging: null, freeStorageBytes: null })).toBeNull();
   });
 
   it("treats only final task results as terminal", () => {

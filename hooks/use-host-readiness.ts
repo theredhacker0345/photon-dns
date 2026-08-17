@@ -13,8 +13,6 @@ export type HostReadiness = {
   source: "native" | "preview" | "unavailable";
 };
 
-const minimumHostStorageBytes = 2 * 1024 * 1024 * 1024;
-
 const initialReadiness: HostReadiness = {
   batteryPercent: null,
   chargingLabel: "Reading device power…",
@@ -36,7 +34,7 @@ function isChargingState(state: Battery.BatteryState) {
   return state === Battery.BatteryState.CHARGING || state === Battery.BatteryState.FULL;
 }
 
-export function useHostReadiness() {
+export function useHostReadiness(minimumHostStorageBytes = 2 * 1024 * 1024 * 1024) {
   const [readiness, setReadiness] = useState<HostReadiness>(initialReadiness);
 
   useEffect(() => {

@@ -121,9 +121,9 @@
 - [x] Implement authenticated OpenAI-compatible model configuration and preflight health validation
 - [x] Enforce and test owner-only Telegram task execution with bounded task lifecycle and delivery receipts
 - [x] Replace local Agent drafts with a durable runtime task queue and event history
-- [ ] Implement durable native scheduling with cron validation, run history, retries, and owner-only delivery
-- [ ] Persist and enforce charging-aware runtime policy, readiness remediation, and durable alert cooldowns
-- [ ] Add native worker freshness and accurate telemetry semantics to the Home dashboard
+- [x] Implement durable native scheduling with cron validation, run history, retries, and owner-only delivery
+- [x] Persist and enforce charging-aware runtime policy, readiness remediation, and durable alert cooldowns
+- [x] Add native worker freshness and accurate telemetry semantics to the Home dashboard
 - [ ] Complete threat model, privacy/security documentation, full dependency SBOM, and FOSS license gates
 - [ ] Remove unused app dependencies and prototype naming from the Android release graph
 - [ ] Build a clean-source reproducible F-Droid flow and replace debug-signed direct release configuration
