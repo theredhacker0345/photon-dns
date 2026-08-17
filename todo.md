@@ -67,3 +67,16 @@
 - [x] Remove or replace unused native dependencies that force an oversized Android CMake build in the memory-constrained sandbox.
 - [x] Rebuild the arm64-v8a APK entirely in the sandbox using the minimized native dependency profile.
 - [x] Build and validate a MIT-licensed ARM64 Pydantic Core wheel from the pinned source because Chaquopy lacks the required published Android artifact.
+
+# Final Release and F-Droid Submission
+
+- [ ] Restore or provision the sandbox Android/Chaquopy build toolchain
+- [ ] Rebuild the pinned Android wheel artifacts
+- [ ] Generate the final ARM64 release APK
+- [ ] Validate APK size, SHA-256, package ID, version, and native worker contents
+- [ ] Prepare and validate the F-Droid submission checklist
+- [ ] Save a checkpoint containing the final release metadata and checklist
+
+- [ ] Final APK build and F-Droid checklist requested by user on 2026-08-17
+
+**Note:** The sandbox reset removed the previous local Android SDK, CPython toolchain, and `.artifacts/wheels/`; these must be regenerated before the APK can be rebuilt.

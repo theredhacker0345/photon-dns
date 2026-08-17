@@ -11,12 +11,13 @@ NDK_ROOT="${ANDROID_NDK_HOME:-/home/ubuntu/android-sdk/ndk/27.1.12297006}"
 RUSTUP_HOME="${RUSTUP_HOME:-/home/ubuntu/.rustup}"
 CARGO_HOME="${CARGO_HOME:-/home/ubuntu/.cargo}"
 MATURIN="${MATURIN:-${CARGO_HOME}/bin/maturin}"
+PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
 WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
 SOURCE_URL="https://files.pythonhosted.org/packages/9d/56/921726b776ace8d8f5db44c4ef961006580d91dc52b803c489fafd1aa249/pydantic_core-${VERSION}.tar.gz"
 SOURCE_SHA256="62f875393d7f270851f20523dd2e29f082bcc82292d66db2b64ea71f64b6e1c1"
 
-for executable in curl sha256sum tar "${MATURIN}"; do
+for executable in curl sha256sum tar "${MATURIN}" "${PYTHON}"; do
   command -v "${executable}" >/dev/null 2>&1 || {
     echo "Missing build prerequisite: ${executable}" >&2
     exit 1
@@ -30,6 +31,10 @@ test -x "${MATURIN}" || { echo "maturin not executable at ${MATURIN}" >&2; exit 
 
 rm -rf "${WORK}"
 mkdir -p "${WORK}" "${OUT}"
+# Maturin/PyO3 needs the target interpreter's sysconfig data when cross
+# compiling. Keep this generated metadata in the ignored build workspace.
+stdlib_dir="$("${PYTHON}" -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')"
+cp "${stdlib_dir}"/_sysconfigdata*.py "${WORK}/"
 rm -f "${OUT}/pydantic_core-${VERSION}-"*.whl
 curl --fail --silent --show-error --location "${SOURCE_URL}" --output "${WORK}/source.tar.gz"
 echo "${SOURCE_SHA256}  ${WORK}/source.tar.gz" | sha256sum --check --status
@@ -51,18 +56,21 @@ export AR_aarch64_linux_android="${NDK_BIN}/llvm-ar"
 export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${CLANG}"
 export RUSTFLAGS="${RUSTFLAGS:-} -L native=${WORK}"
 export PYO3_CROSS=1
+export PYO3_CROSS_LIB_DIR="${WORK}"
 export PYO3_CROSS_PYTHON_VERSION=3.11
 export PYO3_CROSS_PYTHON_IMPLEMENTATION=CPython
 
 SOURCE_DIR="${WORK}/pydantic_core-${VERSION}"
 (
   cd "${SOURCE_DIR}"
-  "${MATURIN}" build --release --target aarch64-linux-android --interpreter python3.11 --compatibility off --out "${OUT}"
+  "${MATURIN}" build --release --target aarch64-linux-android --interpreter "${PYTHON}" --compatibility off --out "${OUT}"
 )
 
 wheel="$(find "${OUT}" -maxdepth 1 -type f -name "pydantic_core-${VERSION}-*.whl" -print -quit)"
 test -n "${wheel}" || { echo "Pydantic Core wheel was not produced" >&2; exit 1; }
 target_wheel="${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_arm64_v8a.whl"
-mv "${wheel}" "${target_wheel}"
+if [[ "${wheel}" != "${target_wheel}" ]]; then
+  mv "${wheel}" "${target_wheel}"
+fi
 echo "Built ${target_wheel}"
 sha256sum "${target_wheel}"
