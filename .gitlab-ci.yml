@@ -1,0 +1,37 @@
+# Pocket Agent Host - GitLab CI/CD Pipeline
+# Manual-only ARM64 release APK build workflow (does not run on every push).
+
+stages:
+  - build
+
+build-release-apk:
+  stage: build
+  image: cimg/android:2024.04-node
+  when: manual
+  variables:
+    ANDROID_COMPILE_SDK: "34"
+    ANDROID_BUILD_TOOLS: "34.0.0"
+  cache:
+    key: gradle-and-pnpm-cache
+    paths:
+      - .gradle/wrapper
+      - .gradle/caches
+      - node_modules/
+      - ~/.pnpm-store
+  script:
+    - echo "Starting manual Pocket Agent Host ARM64 release APK build..."
+    - node -v
+    - pnpm -v
+    - pnpm install --frozen-lockfile
+    - pnpm test
+    - pnpm check
+    - cd android
+    - ./gradlew :app:assembleRelease --no-daemon --max-workers=1 --console=plain
+    - echo "Build completed successfully."
+  artifacts:
+    name: "pocket-agent-host-release-apk"
+    expire_in: 30 days
+    paths:
+      - android/app/build/outputs/apk/release/app-release.apk
+    reports:
+      junit: android/app/build/outputs/androidTest-results/**/*.xml

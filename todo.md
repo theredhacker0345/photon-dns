@@ -142,3 +142,5 @@
 - [x] Add CONTRIBUTORS and a copyright/contribution policy for future code submissions
 - [x] Regenerate compliance evidence and validate relicensing changes before GitLab publication
 - [x] Push the verified GPLv3 update to GitLab and confirm the remote commit
+- [x] Add manual-only GitLab CI workflow (`.gitlab-ci.yml`) for ARM64 release APK builds
+- [x] Document Appetize.io API integration and test helper script for cloud APK launch
