@@ -109,3 +109,22 @@
 - [x] Make the dashboard distinguish live, sampling, and unavailable telemetry clearly
 - [x] Add deterministic coverage for the telemetry hook and Home metric rendering contract
 - [x] Validate the corrected CPU/RAM behavior and save a checkpoint
+
+# Complete Gap-Closure Program
+
+- [x] Create a traceability matrix mapping every visible control to runtime effect, persistence, recovery, and acceptance test
+- [x] Replace prototype-ready claims in UI and documentation with verified implementation states
+- [x] Define versioned cross-layer contracts for host configuration, policies, health, tasks, schedules, and redacted diagnostics
+- [x] Declare and verify Android foreground-service, boot-recovery, notification, and network manifest requirements
+- [x] Implement idempotent native lifecycle, heartbeat, bounded recovery, and safe diagnostics
+- [x] Establish one Android Keystore-backed secret lifecycle with migration, rotation, and deletion
+- [x] Implement authenticated OpenAI-compatible model configuration and preflight health validation
+- [x] Enforce and test owner-only Telegram task execution with bounded task lifecycle and delivery receipts
+- [x] Replace local Agent drafts with a durable runtime task queue and event history
+- [ ] Implement durable native scheduling with cron validation, run history, retries, and owner-only delivery
+- [ ] Persist and enforce charging-aware runtime policy, readiness remediation, and durable alert cooldowns
+- [ ] Add native worker freshness and accurate telemetry semantics to the Home dashboard
+- [ ] Complete threat model, privacy/security documentation, full dependency SBOM, and FOSS license gates
+- [ ] Remove unused app dependencies and prototype naming from the Android release graph
+- [ ] Build a clean-source reproducible F-Droid flow and replace debug-signed direct release configuration
+- [ ] Run unit, native, integration, device, resilience, and release-candidate validation gates

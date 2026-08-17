@@ -6,18 +6,18 @@ This document provides a comprehensive, practitioner-grade publishing guide and 
 
 ## 1. Project Readiness Summary
 
-Pocket Hermes has been fully structured as a Free and Open-Source Software (FOSS) Android application under the MIT License, featuring a self-hosted embedded CPython 3.11 and Hermes Agent runtime, an owner-locked Telegram remote-control bridge, and a polished mobile control-plane UI [2].
+Pocket Hermes is an MIT-licensed FOSS Android **prototype** with a bundled CPython 3.11 and Hermes Agent runtime, an intended owner-locked Telegram bridge, and a mobile control-plane UI. This checklist is not evidence that persistent hosting, owner-only task execution, scheduler execution, device recovery, clean-source reproducibility, or direct-distribution signing has passed its release gates. The authoritative scope and acceptance evidence live in [`implementation-traceability-matrix.md`](./implementation-traceability-matrix.md).
 
 | Component / Requirement | Status | Verification Detail |
 |-------------------------|--------|---------------------|
-| **FOSS License & Notice** | Completed | MIT License applied across all source files, with third-party upstream licenses properly attributed and verified [2]. |
-| **No Proprietary Binary Blobs** | Completed | All native and Python dependencies compiled from source or verified against FOSS-compliant registries; zero telemetry or analytics SDKs [2]. |
-| **Embedded Python Runtime** | Completed | Chaquopy 17.0 CPython 3.11 arm64-v8a build configured with pre-compiled offline wheels (`hermes_agent`, `jiter`, `pydantic_core`) [2]. |
-| **Fastlane Metadata Store** | Completed | Fully populated under `fastlane/metadata/android/en-US/` including title, short description, full description, and release changelogs [3]. |
-| **F-Droid Build Recipe YAML** | Completed | Upstream build recipe configured at `metadata/com.app.pockethermes.yml` with precise prebuild steps for wheel generation [3]. |
-| **SBOM Generation** | Completed | CycloneDX 1.6 compliant Software Bill of Materials generated (`sbom.json`) covering 62 FOSS components [2]. |
-| **ARM64 Release APK** | Completed | Successfully compiled release APK (`app-release.apk`, 119 MiB, SHA-256: `65739cc74d7296e7b7426e87d4d47d060ee94aae61e5ef60a65328762cb23f27`) [2]. |
-| **Background Wake Monitor** | Completed | 30-minute automated background wake-check daemon operational in the sandbox environment [2]. |
+| **FOSS License & Notice** | Partially evidenced | App and reviewed embedded-Python sources use FOSS licenses; release-wide npm/Gradle/native SBOM and automated license gates remain required. |
+| **No Proprietary Binary Blobs** | Pending release audit | The prior Python SBOM is useful evidence only. The final shipped artifact still needs full dependency, native-artifact, and clean-build verification. |
+| **Embedded Python Runtime** | Implemented, unverified | Chaquopy 17.0, Python 3.11, and ARM64 wheel inputs are configured; real owner-locked model task execution and device recovery remain release gates. |
+| **Fastlane Metadata Store** | Draft present | Metadata exists, but it must be reconciled with verified capabilities, final screenshots, changelog, and public release source. |
+| **F-Droid Build Recipe YAML** | Draft present | The recipe needs a clean-checkout reproducibility proof, acceptable build inputs, and an actual immutable public release tag before submission. |
+| **SBOM Generation** | Partial | A CycloneDX Python-component SBOM exists; the final release needs a full npm, Gradle, Python, and native-artifact SBOM. |
+| **ARM64 Build Artifact** | Debug-signed prototype artifact | The existing `70.31 MiB` ARM64 APK was built in the sandbox. It predates later UI work and is not a direct-distribution release because release signing and clean-source reproducibility are unfinished. |
+| **Sandbox Wake Monitor** | Development process aid | This sandbox monitor does not provide resilience for an installed Android host and must not be treated as an app feature. |
 
 ---
 
@@ -25,9 +25,9 @@ Pocket Hermes has been fully structured as a Free and Open-Source Software (FOSS
 
 To be accepted into the official F-Droid data repository, an application must satisfy strict upstream criteria [1]. Pocket Hermes addresses each requirement as follows:
 
-1. **No Non-Free Dependencies**: Pocket Hermes uses zero proprietary libraries, Google Play Services, Firebase Cloud Messaging, or closed-source analytics. Remote control is conducted exclusively via standard Telegram Bot API long-polling over HTTPS.
-2. **Reproducible Builds**: The build recipe (`metadata/com.app.pockethermes.yml`) specifies exact toolchain versions (Gradle 8.14.3, OpenJDK 21, Android NDK 27.1.12297006, CPython 3.11) and prebuild commands to ensure the APK can be independently compiled byte-for-byte by F-Droid's build servers [1].
-3. **Complete Source Availability**: All Python dependencies (including `pydantic-core` and `jiter`) are built from tagged source releases or project-owned pure-Python compatibility modules without relying on precompiled proprietary binaries [2].
+1. **No Non-Free Dependencies**: The project intends to use no proprietary libraries, Google Play Services, Firebase Cloud Messaging, or closed-source analytics. This remains a final-artifact audit gate rather than an accepted-release claim.
+2. **Reproducible Builds**: The current recipe records intended toolchain and prebuild inputs. It has **not** yet proved that F-Droid can build from a clean checkout without sandbox-local paths, ignored artifacts, or unavailable network/build dependencies.
+3. **Complete Source Availability**: Python source and wheel-generation helpers exist, but final acceptance requires a clean-source, F-Droid-acceptable rebuild with complete hashes, licenses, and artifact provenance.
 
 ---
 
@@ -56,10 +56,10 @@ To be accepted into the official F-Droid data repository, an application must sa
 ```
 
 ### Step 1: Prepare the Source Repository
-Ensure all metadata assets (`fastlane/`, `metadata/com.app.pockethermes.yml`, `sbom.json`) are committed to version control on the main release branch [3].
+Before tagging, complete every release gate in the traceability matrix, move all release-critical build inputs into tracked reproducible source, and ensure metadata assets (`fastlane/`, `metadata/com.app.pockethermes.yml`, and the final full SBOM) accurately describe the verified build.
 
 ### Step 2: Open a Merge Request on F-Droid Data
-Fork the official [F-Droid Data Repository](https://gitlab.com/fdroid/fdroiddata) and add `metadata/com.app.pockethermes.yml` (or include it directly in your project repository if using F-Droid's upstream metadata inclusion feature).
+Only after the clean-source reproducibility and public-tag gates pass, fork the official [F-Droid Data Repository](https://gitlab.com/fdroid/fdroiddata) and add `metadata/com.app.pockethermes.yml` (or include it directly in the project repository if using F-Droid's upstream metadata inclusion feature).
 
 ### Step 3: Address Reviewer Feedback
 F-Droid maintainers will review the build log for network access during build (must be offline or use cached dependencies defined in `yml`), proprietary library references, and source reproducibility.

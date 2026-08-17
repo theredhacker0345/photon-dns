@@ -2,6 +2,7 @@ package expo.modules.pockethermessupervisor
 
 import android.os.Process
 import android.os.SystemClock
+import java.util.ArrayDeque
 
 /**
  * Holds only host-lifecycle state and rolling CPU sample values. It deliberately
@@ -16,6 +17,84 @@ object SupervisorRuntimeState {
 
   @Volatile
   var workerReason: String = "not started"
+
+  @Volatile
+  var restartCount: Int = 0
+
+  @Volatile
+  var lastHeartbeatAt: Long? = null
+
+  private const val MAX_DIAGNOSTICS = 40
+  private val diagnostics = ArrayDeque<Map<String, Any?>>()
+
+  @Synchronized
+  private fun appendDiagnostic(category: String, severity: String, code: String, message: String) {
+    diagnostics.addFirst(
+      mapOf(
+        "occurredAt" to System.currentTimeMillis().toString(),
+        "category" to category,
+        "severity" to severity,
+        "code" to code,
+        "message" to message.take(160),
+      ),
+    )
+    while (diagnostics.size > MAX_DIAGNOSTICS) diagnostics.removeLast()
+  }
+
+  @Synchronized
+  fun diagnosticSnapshot(): List<Map<String, Any?>> = diagnostics.toList()
+
+  @Synchronized
+  fun healthSnapshot(): Map<String, Any?> = mapOf(
+    "state" to workerStatus,
+    "detail" to workerReason,
+    "lastHeartbeatAt" to lastHeartbeatAt?.toString(),
+    "restartCount" to restartCount,
+  )
+
+  @Synchronized
+  fun updateWorkerHealth(status: String, reason: String, heartbeatAt: Long?) {
+    workerStatus = when (status) {
+      "running", "starting", "degraded", "stopped" -> status
+      else -> "degraded"
+    }
+    workerReason = reason.take(160)
+    if (heartbeatAt != null && heartbeatAt > 0L) lastHeartbeatAt = heartbeatAt
+  }
+
+  @Synchronized
+  fun markStarting(reason: String) {
+    isRunning = true
+    workerStatus = "starting"
+    workerReason = reason
+    appendDiagnostic("lifecycle", "info", "worker_starting", reason)
+  }
+
+  @Synchronized
+  fun markStopped(reason: String) {
+    isRunning = false
+    workerStatus = "stopped"
+    workerReason = reason
+    appendDiagnostic("lifecycle", "info", "worker_stopped", reason)
+  }
+
+  @Synchronized
+  fun markDegraded(reason: String) {
+    workerStatus = "degraded"
+    workerReason = reason
+    appendDiagnostic("lifecycle", "warning", "worker_degraded", reason)
+  }
+
+  @Synchronized
+  fun recordRecoveryAttempt(attempt: Int) {
+    restartCount = attempt
+    appendDiagnostic("lifecycle", "warning", "worker_recovery", "bounded worker recovery attempt $attempt")
+  }
+
+  @Synchronized
+  fun clearRecoveryAttempts() {
+    restartCount = 0
+  }
 
   private var lastCpuTimeMillis: Long = 0L
   private var lastWallTimeMillis: Long = 0L

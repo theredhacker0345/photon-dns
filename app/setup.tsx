@@ -26,8 +26,11 @@ export default function HostSetupScreen() {
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
   const [modelEndpoint, setModelEndpoint] = useState(config.modelEndpoint);
+  const [modelName, setModelName] = useState(config.modelName);
+  const [modelApiKey, setModelApiKey] = useState("");
   const [token, setToken] = useState("");
   const [chargingAware, setChargingAware] = useState(true);
+  const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
   const [saving, setSaving] = useState(false);
   const readiness = useHostReadiness();
 
@@ -36,7 +39,7 @@ export default function HostSetupScreen() {
   const stepReady = useMemo(() => {
     if (step === 0) return Boolean(hostName.trim());
     if (step === 1) return hasUsableToken && isValidTelegramChatId(allowedChatId.trim());
-    if (step === 2) return !modelEndpoint.trim() || /^https?:\/\//i.test(modelEndpoint.trim());
+    if (step === 2) return !modelEndpoint.trim() || /^https:\/\//i.test(modelEndpoint.trim());
     return true;
   }, [allowedChatId, hasUsableToken, hostName, modelEndpoint, step]);
 
@@ -44,8 +47,8 @@ export default function HostSetupScreen() {
     ? "Give this phone a recognisable name."
     : step === 1
       ? !hasUsableToken ? "Add a Telegram bot token to continue." : "Use a numeric owner chat ID. Group IDs may begin with a minus sign."
-      : step === 2 && modelEndpoint.trim() && !/^https?:\/\//i.test(modelEndpoint.trim())
-        ? "Use a full URL beginning with https:// or http://."
+      : step === 2 && modelEndpoint.trim() && !/^https:\/\//i.test(modelEndpoint.trim())
+        ? "Use a full HTTPS URL."
         : "";
 
   const continueSetup = async () => {
@@ -55,7 +58,15 @@ export default function HostSetupScreen() {
       return;
     }
     setSaving(true);
-    const result = await saveConfiguration({ hostName, allowedChatId, modelEndpoint, telegramToken: token });
+    const result = await saveConfiguration({
+      hostName,
+      allowedChatId,
+      modelEndpoint,
+      modelName,
+      modelApiKey,
+      telegramToken: token,
+      policy: { ...config.policy, chargingAware, restartAfterBoot },
+    });
     setSaving(false);
     if (!result.ok) {
       Alert.alert("Check your setup", result.message);
@@ -63,6 +74,7 @@ export default function HostSetupScreen() {
       return;
     }
     setToken("");
+    setModelApiKey("");
     Alert.alert("Protected setup saved", "Run a safe Telegram credential check before opening the host dashboard.", [{ text: "Test gateway", onPress: () => router.replace("/gateway-test" as never) }]);
   };
 
@@ -92,8 +104,8 @@ export default function HostSetupScreen() {
 
         {step === 0 ? <DeviceStep hostName={hostName} setHostName={setHostName} colors={colors} /> : null}
         {step === 1 ? <TelegramStep token={token} setToken={setToken} allowedChatId={allowedChatId} setAllowedChatId={setAllowedChatId} hasTelegramToken={config.hasTelegramToken} colors={colors} /> : null}
-        {step === 2 ? <ModelStep modelEndpoint={modelEndpoint} setModelEndpoint={setModelEndpoint} colors={colors} /> : null}
-        {step === 3 ? <PolicyStep chargingAware={chargingAware} setChargingAware={setChargingAware} hostName={hostName} hasToken={hasUsableToken} allowedChatId={allowedChatId} modelEndpoint={modelEndpoint} readiness={readiness} colors={colors} /> : null}
+        {step === 2 ? <ModelStep modelEndpoint={modelEndpoint} setModelEndpoint={setModelEndpoint} modelName={modelName} setModelName={setModelName} modelApiKey={modelApiKey} setModelApiKey={setModelApiKey} hasModelApiKey={config.hasModelApiKey} colors={colors} /> : null}
+        {step === 3 ? <PolicyStep chargingAware={chargingAware} setChargingAware={setChargingAware} restartAfterBoot={restartAfterBoot} setRestartAfterBoot={setRestartAfterBoot} hostName={hostName} hasToken={hasUsableToken} allowedChatId={allowedChatId} modelEndpoint={modelEndpoint} readiness={readiness} colors={colors} /> : null}
 
         {validationHint ? <View style={[styles.validation, { backgroundColor: `${colors.warning}14` }]}><MaterialIcons name="info-outline" size={18} color={colors.warning} /><Text style={[styles.validationText, { color: colors.warning }]}>{validationHint}</Text></View> : null}
 
@@ -115,13 +127,13 @@ function TelegramStep({ token, setToken, allowedChatId, setAllowedChatId, hasTel
   return <View style={styles.stepContent}><PressableCard style={[styles.statusCard, { backgroundColor: `${colors.success}0E`, borderColor: `${colors.success}2A` }]}><MaterialIcons name={hasTelegramToken ? "lock" : "vpn-key"} size={19} color={colors.success} /><Text style={[styles.statusText, { color: colors.foreground }]}>{hasTelegramToken ? "A protected bot token is already saved." : "Your token is encrypted immediately after setup."}</Text></PressableCard><FieldLabel label="Telegram bot token" color={colors.muted} /><TextInput value={token} onChangeText={setToken} placeholder={hasTelegramToken ? "Leave blank to keep saved token" : "Paste token from BotFather"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Allowed owner chat ID" color={colors.muted} /><TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="numbers-and-punctuation" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><PressableCard style={[styles.chatHelp, { backgroundColor: `${colors.primary}0C`, borderColor: `${colors.primary}22` }]}><MaterialIcons name="help-outline" size={19} color={colors.primary} /><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>How to find your chat ID</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>Open Telegram, message @userinfobot, then copy its numeric ID here. For a group, add the bot first—the ID may begin with a minus sign.</Text></View></PressableCard><Text style={[styles.helper, { color: colors.muted }]}>The embedded gateway must reject every incoming chat except this owner allowlist.</Text></View>;
 }
 
-function ModelStep({ modelEndpoint, setModelEndpoint, colors }: { modelEndpoint: string; setModelEndpoint: (value: string) => void; colors: ReturnType<typeof useColors> }) {
-  return <View style={styles.stepContent}><FieldLabel label="Model endpoint · optional" color={colors.muted} /><TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><Text style={[styles.helper, { color: colors.muted }]}>You can add this later in Control. The lightweight default keeps model computation off-device while the private host stays on this phone.</Text><PressableCard style={styles.infoCard}><View style={[styles.infoIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="memory" size={19} color={colors.primary} /></View><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Keep the first install lightweight</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>No local model files are added during initial setup. Optional offline models remain a later, explicit download.</Text></View></PressableCard></View>;
+function ModelStep({ modelEndpoint, setModelEndpoint, modelName, setModelName, modelApiKey, setModelApiKey, hasModelApiKey, colors }: { modelEndpoint: string; setModelEndpoint: (value: string) => void; modelName: string; setModelName: (value: string) => void; modelApiKey: string; setModelApiKey: (value: string) => void; hasModelApiKey: boolean; colors: ReturnType<typeof useColors> }) {
+  return <View style={styles.stepContent}><FieldLabel label="Model endpoint · HTTPS" color={colors.muted} /><TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Model name" color={colors.muted} /><TextInput value={modelName} onChangeText={setModelName} placeholder="e.g. gpt-4o-mini" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Model API key" color={colors.muted} /><TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={hasModelApiKey ? "Leave blank to keep saved key" : "Paste provider API key"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><Text style={[styles.helper, { color: colors.muted }]}>The worker will not start until the endpoint, model name, and protected model key are saved. Model computation stays with your selected provider; the host remains on this phone.</Text><PressableCard style={styles.infoCard}><View style={[styles.infoIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="memory" size={19} color={colors.primary} /></View><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Keep the first install lightweight</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>No local model files are added during initial setup. Optional offline models remain a later, explicit download.</Text></View></PressableCard></View>;
 }
 
-function PolicyStep({ chargingAware, setChargingAware, hostName, hasToken, allowedChatId, modelEndpoint, readiness, colors }: { chargingAware: boolean; setChargingAware: (value: boolean) => void; hostName: string; hasToken: boolean; allowedChatId: string; modelEndpoint: string; readiness: HostReadiness; colors: ReturnType<typeof useColors> }) {
+function PolicyStep({ chargingAware, setChargingAware, restartAfterBoot, setRestartAfterBoot, hostName, hasToken, allowedChatId, modelEndpoint, readiness, colors }: { chargingAware: boolean; setChargingAware: (value: boolean) => void; restartAfterBoot: boolean; setRestartAfterBoot: (value: boolean) => void; hostName: string; hasToken: boolean; allowedChatId: string; modelEndpoint: string; readiness: HostReadiness; colors: ReturnType<typeof useColors> }) {
   const storageValue = readiness.freeStorageBytes === null ? "Checking storage…" : `${(readiness.freeStorageBytes / 1024 / 1024 / 1024).toFixed(1)} GB free`;
-  return <View style={styles.stepContent}><PressableCard style={styles.policyRow}><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Charging-aware host mode</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>Recommend power before a long-running agent session and surface readiness clearly.</Text></View><Switch value={chargingAware} onValueChange={setChargingAware} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={chargingAware ? colors.success : colors.muted} /></PressableCard><View style={styles.readinessGrid}><PressableCard style={styles.readinessCard}><MaterialIcons name="battery-charging-full" size={20} color={readiness.isCharging ? colors.success : colors.warning} /><Text style={[styles.readinessLabel, { color: colors.foreground }]}>Power</Text><Text style={[styles.readinessDetail, { color: colors.muted }]}>{readiness.batteryPercent === null ? readiness.chargingLabel : `${readiness.batteryPercent}% · ${readiness.chargingLabel}`}</Text></PressableCard><PressableCard style={styles.readinessCard}><MaterialIcons name="storage" size={20} color={readiness.storageReady ? colors.success : colors.warning} /><Text style={[styles.readinessLabel, { color: colors.foreground }]}>Storage</Text><Text style={[styles.readinessDetail, { color: colors.muted }]}>{storageValue}</Text></PressableCard></View><View style={[styles.summary, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryEyebrow, { color: colors.muted }]}>HOST READINESS</Text><SummaryRow icon="phone-android" label="Device" value={hostName.trim() || "Pocket Hermes"} ok colors={colors} /><SummaryRow icon="telegram" label="Owner gateway" value={hasToken && isValidTelegramChatId(allowedChatId.trim()) ? "Locked to one chat" : "Needs attention"} ok={hasToken && isValidTelegramChatId(allowedChatId.trim())} colors={colors} /><SummaryRow icon="battery-charging-full" label="Power" value={readiness.chargingLabel} ok={readiness.isCharging === true || !chargingAware} colors={colors} /><SummaryRow icon="storage" label="Storage" value={storageValue} ok={readiness.storageReady !== false} colors={colors} /><SummaryRow icon="terminal" label="Runtime" value="Private bundle, no Termux" ok colors={colors} /></View></View>;
+  return <View style={styles.stepContent}><PressableCard style={styles.policyRow}><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Charging-aware host mode</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>Recommend power before a long-running agent session and surface readiness clearly.</Text></View><Switch value={chargingAware} onValueChange={setChargingAware} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={chargingAware ? colors.success : colors.muted} /></PressableCard><PressableCard style={styles.policyRow}><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Restart after boot</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>After device unlock, an enabled host can restore its protected foreground session.</Text></View><Switch value={restartAfterBoot} onValueChange={setRestartAfterBoot} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={restartAfterBoot ? colors.success : colors.muted} /></PressableCard><View style={styles.readinessGrid}><PressableCard style={styles.readinessCard}><MaterialIcons name="battery-charging-full" size={20} color={readiness.isCharging ? colors.success : colors.warning} /><Text style={[styles.readinessLabel, { color: colors.foreground }]}>Power</Text><Text style={[styles.readinessDetail, { color: colors.muted }]}>{readiness.batteryPercent === null ? readiness.chargingLabel : `${readiness.batteryPercent}% · ${readiness.chargingLabel}`}</Text></PressableCard><PressableCard style={styles.readinessCard}><MaterialIcons name="storage" size={20} color={readiness.storageReady ? colors.success : colors.warning} /><Text style={[styles.readinessLabel, { color: colors.foreground }]}>Storage</Text><Text style={[styles.readinessDetail, { color: colors.muted }]}>{storageValue}</Text></PressableCard></View><View style={[styles.summary, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryEyebrow, { color: colors.muted }]}>HOST READINESS</Text><SummaryRow icon="phone-android" label="Device" value={hostName.trim() || "Pocket Hermes"} ok colors={colors} /><SummaryRow icon="telegram" label="Owner gateway" value={hasToken && isValidTelegramChatId(allowedChatId.trim()) ? "Locked to one chat" : "Needs attention"} ok={hasToken && isValidTelegramChatId(allowedChatId.trim())} colors={colors} /><SummaryRow icon="battery-charging-full" label="Power" value={readiness.chargingLabel} ok={readiness.isCharging === true || !chargingAware} colors={colors} /><SummaryRow icon="storage" label="Storage" value={storageValue} ok={readiness.storageReady !== false} colors={colors} /><SummaryRow icon="terminal" label="Runtime" value="Private bundle, no Termux" ok colors={colors} /></View></View>;
 }
 
 function SummaryRow({ icon, label, value, ok, colors }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; label: string; value: string; ok: boolean; colors: ReturnType<typeof useColors> }) { return <View style={styles.summaryRow}><MaterialIcons name={icon} size={18} color={ok ? colors.success : colors.warning} /><View style={styles.summaryCopy}><Text style={[styles.summaryLabel, { color: colors.foreground }]}>{label}</Text><Text style={[styles.summaryValue, { color: colors.muted }]}>{value}</Text></View><MaterialIcons name={ok ? "check-circle" : "error-outline"} size={19} color={ok ? colors.success : colors.warning} /></View>; }

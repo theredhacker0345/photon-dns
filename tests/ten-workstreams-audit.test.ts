@@ -30,11 +30,12 @@ describe("Pocket Hermes ten-workstream release contracts", () => {
     expect(source).toContain("telemetryNotice");
   });
 
-  it("keeps agent and automation actions wired to persistent store operations", () => {
+  it("keeps agent and automation actions wired to durable runtime operations", () => {
     const agent = read("app/(tabs)/agent.tsx");
     const automations = read("app/(tabs)/automations.tsx");
-    expect(agent).toContain("addDraft");
-    expect(agent).toContain('accessibilityLabel="Save instruction"');
+    expect(agent).toContain("enqueueNativeTask");
+    expect(agent).toContain("listNativeTasks");
+    expect(agent).toContain('accessibilityLabel="Submit owner task"');
     expect(automations).toContain("addAutomation");
     expect(automations).toContain("setAutomationEnabled");
     expect(automations).toContain("<Modal");
