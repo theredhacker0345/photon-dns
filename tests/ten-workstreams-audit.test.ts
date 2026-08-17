@@ -89,9 +89,11 @@ describe("Pocket Hermes ten-workstream release contracts", () => {
   });
 
   it("keeps the FOSS release gate and metadata present", () => {
-    const sbom = JSON.parse(read("sbom.json")) as { bomFormat: string; components: unknown[] };
+    const sbom = JSON.parse(read("sbom.json")) as { bomFormat: string; components: Array<{ name: string }> };
     expect(sbom.bomFormat).toBe("CycloneDX");
-    expect(sbom.components.length).toBeGreaterThanOrEqual(62);
+    expect(sbom.components.length).toBeGreaterThan(0);
+    expect(sbom.components.some((component) => component.name === "hermes-agent")).toBe(true);
+    expect(sbom.components.some((component) => component.name === "jiter")).toBe(true);
     expect(exists("docs/foss-and-apk-readiness-audit.md")).toBe(true);
     expect(exists("metadata/com.app.pockethermes.yml")).toBe(true);
     expect(exists("fastlane/metadata/android/en-US/full_description.txt")).toBe(true);

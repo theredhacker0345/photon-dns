@@ -37,3 +37,8 @@ Builds:
 
 MaintainerNotes: |-
   Requires Android 7.0+ (API 24+). Bundles Chaquopy 17.0 for private CPython 3.11 execution.
+  Do not submit this recipe until SourceCode, IssueTracker, RepoType, Repo, and
+  the build commit point to the maintainer's public HTTPS Git repository and an
+  immutable release tag. The Gradle release artifact is intentionally unsigned
+  unless a maintainer explicitly supplies release-key material; F-Droid signs
+  its own reproducible builds. See docs/reproducible-release-policy.md.

@@ -116,6 +116,7 @@ const config: ExpoConfig = {
     ],
     "./plugins/with-arm64-only",
     "./plugins/with-release-shrinking",
+    "./plugins/with-release-signing",
   ],
   experiments: {
     typedRoutes: true,

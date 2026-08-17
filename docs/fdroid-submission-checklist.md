@@ -1,75 +1,61 @@
-# Pocket Hermes F-Droid Submission Checklist and Publishing Guide
+# Pocket Hermes F-Droid Publication Checklist
 
-This document provides a comprehensive, practitioner-grade publishing guide and submission checklist for releasing **Pocket Hermes** on F-Droid. All requirements are aligned with official F-Droid inclusion policies, reproducible build guidelines, and metadata specifications [1].
+Pocket Hermes now has the source-side components needed for an **unsigned,
+F-Droid-oriented Android release**: an ARM64-only Gradle profile, optional
+maintainer signing that never reuses the debug key, build/source SBOM
+generators, a license gate, Fastlane metadata, and a recipe skeleton. The
+local development server is Metro-only; no inherited application backend is in
+the Android runtime graph.
 
----
+> **Publication status.** This project is prepared for a maintainer handoff,
+> not yet submitted to F-Droid. A public source repository and immutable
+> public tag do not exist in this sandbox, so neither the `Repo`/`RepoType`
+> metadata fields nor an F-Droid build-server result can honestly be claimed.
 
-## 1. Project Readiness Summary
+| Requirement | Local evidence | Status | Remaining owner-controlled action |
+|---|---|---|---|
+| Open-source license | `LICENSE`, Python and JavaScript SBOMs, `license-audit.json` | Passed locally | Publish the exact source alongside the tag. |
+| Dependency closure | `pnpm run sbom:js`, `pnpm run sbom:python`, `pnpm run audit:licenses` | Passed locally with no manual-review or blocked license items | Repeat from the tagged checkout. |
+| Unsigned F-Droid artifact | `android/app/build.gradle` emits an unsigned release when no release key is supplied | Configured and source-tested | Build it on F-Droid's build server. |
+| Reproducible release target | `scripts/release-preflight.mjs --tag <tag>` checks an immutable local tag and release evidence | Tooling complete | Push a public HTTPS Git repository and tag. |
+| F-Droid metadata | `metadata/com.app.pockethermes.yml` and Fastlane content are present | Skeleton only | Fill real public `SourceCode`, `IssueTracker`, `RepoType`, `Repo`, and tag before linting. |
+| Current-device proof | The preserved ARM64 APK is available for baseline inspection | Historical artifact only | Build and test a **post-gap-closure** release APK on a physical device before publication. |
 
-Pocket Hermes is an MIT-licensed FOSS Android **prototype** with a bundled CPython 3.11 and Hermes Agent runtime, an intended owner-locked Telegram bridge, and a mobile control-plane UI. This checklist is not evidence that persistent hosting, owner-only task execution, scheduler execution, device recovery, clean-source reproducibility, or direct-distribution signing has passed its release gates. The authoritative scope and acceptance evidence live in [`implementation-traceability-matrix.md`](./implementation-traceability-matrix.md).
+## Maintainer handoff sequence
 
-| Component / Requirement | Status | Verification Detail |
-|-------------------------|--------|---------------------|
-| **FOSS License & Notice** | Partially evidenced | App and reviewed embedded-Python sources use FOSS licenses; release-wide npm/Gradle/native SBOM and automated license gates remain required. |
-| **No Proprietary Binary Blobs** | Pending release audit | The prior Python SBOM is useful evidence only. The final shipped artifact still needs full dependency, native-artifact, and clean-build verification. |
-| **Embedded Python Runtime** | Implemented, unverified | Chaquopy 17.0, Python 3.11, and ARM64 wheel inputs are configured; real owner-locked model task execution and device recovery remain release gates. |
-| **Fastlane Metadata Store** | Draft present | Metadata exists, but it must be reconciled with verified capabilities, final screenshots, changelog, and public release source. |
-| **F-Droid Build Recipe YAML** | Draft present | The recipe needs a clean-checkout reproducibility proof, acceptable build inputs, and an actual immutable public release tag before submission. |
-| **SBOM Generation** | Partial | A CycloneDX Python-component SBOM exists; the final release needs a full npm, Gradle, Python, and native-artifact SBOM. |
-| **ARM64 Build Artifact** | Debug-signed prototype artifact | The existing `70.31 MiB` ARM64 APK was built in the sandbox. It predates later UI work and is not a direct-distribution release because release signing and clean-source reproducibility are unfinished. |
-| **Sandbox Wake Monitor** | Development process aid | This sandbox monitor does not provide resilience for an installed Android host and must not be treated as an app feature. |
+First, publish the complete source tree to a public HTTPS Git repository and
+create an immutable release tag for the reviewed source. Update the metadata
+to point to that repository and tag. F-Droid requires a public, unauthenticated
+HTTPS repository for a Git `Repo` and identifies individual builds by their
+`commit` field.[1]
 
----
+Second, in a clean checkout of that tag, execute the following release gates.
+They regenerate the evidence rather than trusting committed results.
 
-## 2. F-Droid Inclusion Requirements & Compliance
-
-To be accepted into the official F-Droid data repository, an application must satisfy strict upstream criteria [1]. Pocket Hermes addresses each requirement as follows:
-
-1. **No Non-Free Dependencies**: The project intends to use no proprietary libraries, Google Play Services, Firebase Cloud Messaging, or closed-source analytics. This remains a final-artifact audit gate rather than an accepted-release claim.
-2. **Reproducible Builds**: The current recipe records intended toolchain and prebuild inputs. It has **not** yet proved that F-Droid can build from a clean checkout without sandbox-local paths, ignored artifacts, or unavailable network/build dependencies.
-3. **Complete Source Availability**: Python source and wheel-generation helpers exist, but final acceptance requires a clean-source, F-Droid-acceptable rebuild with complete hashes, licenses, and artifact provenance.
-
----
-
-## 3. Step-by-Step F-Droid Submission Workflow
-
-```
-+------------------------------------------------------------+
-| 1. Tag Release & Verify Git Tree Cleanliness               |
-+------------------------------------------------------------+
-                              |
-                              v
-+------------------------------------------------------------+
-| 2. Submit Upstream Recipe (`com.app.pockethermes.yml`)       |
-|    to Official F-Droid Data Repository Merge Request       |
-+------------------------------------------------------------+
-                              |
-                              v
-+------------------------------------------------------------+
-| 3. F-Droid Build Server Verification & Reproducible Test   |
-+------------------------------------------------------------+
-                              |
-                              v
-+------------------------------------------------------------+
-| 4. Inclusion in Official F-Droid Client Index              |
-+------------------------------------------------------------+
+```bash
+pnpm test
+pnpm check
+pnpm run sbom:js
+pnpm run sbom:python
+pnpm run audit:licenses
+pnpm run release:preflight --tag v1.0.0
 ```
 
-### Step 1: Prepare the Source Repository
-Before tagging, complete every release gate in the traceability matrix, move all release-critical build inputs into tracked reproducible source, and ensure metadata assets (`fastlane/`, `metadata/com.app.pockethermes.yml`, and the final full SBOM) accurately describe the verified build.
+Third, build an unsigned release with the documented Android toolchain and
+install it on a physical ARM64 device. Verify setup, encrypted credential
+storage, model preflight, private-owner Telegram handling, foreground service
+operation, reboot recovery, scheduler behavior, telemetry freshness, and
+policy gates. This current device validation is deliberately separate from the
+sandbox tests because it depends on real Android hardware and user-supplied
+Telegram/model credentials.
 
-### Step 2: Open a Merge Request on F-Droid Data
-Only after the clean-source reproducibility and public-tag gates pass, fork the official [F-Droid Data Repository](https://gitlab.com/fdroid/fdroiddata) and add `metadata/com.app.pockethermes.yml` (or include it directly in the project repository if using F-Droid's upstream metadata inclusion feature).
+Finally, run `fdroid lint com.app.pockethermes` and a clean F-Droid build-server
+build from the public tag. If direct-distribution upstream APKs are later
+offered, sign them with `apksigner` and use F-Droid's documented signature
+comparison flow before asserting reproducibility.[2]
 
-### Step 3: Address Reviewer Feedback
-F-Droid maintainers will review the build log for network access during build (must be offline or use cached dependencies defined in `yml`), proprietary library references, and source reproducibility.
+## References
 
----
+[1] [F-Droid, *Build Metadata Reference*](https://f-droid.org/en/docs/Build_Metadata_Reference/)
 
-## 4. References
-
-[1] F-Droid Team. *Submitting to F-Droid Quick Start Guide*. F-Droid Documentation, 2026. [https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/](https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/)
-
-[2] Pocket Hermes Engineering. *FOSS Architecture and ARM64 Build Record*. Project Documentation, 2026.
-
-[3] Fastlane Project. *Android Metadata Structure and Store Guidelines*. Fastlane Docs, 2026. [https://docs.fastlane.tools/actions/supply/](https://docs.fastlane.tools/actions/supply/)
+[2] [F-Droid, *Reproducible Builds*](https://f-droid.org/en/docs/Reproducible_Builds/)

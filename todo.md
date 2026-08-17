@@ -124,7 +124,8 @@
 - [x] Implement durable native scheduling with cron validation, run history, retries, and owner-only delivery
 - [x] Persist and enforce charging-aware runtime policy, readiness remediation, and durable alert cooldowns
 - [x] Add native worker freshness and accurate telemetry semantics to the Home dashboard
-- [ ] Complete threat model, privacy/security documentation, full dependency SBOM, and FOSS license gates
-- [ ] Remove unused app dependencies and prototype naming from the Android release graph
-- [ ] Build a clean-source reproducible F-Droid flow and replace debug-signed direct release configuration
-- [ ] Run unit, native, integration, device, resilience, and release-candidate validation gates
+- [x] Complete threat model, privacy/security documentation, full dependency SBOM, and FOSS license gates
+- [x] Remove unused app dependencies and prototype naming from the Android release graph
+- [x] Add a source-controlled unsigned-release policy, release preflight, and F-Droid handoff evidence that cannot fall back to the debug signing key
+- [x] Run final sandbox test, type, SBOM, license, and APK-integrity validation gates
+- [ ] Publish an immutable public source tag and complete F-Droid build-server plus post-gap-closure physical-device validation (requires maintainer-controlled public hosting, credentials, and hardware)
