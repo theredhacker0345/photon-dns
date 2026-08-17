@@ -148,3 +148,4 @@
 - [ ] Create dedicated Favorites tab (`app/(tabs)/favorites.tsx`) and tab icon mapping
 - [ ] Add deterministic test coverage for model favorites and push verified changes to GitLab
 - [x] Add persistent model favorites with bookmark toggles and a dedicated Favorites tab
+- [x] Research Kilo Code API integration feasibility and model catalog preset
