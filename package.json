@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "pnpm dev:metro",
     "dev:metro": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 npx expo start --web --port ${EXPO_PORT:-8081}",
-    "build": "cross-env POCKET_AGENT_STATIC_EXPORT=1 expo export --platform web",
+    "build": "pnpm run build:server && pnpm run build:web",
+    "build:server": "node scripts/build-managed-server.mjs",
+    "build:web": "cross-env POCKET_AGENT_STATIC_EXPORT=1 expo export --platform web --output-dir dist/web",
     "check": "tsc --noEmit",
     "lint": "expo lint",
     "format": "prettier --write .",

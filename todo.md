@@ -164,3 +164,6 @@
 - [x] Define and document the focused Pocket Agent Host theme palette choices
 - [x] Add a persistent theme selector to Settings and apply it across all screens
 - [x] Correct the static export cache failure and validate the themes update
+- [x] Add persistent OLED Black low-power theme option to the runtime palette and Settings selector
+- [x] Add deterministic OLED Black palette coverage and validate the full theme flow
+- [x] Restore managed build output so both the static client and server entry point deploy successfully

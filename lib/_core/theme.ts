@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 export type ColorScheme = "light" | "dark";
-export type ThemeId = "system" | "cloud" | "midnight" | "terminal";
+export type ThemeId = "system" | "cloud" | "midnight" | "terminal" | "oled";
 
 /**
  * Runtime tokens mirror theme.config.js, whose CommonJS shape is consumed by
@@ -54,7 +54,8 @@ export type ThemeDefinition = {
 /**
  * Themes are intentionally small in number and contrast-safe. Cloud and
  * Midnight preserve the product's indigo language; Terminal offers a focused
- * low-light palette for a phone running as a host around the clock.
+ * low-light palette; OLED Black keeps emissive area to a minimum on compatible
+ * displays for a phone running as a host around the clock.
  */
 export const ThemeDefinitions: Record<ThemeId, ThemeDefinition> = {
   system: {
@@ -93,6 +94,24 @@ export const ThemeDefinitions: Record<ThemeId, ThemeDefinition> = {
       success: "#54D8B7",
       warning: "#F4C46A",
       error: "#FF8F9C",
+    },
+  },
+  oled: {
+    id: "oled",
+    label: "OLED Black",
+    description: "True black surfaces for compatible OLED displays and low-light host monitoring.",
+    scheme: "dark",
+    previewColor: "#000000",
+    overrides: {
+      primary: "#B9AFFF",
+      background: "#000000",
+      surface: "#000000",
+      foreground: "#FAFAFC",
+      muted: "#AAAAB4",
+      border: "#24242C",
+      success: "#68DAB8",
+      warning: "#F5C76E",
+      error: "#FF929F",
     },
   },
 };
