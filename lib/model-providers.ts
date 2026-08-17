@@ -109,11 +109,20 @@ export function normalizeOpenAiCompatibleModels(payload: unknown, provider: Mode
     .slice(0, 200);
 }
 
+export type ProviderAuthStatus = "authenticated" | "unauthorized" | "unavailable" | "not_configured" | "not_checked";
+
+export type ProviderConnectionStatus = {
+  authStatus: ProviderAuthStatus;
+  latencyMs: number | null;
+  checkedAt: string | null;
+};
+
 export type ModelDiscoveryResult = {
   ok: boolean;
   message: string;
   models: ModelCatalogEntry[];
   fetchedAt: string | null;
+  connection: ProviderConnectionStatus;
 };
 
 export async function fetchProviderModels(input: {
@@ -125,11 +134,12 @@ export async function fetchProviderModels(input: {
   const fetchedAt = new Date().toISOString();
   const endpoint = input.endpoint.trim();
   if (!endpoint || !/^https:\/\//i.test(endpoint)) {
-    return { ok: false, message: "Use an HTTPS provider endpoint before fetching models.", models: [], fetchedAt: null };
+    return { ok: false, message: "Use an HTTPS provider endpoint before fetching models.", models: [], fetchedAt: null, connection: { authStatus: "not_configured", latencyMs: null, checkedAt: null } };
   }
   if (!input.apiKey.trim()) {
-    return { ok: false, message: "Save a provider API token before fetching models.", models: [], fetchedAt: null };
+    return { ok: false, message: "Save a provider API token before fetching models.", models: [], fetchedAt: null, connection: { authStatus: "not_configured", latencyMs: null, checkedAt: null } };
   }
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   const signal = controller.signal;
@@ -142,19 +152,22 @@ export async function fetchProviderModels(input: {
       signal,
     });
     const payload: unknown = await response.json();
+    const latencyMs = Math.max(0, Date.now() - startedAt);
+    const checkedAt = new Date().toISOString();
     if (!response.ok) {
-      return { ok: false, message: `Provider returned HTTP ${response.status}. Check the selected provider and token.`, models: [], fetchedAt: null };
+      const authStatus: ProviderAuthStatus = response.status === 401 || response.status === 403 ? "unauthorized" : "unavailable";
+      return { ok: false, message: `Provider returned HTTP ${response.status}. Check the selected provider and token.`, models: [], fetchedAt: null, connection: { authStatus, latencyMs, checkedAt } };
     }
     const models = normalizeOpenAiCompatibleModels(payload, input.provider, fetchedAt);
     if (!models.length) {
-      return { ok: false, message: "The provider responded, but no compatible models were found.", models: [], fetchedAt: null };
+      return { ok: false, message: "The provider responded, but no compatible models were found.", models: [], fetchedAt: null, connection: { authStatus: "authenticated", latencyMs, checkedAt } };
     }
-    return { ok: true, message: `Found ${models.length} models from the provider.`, models, fetchedAt };
+    return { ok: true, message: `Found ${models.length} models from the provider.`, models, fetchedAt, connection: { authStatus: "authenticated", latencyMs, checkedAt } };
   } catch (error) {
     const message = error instanceof Error && error.name === "AbortError"
       ? "The provider model request timed out after 15 seconds."
       : "Could not reach the provider model catalog. Check network access, endpoint, and token.";
-    return { ok: false, message, models: [], fetchedAt: null };
+    return { ok: false, message, models: [], fetchedAt: null, connection: { authStatus: "unavailable", latencyMs: Math.max(0, Date.now() - startedAt), checkedAt: new Date().toISOString() } };
   } finally {
     input.signal?.removeEventListener("abort", abortFromCaller);
     clearTimeout(timeout);

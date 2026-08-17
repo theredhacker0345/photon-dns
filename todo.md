@@ -133,3 +133,5 @@
 - [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update
 - [x] Delete remote GitLab tags `v1.0.0` and `v1.0.1` and any attached Release objects without deleting their commits
 - [x] Add provider selection, protected AI API token entry, live model discovery, and refreshable model catalog
+- [x] Add provider connection latency and authentication status badge
+- [x] Add model catalog search and filter bar

@@ -13,7 +13,7 @@ import { usePocketHermes } from "@/lib/pocket-hermes-store";
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { config, modelCatalog, modelCatalogFetchedAt, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels } = usePocketHermes();
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
   const [modelProvider, setModelProvider] = useState<ModelProviderId>(config.modelProvider);
@@ -111,7 +111,7 @@ export default function SettingsScreen() {
           <Label text="Provider API token" color={colors.muted} />
           <TextInput value={modelApiKey} onChangeText={setModelApiKey} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
-          <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
+          <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} connection={providerConnection} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
           <Label text="Selected model" color={colors.muted} />
           <TextInput value={modelName} onChangeText={setModelName} placeholder="Choose a model above or enter its ID" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Text style={[styles.helper, { color: colors.muted }]}>Refresh whenever the provider changes its catalog. The last successful catalog is kept locally without the API token.</Text>

@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
 import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
-import { fetchProviderModels, type ModelCatalogEntry, type ModelDiscoveryResult } from "@/lib/model-providers";
+import { fetchProviderModels, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
@@ -23,7 +23,7 @@ type PublicHostConfig = {
   hasModelApiKey: boolean;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -66,7 +66,7 @@ const emptyConfig: PublicHostConfig = {
   hasModelApiKey: false,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null } };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -120,6 +120,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             },
             modelCatalog: Array.isArray(parsed.modelCatalog) ? parsed.modelCatalog.slice(0, 200) : [],
             modelCatalogFetchedAt: typeof parsed.modelCatalogFetchedAt === "string" ? parsed.modelCatalogFetchedAt : null,
+            providerConnection: parsed.providerConnection ?? initialState.providerConnection,
           });
         }
       } catch {
@@ -181,9 +182,10 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     const apiKey = input.apiKey?.trim() || await readSecret(MODEL_API_KEY) || "";
     const result = await fetchProviderModels({ ...input, apiKey });
     if (result.ok) {
-      setState((current) => ({ ...current, modelCatalog: result.models, modelCatalogFetchedAt: result.fetchedAt }));
+      setState((current) => ({ ...current, modelCatalog: result.models, modelCatalogFetchedAt: result.fetchedAt, providerConnection: result.connection }));
       appendEvent({ title: "Model catalog refreshed", detail: result.message, severity: "success" });
     } else {
+      setState((current) => ({ ...current, providerConnection: result.connection }));
       appendEvent({ title: "Model catalog unavailable", detail: result.message, severity: "warning" });
     }
     return result;
@@ -312,6 +314,9 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     setState((current) => ({
       ...current,
       config: { ...current.config, hasTelegramToken: false, hasModelApiKey: false },
+      modelCatalog: [],
+      modelCatalogFetchedAt: null,
+      providerConnection: initialState.providerConnection,
       phase: "unconfigured",
       events: [{ id: createId("event"), title: "Sensitive configuration removed", detail: "Telegram and model credentials were removed from protected storage. The native host cannot restart until they are saved again.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
     }));
