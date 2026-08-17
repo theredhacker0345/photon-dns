@@ -185,4 +185,4 @@
 - [x] Add resource-limit controls to the host policy UI and persistence contract
 - [x] Enforce resource limits in the Android supervisor and embedded worker lifecycle
 - [x] Add deterministic resource-policy and enforcement regression coverage
-- [ ] Validate, checkpoint, and publish the resource-control update to GitLab
+- [x] Validate, checkpoint, and publish the resource-control update to GitLab
