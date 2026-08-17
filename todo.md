@@ -167,3 +167,5 @@
 - [x] Add persistent OLED Black low-power theme option to the runtime palette and Settings selector
 - [x] Add deterministic OLED Black palette coverage and validate the full theme flow
 - [x] Restore managed build output so both the static client and server entry point deploy successfully
+- [x] Fix OpenAI preset endpoint handoff for the Settings connection test
+- [x] Add regression coverage for provider endpoint normalization and OpenAI preset testing

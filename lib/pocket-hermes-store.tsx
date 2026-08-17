@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
 import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
-import { fetchProviderModels, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
+import { fetchProviderModels, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
 import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor } from "@/lib/native-supervisor";
 
@@ -150,7 +150,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   const saveConfiguration = useCallback(async (input: SaveConfigurationInput) => {
     const allowedChatId = input.allowedChatId.trim();
     const suppliedToken = input.telegramToken.trim();
-    const endpoint = input.modelEndpoint.trim();
+    const endpoint = resolveProviderEndpoint(input.modelProvider, input.modelEndpoint);
     const modelName = input.modelName?.trim() ?? state.config.modelName;
     const suppliedModelApiKey = input.modelApiKey?.trim() ?? "";
     const policy = input.policy ?? state.config.policy;

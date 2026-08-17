@@ -74,6 +74,10 @@ export function getProviderPreset(provider: ModelProviderId) {
   return MODEL_PROVIDER_PRESETS.find((item) => item.id === provider) ?? MODEL_PROVIDER_PRESETS[0];
 }
 
+export function resolveProviderEndpoint(provider: ModelProviderId, endpoint: string) {
+  return endpoint.trim() || getProviderPreset(provider).defaultEndpoint;
+}
+
 export function getModelListUrl(endpoint: string) {
   const clean = endpoint.trim().replace(/\/+$/, "");
   return clean.endsWith("/models") ? clean : `${clean}/models`;
@@ -140,7 +144,7 @@ export async function fetchProviderModels(input: {
   signal?: AbortSignal;
 }): Promise<ModelDiscoveryResult> {
   const fetchedAt = new Date().toISOString();
-  const endpoint = input.endpoint.trim();
+  const endpoint = resolveProviderEndpoint(input.provider, input.endpoint);
   if (!endpoint || !/^https:\/\//i.test(endpoint)) {
     return { ok: false, message: "Use an HTTPS provider endpoint before fetching models.", models: [], fetchedAt: null, connection: { authStatus: "not_configured", latencyMs: null, checkedAt: null } };
   }

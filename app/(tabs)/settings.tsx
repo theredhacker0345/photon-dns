@@ -9,7 +9,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import type { ModelProviderId } from "@/lib/host-contracts";
-import { getProviderPreset, type ModelCatalogEntry } from "@/lib/model-providers";
+import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
 import { useThemeContext } from "@/lib/theme-provider";
 
@@ -45,12 +45,14 @@ export default function SettingsScreen() {
       Alert.alert("Test Kilo Code first", "Use the Test Kilo Code connection button to verify the API key before saving this provider.");
       return;
     }
+    const endpoint = resolveProviderEndpoint(modelProvider, modelEndpoint);
+    if (endpoint !== modelEndpoint) setModelEndpoint(endpoint);
     setSaving(true);
     const result = await saveConfiguration({
       hostName,
       allowedChatId,
       modelProvider,
-      modelEndpoint,
+      modelEndpoint: endpoint,
       modelName,
       telegramToken: token,
       modelApiKey,
@@ -60,9 +62,9 @@ export default function SettingsScreen() {
     if (result.ok) {
       setToken("");
       setModelApiKey("");
-      if (modelEndpoint && (modelApiKey.trim() || config.hasModelApiKey)) {
+      if (endpoint && (modelApiKey.trim() || config.hasModelApiKey)) {
         setDiscoveringModels(true);
-        void discoverModels({ provider: modelProvider, endpoint: modelEndpoint }).finally(() => setDiscoveringModels(false));
+        void discoverModels({ provider: modelProvider, endpoint }).finally(() => setDiscoveringModels(false));
       }
     }
     Alert.alert(result.ok ? "Host configuration saved" : "Check your setup", result.message);
@@ -76,8 +78,10 @@ export default function SettingsScreen() {
   };
 
   const refreshModels = async () => {
+    const endpoint = resolveProviderEndpoint(modelProvider, modelEndpoint);
+    if (endpoint !== modelEndpoint) setModelEndpoint(endpoint);
     setDiscoveringModels(true);
-    const result = await discoverModels({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
+    const result = await discoverModels({ provider: modelProvider, endpoint, apiKey: modelApiKey });
     setDiscoveringModels(false);
     if (!result.ok) Alert.alert("Model catalog unavailable", result.message);
   };
@@ -85,10 +89,12 @@ export default function SettingsScreen() {
   const selectModel = (model: ModelCatalogEntry) => setModelName(model.id);
 
   const testConnection = async () => {
+    const endpoint = resolveProviderEndpoint(modelProvider, modelEndpoint);
+    if (endpoint !== modelEndpoint) setModelEndpoint(endpoint);
     setTestingProvider(true);
     setProviderTestResult(null);
     try {
-      const result = await testProviderConnection({ provider: modelProvider, endpoint: modelEndpoint, apiKey: modelApiKey });
+      const result = await testProviderConnection({ provider: modelProvider, endpoint, apiKey: modelApiKey });
       setProviderTestResult({ ok: result.ok, message: result.message });
     } finally {
       setTestingProvider(false);

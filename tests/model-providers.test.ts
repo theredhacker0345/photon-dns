@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { filterModelCatalog } from "../lib/model-catalog-filters";
-import { buildProviderHeaders, fetchProviderModels, getModelListUrl, getProviderPreset, normalizeOpenAiCompatibleModels } from "../lib/model-providers";
+import { buildProviderHeaders, fetchProviderModels, getModelListUrl, getProviderPreset, normalizeOpenAiCompatibleModels, resolveProviderEndpoint } from "../lib/model-providers";
 
 const fetchedAt = "2026-08-17T00:00:00.000Z";
 const models = [
@@ -22,6 +22,12 @@ describe("provider model discovery", () => {
     expect(getModelListUrl("https://api.example/v1")).toBe("https://api.example/v1/models");
     expect(getModelListUrl("https://api.example/v1/")).toBe("https://api.example/v1/models");
     expect(getModelListUrl("https://api.example/v1/models")).toBe("https://api.example/v1/models");
+  });
+
+  it("falls back to the selected provider preset when a non-custom endpoint draft is blank", () => {
+    expect(resolveProviderEndpoint("openai", "")).toBe("https://api.openai.com/v1");
+    expect(resolveProviderEndpoint("openai", "   ")).toBe("https://api.openai.com/v1");
+    expect(resolveProviderEndpoint("custom", "")).toBe("");
   });
 
   it("uses bearer authentication without embedding tokens in catalog records", () => {
@@ -62,6 +68,15 @@ describe("provider model discovery", () => {
     expect(result.connection.authStatus).toBe("authenticated");
     expect(result.connection.latencyMs).toEqual(expect.any(Number));
     expect(result.connection.checkedAt).toEqual(expect.any(String));
+    vi.unstubAllGlobals();
+  });
+
+  it("tests a blank OpenAI draft against the OpenAI HTTPS models endpoint", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: [{ id: "gpt-test" }] }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchProviderModels({ provider: "openai", endpoint: "", apiKey: "secret-token" });
+    expect(result).toMatchObject({ ok: true, connection: { authStatus: "authenticated" } });
+    expect(fetchMock).toHaveBeenCalledWith("https://api.openai.com/v1/models", expect.objectContaining({ headers: buildProviderHeaders("secret-token") }));
     vi.unstubAllGlobals();
   });
 
