@@ -11,6 +11,9 @@ const requiredFiles = [
   "plugins/with-release-signing.js",
   "metadata/com.app.pockethermes.yml",
   "docs/reproducible-release-policy.md",
+  "COPYRIGHT_POLICY.md",
+  "CONTRIBUTORS.md",
+  "CONTRIBUTING.md",
   "sbom.json",
   "sbom-js.json",
   "license-audit.json",
@@ -27,8 +30,14 @@ for (const relativePath of requiredFiles) {
 
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 if (packageJson.name !== "pocket-hermes") fail("package name must be pocket-hermes");
+if (packageJson.license !== "GPL-3.0-only") fail("project package license must be GPL-3.0-only");
 if (packageJson.scripts?.dev !== "pnpm dev:metro") fail("development server must be Metro-only");
 if ("dev:server" in (packageJson.scripts ?? {})) fail("removed backend server script is still present");
+
+const fdroidMetadata = readFileSync(join(root, "metadata/com.app.pockethermes.yml"), "utf8");
+if (!fdroidMetadata.includes("License: GPL-3.0-only")) {
+  fail("F-Droid metadata must declare GPL-3.0-only");
+}
 
 const appConfig = readFileSync(join(root, "app.config.ts"), "utf8");
 if (!appConfig.includes('const rawBundleId = "com.app.pockethermes"')) fail("Android package identifier is not pinned");

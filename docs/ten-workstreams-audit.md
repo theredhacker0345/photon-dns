@@ -37,7 +37,7 @@ This document records the ten parallel workstreams defined to audit and refine e
    - *Findings:* Healthy API services with active endpoints and secure secret storage patterns.
 
 9. **WS9: Security & FOSS Compliance (`sbom.json`, policy guards)**
-   - *Scope:* CycloneDX 1.6 SBOM, MIT license attribution, owner-only authorization guards (`pocket-hermes-policy.ts`).
+   - *Scope:* CycloneDX 1.6 SBOM, GPLv3 project licensing with retained third-party attribution, owner-only authorization guards (`pocket-hermes-policy.ts`).
    - *Findings:* All 4 policy tests pass successfully; SBOM validates 62 FOSS components.
 
 10. **WS10: Release Packaging & F-Droid Readiness (`metadata/`, `fastlane/`, APK)**

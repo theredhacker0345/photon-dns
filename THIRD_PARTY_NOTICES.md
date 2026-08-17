@@ -1,6 +1,6 @@
 # Pocket Agent Host — Third-Party Notices
 
-Pocket Agent Host is distributed under the MIT License. This document records the primary third-party components and license obligations that apply to the app and its planned embedded runtime.
+Pocket Agent Host application code is distributed under the GNU General Public License, version 3 only (GPL-3.0-only). This document records the primary third-party components and their independent license obligations that apply to the app and its embedded runtime. GPLv3 does not replace, remove, or relicense these third-party notices.
 
 ## Runtime and framework
 
@@ -25,4 +25,4 @@ Pocket Agent Host is distributed under the MIT License. This document records th
 
 ## Release procedure
 
-Before publishing an Android APK, regenerate the dependency license inventory with `node scripts/license-audit.mjs`, review changes, retain the upstream Hermes Agent license if its source is bundled, and include this notice file plus the project MIT license in the release archive.
+Before publishing an Android APK, regenerate the dependency license inventory with `pnpm run audit:licenses`, review changes, retain the upstream Hermes Agent license if its source is bundled, and include this notice file plus the project GPLv3 license in the release archive. Publish the corresponding source, lockfiles, wheel provenance, SBOMs, and build instructions for the exact distributed APK as described in `COPYRIGHT_POLICY.md`.

@@ -17,7 +17,7 @@ Pocket Agent Host is designed for a dedicated, plugged-in Android phone. It bund
 | **24/7 operation** | Android foreground service, persistent notification, opt-in boot recovery, charging/storage readiness gates, bounded recovery attempts, and a 30-minute wake-check daemon. |
 | **On-device control plane** | Dashboard, setup wizard, Agent console, Automations scheduler, Settings, task history, schedule run history, and local host events. |
 | **Host telemetry** | Native CPU and RAM readings, battery/charging state, storage readiness, freshness labels, and policy-driven low-battery or low-storage alerts. |
-| **Open-source release** | MIT-licensed app code, upstream Hermes attribution, Python and JavaScript SBOMs, license audit, F-Droid metadata, and unsigned-by-default release configuration. |
+| **Open-source release** | GPLv3-licensed app code, retained upstream Hermes attribution, Python and JavaScript SBOMs, license audit, F-Droid metadata, and unsigned-by-default release configuration. |
 
 ## UI gallery
 
@@ -118,11 +118,11 @@ Credentials are not printed in logs or included in ordinary activity records. An
 
 ## Licensing and attribution
 
-Pocket Agent Host application code is released under the [MIT License](LICENSE). The embedded runtime uses the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project from Nous Research. Pocket Agent Host is independently maintained and is not an official Nous Research product. Hermes copyright and license notices must remain with distributions that include upstream Hermes code.
+Pocket Agent Host application code is released under the [GNU General Public License, version 3 only](LICENSE). The embedded runtime uses the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project from Nous Research. Pocket Agent Host is independently maintained and is not an official Nous Research product. Hermes copyright and license notices, as well as every other applicable third-party notice, remain in force and must travel with distributions that include those components. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [COPYRIGHT_POLICY.md](COPYRIGHT_POLICY.md), and [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
 ## Contributing
 
-Contributions should preserve the private-owner boundary, keep native-only states honest in web preview, avoid telemetry and proprietary runtime dependencies, and add deterministic tests for new policy or persistence behavior. Before opening a merge request, run the validation commands above and update the relevant traceability, privacy, threat-model, or F-Droid documentation when behavior changes.
+Contributions should preserve the private-owner boundary, keep native-only states honest in web preview, avoid telemetry and proprietary runtime dependencies, and add deterministic tests for new policy or persistence behavior. Before opening a merge request, follow [CONTRIBUTING.md](CONTRIBUTING.md), run the validation commands above, and update the relevant traceability, privacy, threat-model, F-Droid, or licensing documentation when behavior changes.
 
 ## References
 

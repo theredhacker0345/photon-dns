@@ -52,4 +52,26 @@ describe("security and FOSS release gates", () => {
     expect(policy).toContain("public HTTPS Git repository");
     expect(fdroidChecklist).toContain("immutable release tag");
   });
+
+  it("declares GPLv3-only app-owned code and preserves contributor governance", () => {
+    const packageJson = read("package.json");
+    const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
+    const license = read("LICENSE");
+    const notice = read("THIRD_PARTY_NOTICES.md");
+    const copyrightPolicy = read("COPYRIGHT_POLICY.md");
+    const contributors = read("CONTRIBUTORS.md");
+    const contributing = read("CONTRIBUTING.md");
+    const preflight = read("scripts/release-preflight.mjs");
+
+    expect(packageJson).toContain('"license": "GPL-3.0-only"');
+    expect(fdroidMetadata).toContain("License: GPL-3.0-only");
+    expect(license).toContain("GNU GENERAL PUBLIC LICENSE");
+    expect(license).toContain("Version 3, 29 June 2007");
+    expect(notice).toContain("GPL-3.0-only");
+    expect(copyrightPolicy).toContain("Inbound equals outbound");
+    expect(copyrightPolicy).toContain("GPL-3.0-only");
+    expect(contributors).toContain("Pocket Agent Host Maintainer");
+    expect(contributing).toContain("Signed-off-by:");
+    expect(preflight).toContain("GPL-3.0-only");
+  });
 });

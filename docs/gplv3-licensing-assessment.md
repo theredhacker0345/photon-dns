@@ -1,22 +1,22 @@
-# Preliminary GPLv3 Relicensing Assessment
+# GPLv3 Relicensing Assessment
 
-> **Status: assessment only, not legal advice.** This document does not change
-> the project license. A GPLv3 relicensing decision must be made only after
-> confirming copyright authority over the app-owned source and the exact
-> license notices in every distributed artifact.
+> **Status: implemented with owner authorization; not legal advice.** The
+> repository's app-owned code was relicensed to GPL-3.0-only after the project
+> owner authorized the change. This technical record does not establish
+> copyright ownership or replace counsel; it records the conditions that must
+> continue to be met in every future distribution.
 
 ## Preliminary conclusion
 
-**A GPLv3-only license for Pocket Agent Host's app-owned code appears
-conditionally feasible based on the current license audit; it is not an
-automatic or completed relicensing.** The audited set contains GPLv3-compatible
+**GPLv3-only is now the declared license for Pocket Agent Host's app-owned
+code, subject to the continuing conditions below.** The audited set contains GPLv3-compatible
 permissive licenses, LGPL-3.0-only, MPL-2.0, CC-BY-4.0, and one dual
 `(BSD-3-Clause OR GPL-2.0)` package. The owner would need to choose that
 package's BSD-3-Clause alternative, rather than its GPL-2.0 alternative, and
 complete the notice and source-distribution work below before making the
 change.[1]
 
-The conclusion is conditional because the Git history has both `Manus` and
+The continuing condition is important because the Git history has both `Manus` and
 `Pocket Agent Host Maintainer` authors. Anyone changing the project license
 must have the authority to relicense all **app-owned** contributions, or obtain
 the contributors' permission. Third-party dependencies are not themselves
@@ -62,13 +62,13 @@ distribution channel and installation path. F-Droid accepts GPL-licensed apps,
 but separately requires public source, a FLOSS build process, valid asset
 licenses, and dependency review.[5]
 
-## Required work before changing MIT to GPLv3
+## Relicensing implementation and ongoing obligations
 
 | Area | Required action |
 |---|---|
-| Copyright authority | Confirm that every app-owned contributor has authorized GPLv3 relicensing, or retain the present license for code lacking that authority. |
+| Copyright authority | The owner authorized this initial GPLv3 change. Maintain the contributor certification in `COPYRIGHT_POLICY.md` for every future app-owned contribution, or do not merge code lacking that authority. |
 | Dependency alternatives | Record BSD-3-Clause for `node-forge`; verify MPL notices do not opt out of secondary-license compatibility; retain LGPL/MPL/MIT/CC-BY notices as applicable. |
-| Source and notices | Replace the root `LICENSE` with the unmodified GPLv3 text, update copyright headers, retain upstream license/NOTICE material, and update F-Droid/Fastlane/README license fields. |
+| Source and notices | The root `LICENSE` now contains the unmodified GPLv3 text; F-Droid metadata, README, package metadata, and third-party notices have been updated. Retain all upstream license/NOTICE material. |
 | Corresponding Source | Publish the exact source, lockfiles, wheel provenance, build scripts, SBOMs, and reproducible build instructions for each released APK. |
 | Android installation | Document how a user builds and installs a modified APK, and re-evaluate any signature mechanism that could prevent it from running. |
 | Revalidation | Regenerate SBOMs and the license audit, then run the existing test and F-Droid checks from the exact public release commit. |
