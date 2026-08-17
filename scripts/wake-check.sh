@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Pocket Hermes 30-Minute Wake Check Script
+# Pocket Agent Host 30-Minute Wake Check Script
 # Verifies project activity, test suites, and F-Droid packaging status.
 
 LOG_FILE="/home/ubuntu/pocket-hermes/.manus-logs/wake-check.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-echo "[$TIMESTAMP] WAKE-CHECK: Pocket Hermes supervisor heartbeat. Inspecting project state..." >> "$LOG_FILE"
+echo "[$TIMESTAMP] WAKE-CHECK: Pocket Agent Host supervisor heartbeat. Inspecting project state..." >> "$LOG_FILE"
 
 cd /home/ubuntu/pocket-hermes
 if pnpm check >> "$LOG_FILE" 2>&1; then
@@ -21,4 +21,4 @@ else
     echo "[$TIMESTAMP] WAKE-CHECK: WARNING - Policy tests FAILED." >> "$LOG_FILE"
 fi
 
-echo "[$TIMESTAMP] WAKE-CHECK: Pocket Hermes is active, F-Droid metadata is ready, and background telemetry is operational." >> "$LOG_FILE"
+echo "[$TIMESTAMP] WAKE-CHECK: Pocket Agent Host is active, F-Droid metadata is ready, and background telemetry is operational." >> "$LOG_FILE"

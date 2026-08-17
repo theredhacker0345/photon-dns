@@ -1,6 +1,6 @@
-# Pocket Hermes F-Droid Publication Checklist
+# Pocket Agent Host F-Droid Publication Checklist
 
-Pocket Hermes now has the source-side components needed for an **unsigned,
+Pocket Agent Host now has the source-side components needed for an **unsigned,
 F-Droid-oriented Android release**: an ARM64-only Gradle profile, optional
 maintainer signing that never reuses the debug key, build/source SBOM
 generators, a license gate, Fastlane metadata, and a recipe skeleton. The

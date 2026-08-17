@@ -9,14 +9,14 @@
       "components": [
         {
           "type": "application",
-          "name": "Pocket Hermes SBOM generator",
+          "name": "Pocket Agent Host SBOM generator",
           "version": "1.0.0"
         }
       ]
     },
     "component": {
       "type": "application",
-      "name": "Pocket Hermes embedded Hermes worker",
+      "name": "Pocket Agent Host embedded Hermes worker",
       "version": "0.20.1",
       "licenses": [
         {

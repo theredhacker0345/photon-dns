@@ -1,10 +1,10 @@
-# Pocket Hermes — Third-Party Notices
+# Pocket Agent Host — Third-Party Notices
 
-Pocket Hermes is distributed under the MIT License. This document records the primary third-party components and license obligations that apply to the app and its planned embedded runtime.
+Pocket Agent Host is distributed under the MIT License. This document records the primary third-party components and license obligations that apply to the app and its planned embedded runtime.
 
 ## Runtime and framework
 
-| Component | License | Use in Pocket Hermes | Notice requirement |
+| Component | License | Use in Pocket Agent Host | Notice requirement |
 |---|---|---|---|
 | [Hermes Agent](https://github.com/NousResearch/hermes-agent) | MIT | Planned embedded agent runtime. | Include the upstream copyright and MIT license with every runtime bundle. |
 | [Expo](https://github.com/expo/expo) | MIT | React Native tooling and native module framework. | Retain license notices in source/distribution materials as applicable. |
@@ -15,13 +15,13 @@ Pocket Hermes is distributed under the MIT License. This document records the pr
 
 | Component | License | Distribution handling |
 |---|---|---|
-| `node-forge` | BSD-3-Clause **or** GPL-2.0 | Pocket Hermes elects the BSD-3-Clause option; preserve the applicable notice. |
-| `lightningcss` | MPL-2.0 | Used as a build dependency. Pocket Hermes does not modify or copy its source; preserve package notices. |
+| `node-forge` | BSD-3-Clause **or** GPL-2.0 | Pocket Agent Host elects the BSD-3-Clause option; preserve the applicable notice. |
+| `lightningcss` | MPL-2.0 | Used as a build dependency. Pocket Agent Host does not modify or copy its source; preserve package notices. |
 | `caniuse-lite` | CC-BY-4.0 | Build metadata. Preserve attribution if redistributed. |
 
 ## Exclusions
 
-`@expo/ngrok` and its unknown-license binary dependency were removed from the project’s declared development dependencies. No proprietary runtime dependency was identified in the current Pocket Hermes application tree.
+`@expo/ngrok` and its unknown-license binary dependency were removed from the project’s declared development dependencies. No proprietary runtime dependency was identified in the current Pocket Agent Host application tree.
 
 ## Release procedure
 

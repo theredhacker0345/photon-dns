@@ -32,7 +32,7 @@ export default function HostScreen() {
   const phaseCopy = {
     unconfigured: { title: "Make this phone a private agent host.", detail: "Connect one Telegram bot and lock it to your own chat before anything can run." },
     ready: { title: "Your private host is set up.", detail: "Review local readiness, test the owner gateway, then prepare the embedded Hermes runtime." },
-    running: { title: "Your private host is supervised.", detail: "Pocket Hermes is sampling this phone’s live host-process CPU and RAM through Android’s foreground supervisor." },
+    running: { title: "Your private host is supervised.", detail: "Pocket Agent Host is sampling this phone’s live host-process CPU and RAM through Android’s foreground supervisor." },
     bridge_required: { title: "Control plane is ready for its native bridge.", detail: "The Expo preview stores your setup locally; the production build adds the bundled Python/Hermes supervisor." },
     stopped: { title: "Host is paused.", detail: "No new runtime session will be requested until you prepare the host again." },
   }[phase];
@@ -60,7 +60,7 @@ export default function HostScreen() {
 
         <SectionHeading eyebrow="HOST BOUNDARY" title="What runs here" />
         <View style={styles.boundaryGrid}>
-          <PressableCard style={styles.boundaryCard}><View style={[styles.boundaryIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="lock" size={19} color={colors.primary} /></View><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>App-private workspace</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Memory, schedules, and logs stay inside Pocket Hermes.</Text></PressableCard>
+          <PressableCard style={styles.boundaryCard}><View style={[styles.boundaryIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="lock" size={19} color={colors.primary} /></View><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>App-private workspace</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Memory, schedules, and logs stay inside Pocket Agent Host.</Text></PressableCard>
           <PressableCard style={styles.boundaryCard}><View style={[styles.boundaryIcon, { backgroundColor: `${colors.primary}14` }]}><MaterialIcons name="telegram" size={19} color={colors.primary} /></View><Text style={[styles.boundaryTitle, { color: colors.foreground }]}>Owner-only gateway</Text><Text style={[styles.boundaryDetail, { color: colors.muted }]}>Only your allowed Telegram chat can send instructions.</Text></PressableCard>
         </View>
 

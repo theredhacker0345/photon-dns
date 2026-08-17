@@ -1,6 +1,6 @@
-# Pocket Hermes 10-Workstream Comprehensive Audit & Validation
+# Pocket Agent Host 10-Workstream Comprehensive Audit & Validation
 
-This document records the ten parallel workstreams defined to audit and refine every layer of the Pocket Hermes application, native supervisor, embedded worker, backend, security, release packaging, and testing.
+This document records the ten parallel workstreams defined to audit and refine every layer of the Pocket Agent Host application, native supervisor, embedded worker, backend, security, release packaging, and testing.
 
 ## Workstream Index
 
@@ -48,7 +48,7 @@ This document records the ten parallel workstreams defined to audit and refine e
 
 The ten workstreams were executed as focused repository audits rather than represented as fictitious independent agents. The control-plane screens were checked for their store actions and native telemetry/readiness hooks; the Android supervisor and Python launcher were checked for sticky foreground execution, Telegram-only configuration, and the absence of shell/browser escape hatches; the release workstream was checked for the arm64-only and R8 config plugins, F-Droid metadata, SBOM, and retained APK.
 
-A deterministic contract suite now covers these boundaries in `tests/ten-workstreams-audit.test.ts`. Together with the existing policy suite, the release gate passes **14 tests across 2 test files**. The audit found no additional blocking defect in the ten scoped areas. The backend workstream remains intentionally a template-supported service boundary: the mobile control plane persists its host configuration locally and calls Telegram directly for gateway checks, while the template tRPC provider remains part of the generated Expo shell and is not used by the Pocket Hermes feature screens.
+A deterministic contract suite now covers these boundaries in `tests/ten-workstreams-audit.test.ts`. Together with the existing policy suite, the release gate passes **14 tests across 2 test files**. The audit found no additional blocking defect in the ten scoped areas. The backend workstream remains intentionally a template-supported service boundary: the mobile control plane persists its host configuration locally and calls Telegram directly for gateway checks, while the template tRPC provider remains part of the generated Expo shell and is not used by the Pocket Agent Host feature screens.
 
 | Workstream | Verification outcome | Release action |
 |---|---|---|
@@ -59,6 +59,6 @@ A deterministic contract suite now covers these boundaries in `tests/ten-workstr
 | WS5 Host setup | Four-step state machine and gateway handoff are present | Covered by contract test |
 | WS6 Native supervisor | Sticky foreground service and telemetry bridge are present | Covered by contract test |
 | WS7 Embedded worker | Owner allowlist and constrained Telegram gateway are present | Covered by contract test |
-| WS8 Backend boundary | No Pocket Hermes screen depends on tRPC or Axios; generated shell remains available | Documented boundary |
+| WS8 Backend boundary | No Pocket Agent Host screen depends on tRPC or Axios; generated shell remains available | Documented boundary |
 | WS9 Security/FOSS | SBOM, FOSS audit document, and policy suite are present | Covered by contract test |
 | WS10 Release/F-Droid | ABI filter, release shrinking, metadata, and optimized APK are present | Covered by contract test |

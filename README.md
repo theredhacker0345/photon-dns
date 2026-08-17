@@ -1,8 +1,8 @@
-# Pocket Hermes
+# Pocket Agent Host
 
-Pocket Hermes is a **FOSS Android control plane and embedded-runtime host** for [Hermes Agent](https://github.com/NousResearch/hermes-agent). It turns a dedicated Android phone into a private agent host that can be controlled remotely through an authorized Telegram bot.
+Pocket Agent Host is a **FOSS Android control plane and embedded-runtime host** for [Hermes Agent](https://github.com/NousResearch/hermes-agent). It turns a dedicated Android phone into a private agent host that can be controlled remotely through an authorized Telegram bot.
 
-The operator installs **Pocket Hermes only**. The intended production build privately packages a pinned CPython and Hermes bundle in app-owned storage; it does not require, install, or expose a separate Termux application, terminal, package manager, or Linux desktop environment.
+The operator installs **Pocket Agent Host only**. The intended production build privately packages a pinned CPython and Hermes bundle in app-owned storage; it does not require, install, or expose a separate Termux application, terminal, package manager, or Linux desktop environment.
 
 ## Current implementation
 
@@ -22,7 +22,7 @@ The Expo application implements the secure mobile control plane. It provides a h
 The intended Android release uses a narrow, app-private runtime rather than a generic hidden shell. Kotlin owns the foreground-service lifecycle, Android Keystore adapter, notification, and recovery behavior. It launches a pinned CPython 3.11 and Hermes bundle through JNI, then communicates with it through typed lifecycle requests only.
 
 ```text
-Pocket Hermes UI
+Pocket Agent Host UI
         │
 Typed React Native module
         │
@@ -37,13 +37,13 @@ The runtime has no interactive terminal surface. It uses a private workspace, a 
 
 ## Security model
 
-Telegram tokens and model-provider credentials must never enter normal preferences, logs, activity history, or analytics. On Android, Pocket Hermes stores small secrets with `expo-secure-store`, which is backed by Android Keystore-encrypted storage. The production gateway must fail closed unless an allowed owner chat ID or explicit pairing policy has been configured. Browser preview storage is intentionally identified as temporary and non-secure.
+Telegram tokens and model-provider credentials must never enter normal preferences, logs, activity history, or analytics. On Android, Pocket Agent Host stores small secrets with `expo-secure-store`, which is backed by Android Keystore-encrypted storage. The production gateway must fail closed unless an allowed owner chat ID or explicit pairing policy has been configured. Browser preview storage is intentionally identified as temporary and non-secure.
 
-By default, Hermes’ available files live in an app-private workspace. Any future access to user files must go through Android’s Storage Access Framework and remain restricted to the URIs the owner selected. Pocket Hermes does not ship root access, a system-wide file scanner, package installation, a rootfs distribution, or unrestricted arbitrary shell execution.
+By default, Hermes’ available files live in an app-private workspace. Any future access to user files must go through Android’s Storage Access Framework and remain restricted to the URIs the owner selected. Pocket Agent Host does not ship root access, a system-wide file scanner, package installation, a rootfs distribution, or unrestricted arbitrary shell execution.
 
 ## Upstream attribution
 
-Pocket Hermes uses and is designed to package the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project from Nous Research. Pocket Hermes is independently maintained and is not an official Nous Research product. Every distribution that includes upstream Hermes code must retain Hermes’ license and copyright notices alongside this project’s MIT license.
+Pocket Agent Host uses and is designed to package the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project from Nous Research. Pocket Agent Host is independently maintained and is not an official Nous Research product. Every distribution that includes upstream Hermes code must retain Hermes’ license and copyright notices alongside this project’s MIT license.
 
 ## Development
 

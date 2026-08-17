@@ -1,6 +1,6 @@
-# Pocket Hermes Privacy Notice
+# Pocket Agent Host Privacy Notice
 
-Pocket Hermes is designed as a local Android host. It does not include an app analytics SDK, advertising SDK, account system, or Pocket Hermes-operated cloud relay. The app stores host configuration, bounded task/schedule history, and local diagnostics in application-private storage. Bot tokens and model credentials are handled through protected storage and are intentionally excluded from Home telemetry and diagnostic responses.
+Pocket Agent Host is designed as a local Android host. It does not include an app analytics SDK, advertising SDK, account system, or Pocket Agent Host-operated cloud relay. The app stores host configuration, bounded task/schedule history, and local diagnostics in application-private storage. Bot tokens and model credentials are handled through protected storage and are intentionally excluded from Home telemetry and diagnostic responses.
 
 ## Data flows
 
@@ -8,7 +8,7 @@ Pocket Hermes is designed as a local Android host. It does not include an app an
 |---|---|---|---|
 | Telegram instructions and responses | Embedded Hermes worker | Owner-directed remote operation | Yes, through Telegram when the configured bot is active. |
 | Model prompts and model responses | Configured HTTPS model endpoint | Agent execution | Yes, to the endpoint selected by the owner. |
-| Host readiness, CPU/RAM, battery, storage, task and schedule state | Pocket Hermes private app storage and foreground service | Local control plane, safety gates, and local notifications | No, unless included by the owner in an instruction to an external service. |
+| Host readiness, CPU/RAM, battery, storage, task and schedule state | Pocket Agent Host private app storage and foreground service | Local control plane, safety gates, and local notifications | No, unless included by the owner in an instruction to an external service. |
 | Bot token and model credential | Protected storage and native runtime handoff | Authenticate the configured external services | Only when used to authenticate the selected Telegram or model service. |
 
 ## Owner controls

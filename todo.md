@@ -1,11 +1,11 @@
 # Project TODO
 
-- [x] Define Pocket Hermes mobile UX, state model, and runtime security boundaries.
+- [x] Define Pocket Agent Host mobile UX, state model, and runtime security boundaries.
 - [x] Build setup, dashboard, agent, automation, and settings screens.
 - [x] Implement local non-secret configuration persistence and secure credential handling.
 - [x] Add runtime health model, background-runtime readiness guide, and native integration contract.
 - [x] Add FOSS licensing and architecture documentation.
-- [x] Generate a unique Pocket Hermes app icon and update Expo branding configuration.
+- [x] Generate a unique Pocket Agent Host app icon and update Expo branding configuration.
 - [x] Test type safety and core mobile interaction flows.
 - [x] Capture final visual validation: dashboard and settings rendered in direct browser preview; managed capture and later proxy routes were unstable under sandbox memory pressure.
 - [x] Save the initial release checkpoint (a4f3c08e).
@@ -13,21 +13,21 @@
 - [x] Define the native Android foreground-service and private embedded-Hermes integration contract for true 24/7 operation; the earlier visible-Termux proposal is superseded.
 - [x] Define Telegram authorization, secret-storage, and remote-access safeguards before adding connection flows.
 - [x] Verify the existing Hermes Agent repository’s MIT license, Android/Termux support, and stable integration points.
-- [x] Design Pocket Hermes as a supervisor and control plane for the existing Hermes Agent runtime rather than recreating the agent core.
+- [x] Design Pocket Agent Host as a supervisor and control plane for the existing Hermes Agent runtime rather than recreating the agent core.
 - [x] Research and choose a no-Termux, lightweight native Android runtime architecture.
 - [x] Close as superseded: the selected architecture privately embeds the upstream Hermes Python runtime and exposes no general-purpose user shell.
 - [x] Design the Android foreground-service, boot recovery, and Telegram long-polling lifecycle for the native host.
 - [x] Verify the license of any third-party native core before reusing it; ZeroAI application code is excluded because its top-level license has a purpose restriction.
 - [x] Close ZeroClaw evaluation as not selected: the chosen path privately embeds Hermes Agent rather than substituting its agent core.
 - [x] Verify a single-APK embedded Linux-userland approach so the user never installs or opens Termux.
-- [x] Determine how to bundle and privately supervise the Hermes Python runtime, dependencies, and app-owned filesystem inside Pocket Hermes.
+- [x] Determine how to bundle and privately supervise the Hermes Python runtime, dependencies, and app-owned filesystem inside Pocket Agent Host.
 - [x] Verify APK/native-library/foreground-service constraints at architecture level; production packaging still requires a dedicated Android build validation.
-- [x] Audit the Pocket Hermes mobile visual system and identify high-impact hierarchy, spacing, and interaction improvements.
+- [x] Audit the Pocket Agent Host mobile visual system and identify high-impact hierarchy, spacing, and interaction improvements.
 - [x] Refine the dashboard and setup experience for a more polished one-handed mobile flow.
 - [x] Refine the agent, schedules, and settings screens for stronger consistency and clearer operational state.
 - [x] Validate the refined GUI at a mobile portrait viewport; dashboard, agent, jobs, and control screens render with consistent visual hierarchy and readable tab labels.
 - [x] Save the GUI refinement checkpoint.
-- [x] Research one focused GitHub shortlist for Pocket Hermes GUI improvements, including reusable UI patterns and Android/Expo-compatible tooling.
+- [x] Research one focused GitHub shortlist for Pocket Agent Host GUI improvements, including reusable UI patterns and Android/Expo-compatible tooling.
 - [x] Discover relevant `SKILL.md` resources and agent tools that can improve future GUI work.
 - [x] Evaluate repository licenses, maintenance quality, fit, and implementation effort before recommending integrations.
 - [x] Produce a ranked GUI research brief with a concrete implementation recommendation.
@@ -48,7 +48,7 @@
 - [x] Add local low-battery and low-storage host notifications with duplicate-alert suppression.
 - [x] Validate telemetry, gateway receipt, and host-alert flows with TypeScript and deterministic policy tests; managed screenshots were unavailable.
 - [x] Save the telemetry, receipt, and alert checkpoint.
-- [x] Audit Pocket Hermes source, dependencies, icons/assets, upstream Hermes code, and planned native runtime components for FOSS licensing compliance.
+- [x] Audit Pocket Agent Host source, dependencies, icons/assets, upstream Hermes code, and planned native runtime components for FOSS licensing compliance.
 - [x] Document every dependency and asset that requires attribution, replacement, or license confirmation before APK distribution.
 - [x] Assess the current project’s Android-native bridge readiness and identify the exact Kotlin/JNI/embedded-Python work still required.
 - [x] Implement the next native Android bridge milestone and prepare a custom APK build strategy rather than claiming Expo preview features are native-complete.

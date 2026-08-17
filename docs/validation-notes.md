@@ -1,4 +1,4 @@
-# Pocket Hermes Validation Notes
+# Pocket Agent Host Validation Notes
 
 ## Control-plane preview
 

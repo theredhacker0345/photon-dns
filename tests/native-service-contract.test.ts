@@ -68,7 +68,7 @@ describe("native Android host declaration contract", () => {
     expect(worker).toContain('os.environ["TELEGRAM_ALLOWED_USERS"] = owner_chat_id');
     expect(worker).toContain('os.environ["GATEWAY_ALLOW_ALL_USERS"] = "false"');
     expect(worker).toContain('os.environ["TELEGRAM_GROUP_ALLOWED_USERS"] = ""');
-    expect(worker).toContain("Pocket Hermes requires an endpoint, model name, and model credential.");
+    expect(worker).toContain("Pocket Agent Host requires an endpoint, model name, and model credential.");
     expect(worker).not.toContain("traceback.print_exc()");
     expect(state).toContain("MAX_DIAGNOSTICS = 40");
     expect(state).toContain("message.take(160)");

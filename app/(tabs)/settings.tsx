@@ -69,7 +69,7 @@ export default function SettingsScreen() {
         <SectionHeading eyebrow="IDENTITY" title="This phone" />
         <PressableCard style={[styles.formCard, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}22` }]}>
           <Label text="Host name" color={colors.muted} />
-          <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Hermes" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+          <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Agent Host" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Label text="Model endpoint" color={colors.muted} />
           <TextInput value={modelEndpoint} onChangeText={setModelEndpoint} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Label text="Model name" color={colors.muted} />
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
           <TextInput value={token} onChangeText={setToken} placeholder={config.hasTelegramToken ? "Leave blank to keep saved token" : "Paste token from BotFather"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Label text="Private owner Telegram user ID" color={colors.muted} />
           <TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="number-pad" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Text style={[styles.helper, { color: colors.muted }]}>Pocket Hermes accepts one private owner identity only. Group IDs are intentionally rejected because a group can contain other users.</Text>
+          <Text style={[styles.helper, { color: colors.muted }]}>Pocket Agent Host accepts one private owner identity only. Group IDs are intentionally rejected because a group can contain other users.</Text>
           {Platform.OS === "web" ? <View style={[styles.webNotice, { backgroundColor: `${colors.warning}16` }]}><MaterialIcons name="warning-amber" size={17} color={colors.warning} /><Text style={[styles.webNoticeText, { color: colors.warning }]}>Web preview uses temporary browser storage. Use Android for Keystore protection.</Text></View> : null}
         </PressableCard>
 
@@ -102,7 +102,7 @@ export default function SettingsScreen() {
         <SectionHeading eyebrow="LOCAL DATA" title="Privacy controls" />
         <SecondaryButton label="Clear local activity" icon="delete-outline" onPress={clear} danger />
         <SecondaryButton label="Remove protected credentials" icon="key-off" onPress={removeCredentials} danger />
-        <Text style={[styles.footer, { color: colors.muted }]}>Pocket Hermes is designed as a FOSS, app-private host. Secrets are excluded from activity history and diagnostics.</Text>
+        <Text style={[styles.footer, { color: colors.muted }]}>Pocket Agent Host is designed as a FOSS, app-private host. Secrets are excluded from activity history and diagnostics.</Text>
       </ScrollView>
     </ScreenContainer>
   );

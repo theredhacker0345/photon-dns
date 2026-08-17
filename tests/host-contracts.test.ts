@@ -9,7 +9,7 @@ import {
   isTerminalTaskStatus,
 } from "../lib/host-contracts";
 
-describe("Pocket Hermes cross-layer host contract", () => {
+describe("Pocket Agent Host cross-layer host contract", () => {
   it("requires a credential-free HTTPS endpoint", () => {
     expect(isAllowedModelEndpoint("https://model.example/v1")).toBe(true);
     expect(isAllowedModelEndpoint("http://model.example/v1")).toBe(false);
@@ -25,7 +25,7 @@ describe("Pocket Hermes cross-layer host contract", () => {
 
   it("does not permit a worker start until Telegram, model, and policy requirements are all satisfied", () => {
     const base = {
-      hostName: "Pocket Hermes",
+      hostName: "Pocket Agent Host",
       ownerChatId: "123456",
       telegramConfigured: true,
       model: { endpoint: "https://model.example/v1", model: "small-host-model", hasApiKey: true },

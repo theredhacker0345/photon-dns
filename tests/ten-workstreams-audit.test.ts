@@ -6,7 +6,7 @@ const root = resolve(__dirname, "..");
 const read = (relativePath: string) => readFileSync(resolve(root, relativePath), "utf8");
 const exists = (relativePath: string) => existsSync(resolve(root, relativePath));
 
-describe("Pocket Hermes ten-workstream release contracts", () => {
+describe("Pocket Agent Host ten-workstream release contracts", () => {
   it("covers the complete control-plane route surface", () => {
     for (const route of [
       "app/(tabs)/index.tsx",

@@ -1,8 +1,8 @@
-# Pocket Hermes Threat Model
+# Pocket Agent Host Threat Model
 
 ## Purpose and scope
 
-Pocket Hermes converts an owner-managed Android device into a private, long-running Hermes host. This document distinguishes **enforced controls** from operating assumptions so that the product never represents an unverified safeguard as a guarantee. The scope is the shipped Android app, its embedded worker, its owner-only Telegram gateway, and its configured model endpoint.
+Pocket Agent Host converts an owner-managed Android device into a private, long-running Hermes host. This document distinguishes **enforced controls** from operating assumptions so that the product never represents an unverified safeguard as a guarantee. The scope is the shipped Android app, its embedded worker, its owner-only Telegram gateway, and its configured model endpoint.
 
 ## Assets, trust boundaries, and actors
 
@@ -26,7 +26,7 @@ Pocket Hermes converts an owner-managed Android device into a private, long-runn
 
 ## Non-goals and explicit limits
 
-Pocket Hermes is not a general-purpose remote shell, a mobile-device-management system, or a guarantee that Android will keep a process alive under every OEM power policy. It deliberately exposes no terminal interface, browser automation, arbitrary command execution, or public inbound HTTP server. The app does not provide end-to-end encryption beyond the configured external services; Telegram and the chosen model provider each have their own data-handling model.
+Pocket Agent Host is not a general-purpose remote shell, a mobile-device-management system, or a guarantee that Android will keep a process alive under every OEM power policy. It deliberately exposes no terminal interface, browser automation, arbitrary command execution, or public inbound HTTP server. The app does not provide end-to-end encryption beyond the configured external services; Telegram and the chosen model provider each have their own data-handling model.
 
 ## Security release gate
 

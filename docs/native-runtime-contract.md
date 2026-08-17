@@ -1,12 +1,12 @@
-# Pocket Hermes Native Runtime Contract
+# Pocket Agent Host Native Runtime Contract
 
 ## Purpose
 
-This contract defines the boundary between the Pocket Hermes Android app and its bundled Hermes Agent process. It makes the embedded runtime **private, auditable, and replaceable**. The mobile UI never executes ad-hoc shell commands; it only sends typed lifecycle and status requests to the native supervisor.
+This contract defines the boundary between the Pocket Agent Host Android app and its bundled Hermes Agent process. It makes the embedded runtime **private, auditable, and replaceable**. The mobile UI never executes ad-hoc shell commands; it only sends typed lifecycle and status requests to the native supervisor.
 
 ## Bundled runtime manifest
 
-Every Pocket Hermes release contains one signed `runtime-manifest.json` under application assets. It identifies immutable runtime assets and prevents a runtime from silently downloading or replacing executable code after installation.
+Every Pocket Agent Host release contains one signed `runtime-manifest.json` under application assets. It identifies immutable runtime assets and prevents a runtime from silently downloading or replacing executable code after installation.
 
 ```json
 {
@@ -78,7 +78,7 @@ The UI sends Telegram and model credentials once to Android encrypted storage. T
 
 ## Telegram authorization
 
-The gateway starts only if the configuration contains at least one allowed owner chat identifier or an explicit one-time pairing policy. Filtering is performed in the embedded Hermes gateway configuration. Pocket Hermes also records a redacted decision event—`rejected_unauthorized_chat`, `accepted_owner_chat`, or `pairing_pending`—without retaining message contents from rejected chats.
+The gateway starts only if the configuration contains at least one allowed owner chat identifier or an explicit one-time pairing policy. Filtering is performed in the embedded Hermes gateway configuration. Pocket Agent Host also records a redacted decision event—`rejected_unauthorized_chat`, `accepted_owner_chat`, or `pairing_pending`—without retaining message contents from rejected chats.
 
 ## Resource guardrails
 

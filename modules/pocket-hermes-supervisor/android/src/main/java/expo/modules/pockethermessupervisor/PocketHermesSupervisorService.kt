@@ -96,10 +96,10 @@ class PocketHermesSupervisorService : Service() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val channel = NotificationChannel(
         CHANNEL_ID,
-        "Pocket Hermes host",
+        "Pocket Agent Host host",
         NotificationManager.IMPORTANCE_LOW,
       ).apply {
-        description = "Visible while Pocket Hermes supervises the private agent host."
+        description = "Visible while Pocket Agent Host supervises the private agent host."
         setShowBadge(false)
       }
       getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -121,7 +121,7 @@ class PocketHermesSupervisorService : Service() {
     }
 
     return builder
-      .setContentTitle("Pocket Hermes is supervising")
+      .setContentTitle("Pocket Agent Host is supervising")
       .setContentText("Private host supervision is active on this device.")
       .setSmallIcon(android.R.drawable.stat_notify_sync)
       .setOngoing(true)

@@ -1,4 +1,4 @@
-# Pocket Hermes Implementation Traceability Matrix
+# Pocket Agent Host Implementation Traceability Matrix
 
 ## Purpose and Status Vocabulary
 

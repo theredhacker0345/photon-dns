@@ -28,9 +28,9 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Pocket Hermes",
+  appName: "Pocket Agent Host",
   appSlug: "pocket-hermes",
-  // Project asset URL used by the platform to display the Pocket Hermes launcher icon.
+  // Project asset URL used by the platform to display the Pocket Agent Host launcher icon.
   logoUrl: "/manus-storage/pocket-hermes-icon_354b144d.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,

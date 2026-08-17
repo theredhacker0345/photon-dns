@@ -1,5 +1,5 @@
 /**
- * Cross-layer contract for the Pocket Hermes host.
+ * Cross-layer contract for the Pocket Agent Host host.
  *
  * This file is deliberately secret-free. Telegram and model credentials belong
  * exclusively in Android Keystore-backed storage once handed to the native

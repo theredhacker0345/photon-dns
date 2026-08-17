@@ -1,4 +1,4 @@
-# Pocket Hermes Complete Gap-Closure Plan
+# Pocket Agent Host Complete Gap-Closure Plan
 
 ## Goal
 
@@ -109,7 +109,7 @@ The implementation will proceed under these defaults unless the user changes the
 ### Phase 6 — Finish observability and honest telemetry
 
 1. Preserve the new preview/sampling/live telemetry states and integrate native worker heartbeat, freshness, and recovery status.
-2. Label CPU as **Pocket Hermes process CPU** and RAM as **Pocket Hermes process PSS / device total** unless total-device measurements are separately implemented and verified.
+2. Label CPU as **Pocket Agent Host process CPU** and RAM as **Pocket Agent Host process PSS / device total** unless total-device measurements are separately implemented and verified.
 3. Add last-updated data, sampling errors, bounded history (optional), manual refresh, and background polling limits to protect the old phone’s battery.
 4. Test baseline sampling, a live workload, unavailable native bridge, paused host, degraded worker, permission denial, and UI resume behavior on physical hardware.
 
@@ -142,7 +142,7 @@ The implementation will proceed under these defaults unless the user changes the
 3. Test an adversarial matrix: invalid/rotated credentials, unauthorized messages, malformed cron, canceled worker, Android battery restriction, unavailable storage, no network, invalid model TLS/auth, process kill, and stale status.
 4. Create a release candidate only after all test artifacts are attached to the release checklist. Rebuild the APK from the final source, calculate checksum, inspect its manifest/permissions/SBOM, install it on a clean device, and issue a concise known-limitations statement.
 
-**Exit gate:** every item in the gap matrix is either demonstrated working with a test artifact or explicitly removed from the shipped UI and documentation. Only then call Pocket Hermes release-ready or submit it to F-Droid.
+**Exit gate:** every item in the gap matrix is either demonstrated working with a test artifact or explicitly removed from the shipped UI and documentation. Only then call Pocket Agent Host release-ready or submit it to F-Droid.
 
 ## Test and Release Gates
 
@@ -164,4 +164,4 @@ The largest risks are upstream Hermes compatibility on Android/Chaquopy, Android
 
 ## Completion Definition
 
-Pocket Hermes is complete only when the installed release APK—not the web preview—passes the Phase 9 gates, every surviving UI action has a verified end-to-end effect, the project builds from clean public source with complete FOSS attribution, and the release documentation accurately states all remaining limitations.
+Pocket Agent Host is complete only when the installed release APK—not the web preview—passes the Phase 9 gates, every surviving UI action has a verified end-to-end effect, the project builds from clean public source with complete FOSS attribution, and the release documentation accurately states all remaining limitations.

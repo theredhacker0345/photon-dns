@@ -53,7 +53,7 @@ const STORAGE_KEY = "pocket-hermes.control-plane.v1";
 const TELEGRAM_TOKEN_KEY = "pocket-hermes.telegram-token";
 const MODEL_API_KEY = "pocket-hermes.model-api-key";
 const emptyConfig: PublicHostConfig = {
-  hostName: "Pocket Hermes",
+  hostName: "Pocket Agent Host",
   allowedChatId: "",
   modelEndpoint: "",
   modelName: "",
@@ -164,7 +164,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
         policy,
       },
       phase: "ready",
-      events: [{ id: createId("event"), title: "Owner gateway configuration saved", detail: "Telegram credentials are protected on this device. The token is never shown in Pocket Hermes.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
+      events: [{ id: createId("event"), title: "Owner gateway configuration saved", detail: "Telegram credentials are protected on this device. The token is never shown in Pocket Agent Host.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
     }));
     return { ok: true, message: "Secure configuration saved. Add model details before starting the embedded runtime." };
   }, [state.config.modelName, state.config.policy]);
@@ -201,7 +201,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
         return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked by host policy", detail: policyBlock, severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
       if (supervisorStarted) {
-        return { ...current, phase: "running", events: [{ id: createId("event"), title: "Android supervisor started", detail: "Pocket Hermes is sampling this phone’s live process CPU and RAM through its foreground supervisor.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
+        return { ...current, phase: "running", events: [{ id: createId("event"), title: "Android supervisor started", detail: "Pocket Agent Host is sampling this phone’s live process CPU and RAM through its foreground supervisor.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
       return { ...current, phase: "bridge_required", events: [{ id: createId("event"), title: "Runtime preparation queued", detail: "The control plane is ready. Install a custom Android build to launch the native foreground supervisor and bundled Hermes runtime.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
     });
@@ -221,8 +221,8 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Gateway credential verified", detail: "Telegram accepted the protected bot credential. The owner chat lock will be enforced when the embedded gateway starts.", severity: "success" });
       return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName };
     } catch {
-      appendEvent({ title: "Gateway check unavailable", detail: "Pocket Hermes could not reach Telegram. Check the phone’s network connection and try again.", severity: "warning" });
-      return { ok: false, message: "Pocket Hermes could not reach Telegram. Check the phone’s network and try again." };
+      appendEvent({ title: "Gateway check unavailable", detail: "Pocket Agent Host could not reach Telegram. Check the phone’s network connection and try again.", severity: "warning" });
+      return { ok: false, message: "Pocket Agent Host could not reach Telegram. Check the phone’s network and try again." };
     }
   }, [appendEvent]);
 
@@ -234,7 +234,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: allowedChatId, text: "Pocket Hermes connection check: this phone can deliver to your owner-only Telegram route." }),
+        body: JSON.stringify({ chat_id: allowedChatId, text: "Pocket Agent Host connection check: this phone can deliver to your owner-only Telegram route." }),
       });
       const payload = (await response.json()) as { ok?: boolean; result?: { message_id?: number; date?: number }; description?: string };
       if (!response.ok || !payload.ok || typeof payload.result?.message_id !== "number") {
@@ -245,8 +245,8 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Test message delivered", detail: `Telegram confirmed receipt as message #${payload.result.message_id}.`, severity: "success" });
       return { ok: true, message: "Telegram confirmed delivery to the allowed owner chat.", messageId: payload.result.message_id, deliveredAt };
     } catch {
-      appendEvent({ title: "Test message unavailable", detail: "Pocket Hermes could not reach Telegram. Check the phone’s network and try again.", severity: "warning" });
-      return { ok: false, message: "Pocket Hermes could not reach Telegram. Check the phone’s network and try again." };
+      appendEvent({ title: "Test message unavailable", detail: "Pocket Agent Host could not reach Telegram. Check the phone’s network and try again.", severity: "warning" });
+      return { ok: false, message: "Pocket Agent Host could not reach Telegram. Check the phone’s network and try again." };
     }
   }, [appendEvent, state.config.allowedChatId]);
 

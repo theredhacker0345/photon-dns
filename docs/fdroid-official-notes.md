@@ -7,7 +7,7 @@ Sources reviewed on 2026-08-17:
 3. https://f-droid.org/en/docs/Inclusion_Policy/
 4. https://f-droid.org/en/docs/Reproducible_Builds/
 
-Key requirements relevant to Pocket Hermes:
+Key requirements relevant to Pocket Agent Host:
 
 - A public source repository and a real, current FOSS source tree are required.
 - All app and build dependencies must be FOSS; proprietary tracking, advertising, Firebase, Google Play Services, and Crashlytics are forbidden.

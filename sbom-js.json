@@ -6,7 +6,7 @@
     "timestamp": "2026-08-17T09:50:18.010Z",
     "component": {
       "type": "application",
-      "name": "Pocket Hermes mobile JavaScript runtime",
+      "name": "Pocket Agent Host mobile JavaScript runtime",
       "version": "1.0.0",
       "licenses": [
         {

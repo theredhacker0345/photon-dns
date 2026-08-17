@@ -1,4 +1,4 @@
-"""Deterministic policy test for the embedded Pocket Hermes worker.
+"""Deterministic policy test for the embedded Pocket Agent Host worker.
 
 This exercises only the local configuration boundary. It never calls Telegram,
 Hermes, or a model provider, and it never prints credentials.

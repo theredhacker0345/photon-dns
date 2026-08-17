@@ -1,4 +1,4 @@
-"""Private Android entry point for Pocket Hermes' Telegram gateway profile.
+"""Private Android entry point for Pocket Agent Host' Telegram gateway profile.
 
 The module is intentionally narrow. It does not create a Python REPL, execute
 shell commands, install packages, open a browser, or enable Hermes' optional
@@ -101,7 +101,7 @@ def _read_tasks() -> list[dict[str, Any]]:
 def _write_tasks(tasks: list[dict[str, Any]]) -> None:
     path = _task_store_path()
     if path is None:
-        raise RuntimeError("Pocket Hermes task storage is unavailable until the host starts.")
+        raise RuntimeError("Pocket Agent Host task storage is unavailable until the host starts.")
     retained = tasks[-_MAX_TASKS:]
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(retained, separators=(",", ":")), encoding="utf-8")
@@ -120,7 +120,7 @@ def _read_json_list(path: Path | None) -> list[dict[str, Any]]:
 
 def _write_json_list(path: Path | None, values: list[dict[str, Any]], maximum: int) -> None:
     if path is None:
-        raise RuntimeError("Pocket Hermes schedule storage is unavailable until the Android host initializes.")
+        raise RuntimeError("Pocket Agent Host schedule storage is unavailable until the Android host initializes.")
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(values[-maximum:], separators=(",", ":")), encoding="utf-8")
     temporary.replace(path)
@@ -175,7 +175,7 @@ def validate_cron_expression(expression: str) -> str:
     normalized = str(expression).strip()
     fields = normalized.split()
     if len(fields) != 5:
-        raise ValueError("Pocket Hermes requires a five-field cron expression: minute hour day month weekday.")
+        raise ValueError("Pocket Agent Host requires a five-field cron expression: minute hour day month weekday.")
     for field, minimum, maximum in zip(fields, (0, 0, 1, 1, 0), (59, 23, 31, 12, 6)):
         _cron_values(field, minimum, maximum)
     return " ".join(fields)
@@ -309,12 +309,12 @@ async def _drain_task_queue() -> None:
                 chat_id=owner_chat_id if is_schedule else f"pocket-hermes:{owner_chat_id}",
                 chat_type="dm",
                 user_id=owner_chat_id,
-                user_name="Pocket Hermes owner",
+                user_name="Pocket Agent Host owner",
             )
             event = MessageEvent(
                 text=str(next_task["body"]),
                 user_id=owner_chat_id,
-                user_name="Pocket Hermes owner",
+                user_name="Pocket Agent Host owner",
                 source=source,
                 internal=True,
             )
@@ -376,10 +376,10 @@ async def _scheduler_loop() -> None:
 
 def _validate_model_configuration(model_endpoint: str | None, model_api_key: str | None, model_name: str | None) -> str:
     if not model_endpoint or not model_api_key or not model_name:
-        raise ValueError("Pocket Hermes requires an endpoint, model name, and model credential.")
+        raise ValueError("Pocket Agent Host requires an endpoint, model name, and model credential.")
     parsed_endpoint = urlparse(model_endpoint)
     if parsed_endpoint.scheme != "https" or not parsed_endpoint.hostname or parsed_endpoint.username or parsed_endpoint.password:
-        raise ValueError("Pocket Hermes requires a credential-free HTTPS model endpoint.")
+        raise ValueError("Pocket Agent Host requires a credential-free HTTPS model endpoint.")
     return model_endpoint.rstrip("/")
 
 
@@ -393,9 +393,9 @@ def _configure_process(
 ) -> None:
     """Configure only process-local, non-persisted values for the worker."""
     if not _TOKEN_RE.fullmatch(telegram_token):
-        raise ValueError("Pocket Hermes rejected an invalid Telegram bot token.")
+        raise ValueError("Pocket Agent Host rejected an invalid Telegram bot token.")
     if not _CHAT_ID_RE.fullmatch(owner_chat_id):
-        raise ValueError("Pocket Hermes rejected a non-private owner identity.")
+        raise ValueError("Pocket Agent Host rejected a non-private owner identity.")
     model_endpoint = _validate_model_configuration(model_endpoint, model_api_key, model_name)
 
     home = Path(hermes_home).resolve()
@@ -575,7 +575,7 @@ def enqueue_task(task_id: str, body: str) -> str:
     normalized_id = str(task_id).strip()
     normalized_body = str(body).strip()
     if not normalized_id or len(normalized_id) > 96 or not normalized_body or len(normalized_body) > _MAX_TASK_TEXT:
-        raise ValueError("Pocket Hermes rejected an invalid task.")
+        raise ValueError("Pocket Agent Host rejected an invalid task.")
     with _state_lock:
         running = _state.get("status") == "running" and _state.get("runner") is not None
     if not running:
@@ -604,7 +604,7 @@ def cancel_task(task_id: str) -> str:
             task["reason"] = "cancelled by owner"
             _write_tasks(tasks)
             return json.dumps(_public_task(task), separators=(",", ":"))
-    raise ValueError("Only queued Pocket Hermes tasks can be cancelled.")
+    raise ValueError("Only queued Pocket Agent Host tasks can be cancelled.")
 
 
 def upsert_schedule(schedule_id: str, title: str, expression: str, body: str, enabled: bool) -> str:
@@ -614,12 +614,12 @@ def upsert_schedule(schedule_id: str, title: str, expression: str, body: str, en
     normalized_body = str(body).strip()
     normalized_expression = validate_cron_expression(expression)
     if not normalized_id or len(normalized_id) > 96 or not normalized_title or len(normalized_title) > _MAX_SCHEDULE_TITLE or not normalized_body or len(normalized_body) > _MAX_TASK_TEXT:
-        raise ValueError("Pocket Hermes rejected an invalid schedule.")
+        raise ValueError("Pocket Agent Host rejected an invalid schedule.")
     schedules = _read_schedules()
     schedule = next((item for item in schedules if item.get("id") == normalized_id), None)
     if schedule is None:
         if len(schedules) >= _MAX_SCHEDULES:
-            raise ValueError("Pocket Hermes supports at most 16 on-device schedules.")
+            raise ValueError("Pocket Agent Host supports at most 16 on-device schedules.")
         schedule = {"id": normalized_id, "lastRunAt": None, "lastRunStatus": None, "nextRetryAt": None}
         schedules.append(schedule)
     schedule.update({"title": normalized_title, "expression": normalized_expression, "body": normalized_body, "enabled": bool(enabled)})
@@ -635,7 +635,7 @@ def set_schedule_enabled(schedule_id: str, enabled: bool) -> str:
     schedules = _read_schedules()
     schedule = next((item for item in schedules if item.get("id") == str(schedule_id).strip()), None)
     if schedule is None:
-        raise ValueError("Pocket Hermes schedule was not found.")
+        raise ValueError("Pocket Agent Host schedule was not found.")
     schedule["enabled"] = bool(enabled)
     _write_schedules(schedules)
     return json.dumps(_public_schedule(schedule), separators=(",", ":"))
@@ -646,7 +646,7 @@ def delete_schedule(schedule_id: str) -> None:
     schedules = _read_schedules()
     retained = [item for item in schedules if item.get("id") != normalized_id]
     if len(retained) == len(schedules):
-        raise ValueError("Pocket Hermes schedule was not found.")
+        raise ValueError("Pocket Agent Host schedule was not found.")
     _write_schedules(retained)
 
 

@@ -1,14 +1,14 @@
-# Pocket Hermes — Android Build and Validation Plan
+# Pocket Agent Host — Android Build and Validation Plan
 
 ## Why an APK is not rebuilt after every interface task
 
-Pocket Hermes has two classes of change. **JavaScript-only changes**—screens, setup flow, validation rules, and dashboard UI—run in the Expo preview and do not require a native rebuild. **Native changes**—the Android foreground supervisor, Kotlin source, manifest permissions, JNI, and embedded CPython/Hermes assets—require a custom development build or release APK.
+Pocket Agent Host has two classes of change. **JavaScript-only changes**—screens, setup flow, validation rules, and dashboard UI—run in the Expo preview and do not require a native rebuild. **Native changes**—the Android foreground supervisor, Kotlin source, manifest permissions, JNI, and embedded CPython/Hermes assets—require a custom development build or release APK.
 
 Rebuilding an APK after every JavaScript edit would not validate the embedded-runtime feature and would slow iteration substantially. The correct build boundary is after a meaningful native milestone, with code and configuration frozen long enough to test on the actual spare phone.
 
 ## Current native milestone
 
-Pocket Hermes now includes an app-local Android-only Expo module at `modules/pocket-hermes-supervisor/`. Its FOSS Kotlin implementation provides:
+Pocket Agent Host now includes an app-local Android-only Expo module at `modules/pocket-hermes-supervisor/`. Its FOSS Kotlin implementation provides:
 
 | Feature | Current behavior | Requires device validation |
 |---|---|---|
@@ -25,7 +25,7 @@ Pocket Hermes now includes an app-local Android-only Expo module at `modules/poc
 3. Verify the ongoing Android notification is visible and that the dashboard transitions to **Supervisor live** with non-placeholder CPU/RAM values.
 4. Lock the screen, enable battery optimization exceptions only with the owner’s consent, and verify the service/process status after 15, 60, and 180 minutes.
 5. Verify pause/restart behavior, phone reboot behavior, low-battery notification, low-storage notification, and Telegram test-message delivery.
-6. Only after the embedded CPython/Hermes worker is packaged and passes this sequence should Pocket Hermes claim 24/7 agent execution.
+6. Only after the embedded CPython/Hermes worker is packaged and passes this sequence should Pocket Agent Host claim 24/7 agent execution.
 
 ## FOSS release gate
 

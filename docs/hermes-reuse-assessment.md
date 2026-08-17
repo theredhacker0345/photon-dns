@@ -1,14 +1,14 @@
-# Reusing Hermes Agent in Pocket Hermes
+# Reusing Hermes Agent in Pocket Agent Host
 
 ## Decision
 
-**Pocket Hermes will reuse the existing Hermes Agent project as the agent runtime.** It will not fork or recreate Hermes’ planning, memory, skills, tool, model-provider, or Telegram-gateway layers for the MVP. Pocket Hermes is instead a companion Android host controller: it helps a phone owner install, configure, supervise, and safely operate the upstream process.
+**Pocket Agent Host will reuse the existing Hermes Agent project as the agent runtime.** It will not fork or recreate Hermes’ planning, memory, skills, tool, model-provider, or Telegram-gateway layers for the MVP. Pocket Agent Host is instead a companion Android host controller: it helps a phone owner install, configure, supervise, and safely operate the upstream process.
 
 ## Verified upstream integration surface
 
-| Area | Upstream capability | Pocket Hermes responsibility |
+| Area | Upstream capability | Pocket Agent Host responsibility |
 |---|---|---|
-| **License** | Hermes Agent is released under the MIT License. [1] | Preserve the upstream copyright and license notice, publish Pocket Hermes’ own license, and clearly identify the independently maintained upstream dependency. |
+| **License** | Hermes Agent is released under the MIT License. [1] | Preserve the upstream copyright and license notice, publish Pocket Agent Host’ own license, and clearly identify the independently maintained upstream dependency. |
 | **Android runtime** | Hermes documents a tested, narrower Termux installation route using its `termux` extra. It explicitly excludes some desktop-style dependencies such as the standard voice extra and treats browser automation as experimental. [2] | Provide a guided Termux-first setup, visual readiness checks, logs, and safe hand-off instructions rather than claiming that the React Native UI alone runs Hermes. |
 | **Messaging** | Hermes’ gateway supports Telegram and exposes setup, status, start/stop, adapter controls, and session commands. [3] | Collect the owner’s intended Telegram configuration through a protected screen; display status and safe controls without replacing the gateway implementation. |
 | **Authorization** | Hermes supports platform allowlists such as `TELEGRAM_ALLOWED_USERS` and a DM-pairing model. [3] | Treat an approved owner chat ID as required setup, explain the access boundary, and prevent presenting a host as protected until the user has configured an allowlist or pairing policy. |
@@ -16,9 +16,9 @@
 
 ## Recommended packaging model
 
-The first release should install Hermes within **Termux** on the dedicated phone, then use Pocket Hermes as its local control plane. This directly follows the upstream Android documentation and avoids embedding Python, Node, shell tooling, and a broad tool-execution environment into the mobile app before the operational model is proven. [2]
+The first release should install Hermes within **Termux** on the dedicated phone, then use Pocket Agent Host as its local control plane. This directly follows the upstream Android documentation and avoids embedding Python, Node, shell tooling, and a broad tool-execution environment into the mobile app before the operational model is proven. [2]
 
-Pocket Hermes must store only small credentials in Android encrypted storage. The Telegram token should never be copied into normal app preferences, activity history, screenshots, or logs. The preferred user journey is: configure token and allowed chat ID in Pocket Hermes, write a protected runtime configuration through an explicit local bridge, then start the upstream `hermes gateway` process through that bridge.
+Pocket Agent Host must store only small credentials in Android encrypted storage. The Telegram token should never be copied into normal app preferences, activity history, screenshots, or logs. The preferred user journey is: configure token and allowed chat ID in Pocket Agent Host, write a protected runtime configuration through an explicit local bridge, then start the upstream `hermes gateway` process through that bridge.
 
 ## Native-runtime roadmap
 
