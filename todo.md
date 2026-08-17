@@ -88,3 +88,17 @@
 - [x] Produce an arm64-v8a-only APK variant and measure the reduction
 - [x] Evaluate Python dependency pruning and release-resource shrinking
 - [x] Validate optimized APK and document trade-offs
+
+# Ten-Workstream Audit
+
+- [x] Audit the Host dashboard tab and native telemetry fallbacks
+- [x] Audit the Agent console instruction queue and relay states
+- [x] Audit Automations persistence and scheduling behavior
+- [x] Audit protected Settings and secret-handling flows
+- [x] Audit the Host Setup state machine and readiness guards
+- [x] Audit the Kotlin foreground supervisor and boot/lifecycle wiring
+- [x] Audit the embedded CPython/Hermes Telegram worker and dependency profile
+- [x] Audit backend/template service boundaries and confirm no unintended runtime dependency
+- [x] Audit FOSS policy, SBOM, and owner authorization tests
+- [x] Audit release packaging, F-Droid metadata, ABI filter, and APK integrity
+- [x] Add deterministic cross-workstream release-gate tests
