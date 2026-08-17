@@ -1,60 +1,140 @@
 # Pocket Agent Host
 
-Pocket Agent Host is a **FOSS Android control plane and embedded-runtime host** for [Hermes Agent](https://github.com/NousResearch/hermes-agent). It turns a dedicated Android phone into a private agent host that can be controlled remotely through an authorized Telegram bot.
+![Pocket Agent Host icon](docs/assets/pocket-agent-host-icon.png)
 
-The operator installs **Pocket Agent Host only**. The intended production build privately packages a pinned CPython and Hermes bundle in app-owned storage; it does not require, install, or expose a separate Termux application, terminal, package manager, or Linux desktop environment.
+**Pocket Agent Host** is a FOSS Android control plane that turns a spare phone into a private, self-hosted AI agent host. The phone runs an app-private embedded CPython/Hermes runtime under an Android foreground supervisor, while the owner controls the host remotely through a private Telegram bot.
 
-## Current implementation
+> **Status:** The source is published at [`gitlab.com/theredhacker0345/pocket-agent-host`](https://gitlab.com/theredhacker0345/pocket-agent-host) under immutable tag [`v1.0.0`](https://gitlab.com/theredhacker0345/pocket-agent-host/-/tree/v1.0.0). The app is prepared as an F-Droid-oriented release candidate. A fresh APK built from the public tag and physical-device acceptance testing remain required before claiming an F-Droid publication.
 
-The Expo application implements the secure mobile control plane. It provides a host dashboard, Telegram owner-gateway setup, secure token persistence on Android, a staged agent-instruction inbox, local automation definitions, activity history, and explicit runtime-health states. The UI is deliberately honest in preview mode: it does not claim to start Hermes until a native Android supervisor has been attached.
+## What it does
 
-| Capability | Current state | Production target |
+Pocket Agent Host is designed for a dedicated, plugged-in Android phone. It bundles the runtime inside the application so the owner does not install or expose Termux, a terminal, a Linux distribution, or a separate package manager. The control plane makes the host boundary visible: private storage, owner-only Telegram access, protected credentials, local schedules, bounded diagnostics, and honest native-versus-preview states.
+
+| Area | Included behavior |
+|---|---|
+| **Remote control** | Private-owner Telegram gateway for sending tasks and receiving owner-directed responses. Group messages and unverified chats are rejected by policy. |
+| **Model access** | OpenAI-compatible HTTPS endpoint, model name, and API key entered during Host Setup or later in Settings. Native model preflight runs before the worker starts. |
+| **24/7 operation** | Android foreground service, persistent notification, opt-in boot recovery, charging/storage readiness gates, bounded recovery attempts, and a 30-minute wake-check daemon. |
+| **On-device control plane** | Dashboard, setup wizard, Agent console, Automations scheduler, Settings, task history, schedule run history, and local host events. |
+| **Host telemetry** | Native CPU and RAM readings, battery/charging state, storage readiness, freshness labels, and policy-driven low-battery or low-storage alerts. |
+| **Open-source release** | MIT-licensed app code, upstream Hermes attribution, Python and JavaScript SBOMs, license audit, F-Droid metadata, and unsigned-by-default release configuration. |
+
+## UI gallery
+
+These screenshots are captured from the current live control-plane preview. The web preview deliberately labels Android-only capabilities instead of pretending that it can start the foreground service or access native CPU/RAM telemetry.
+
+| Host dashboard | Agent console |
+|---|---|
+| ![Pocket Agent Host dashboard](docs/screenshots/home.png) | ![Pocket Agent Host Agent console](docs/screenshots/agent-console.png) |
+
+| Automations | Host Settings and model credentials |
+|---|---|
+| ![Pocket Agent Host automations](docs/screenshots/automations.png) | ![Pocket Agent Host settings](docs/screenshots/settings.png) |
+
+The launcher artwork used above is the same source icon shipped through the Android, splash, favicon, and adaptive-icon asset paths: [`assets/images/icon.png`](assets/images/icon.png).
+
+## User flow
+
+The first launch opens a four-step Host Setup flow. The owner names the phone, enters the Telegram bot token and private owner chat ID, enters the OpenAI-compatible model endpoint/model/key, and chooses the runtime policy. The app validates the required fields before handing configuration to the Android supervisor.
+
+After setup, the owner can run a Telegram gateway test, inspect charging and storage readiness, start or pause the supervisor, submit a durable task from the Agent console, create a validated five-field cron schedule, and review bounded local history. Settings can remove protected credentials; deletion stops the host and clears native configuration rather than merely hiding the fields.
+
+### Model provider fields
+
+| Field | Example | Handling |
 |---|---|---|
-| **Host dashboard** | Implemented and locally persisted. | Receives real supervisor health and resource state. |
-| **Telegram configuration** | Implemented; token uses Android secure storage in native builds. | Supplies an ephemeral protected configuration to the embedded gateway. |
-| **Owner allowlist** | Required by the setup UI. | Enforced in the Hermes gateway configuration itself. |
-| **Agent instructions** | Stored as local drafts. | Dispatched to the embedded Hermes process through a typed native bridge. |
-| **Automations** | Local definitions, toggles, and delivery route. | Synced to Hermes’ local cron scheduler. |
-| **24/7 host** | Documented integration contract. | Android foreground service supervising a private CPython/Hermes process. |
+| **Model endpoint** | `https://provider.example/v1` | Must be HTTPS and OpenAI-compatible. The native preflight checks the endpoint before worker startup. |
+| **Model name** | `gpt-4o-mini` or a provider-specific compatible model | Stored as protected host configuration and handed to the embedded worker only when needed. |
+| **Model API key** | Provider-issued secret | Stored through Android protected storage and excluded from normal UI state, telemetry, activity history, and diagnostics. |
 
-## Native embedded-runtime design
+The provider is selected by the owner. Pocket Agent Host does not operate a model relay or claim ownership of prompts and responses; prompts and responses travel to the configured provider when the agent is used. See [`docs/privacy.md`](docs/privacy.md).
 
-The intended Android release uses a narrow, app-private runtime rather than a generic hidden shell. Kotlin owns the foreground-service lifecycle, Android Keystore adapter, notification, and recovery behavior. It launches a pinned CPython 3.11 and Hermes bundle through JNI, then communicates with it through typed lifecycle requests only.
+## Architecture
 
 ```text
 Pocket Agent Host UI
         │
-Typed React Native module
+Typed React Native / Expo module bridge
         │
-Kotlin foreground supervisor ── Android Keystore / notification / health
+Kotlin Android foreground supervisor
+        ├── Android Keystore-backed configuration
+        ├── boot recovery and readiness policy
+        ├── CPU/RAM telemetry and diagnostics
+        └── lifecycle, scheduler, and task-queue bridge
         │
-JNI embedded CPython ── pinned Hermes Agent bundle
-        │
-Telegram Bot API + approved model provider
+Embedded CPython 3.11 worker
+        ├── Hermes Agent 0.20.1
+        ├── private-owner Telegram gateway
+        ├── durable task queue and cron scheduler
+        └── HTTPS model-provider preflight
 ```
 
-The runtime has no interactive terminal surface. It uses a private workspace, a controlled tool policy, package hashes, bounded logs, capped restart backoff, and owner-only Telegram authorization. Detailed contracts are in [`docs/embedded-runtime-plan.md`](docs/embedded-runtime-plan.md) and [`docs/native-runtime-contract.md`](docs/native-runtime-contract.md).
+The runtime has no interactive terminal surface. Its workspace is app-private, recovery is bounded, diagnostics are redacted, schedules and tasks are owner-scoped, and Telegram authorization fails closed unless a private owner identity is present. The authoritative implementation map is [`docs/implementation-traceability-matrix.md`](docs/implementation-traceability-matrix.md), with security details in [`docs/threat-model.md`](docs/threat-model.md).
 
-## Security model
+## Build and development
 
-Telegram tokens and model-provider credentials must never enter normal preferences, logs, activity history, or analytics. On Android, Pocket Agent Host stores small secrets with `expo-secure-store`, which is backed by Android Keystore-encrypted storage. The production gateway must fail closed unless an allowed owner chat ID or explicit pairing policy has been configured. Browser preview storage is intentionally identified as temporary and non-secure.
-
-By default, Hermes’ available files live in an app-private workspace. Any future access to user files must go through Android’s Storage Access Framework and remain restricted to the URIs the owner selected. Pocket Agent Host does not ship root access, a system-wide file scanner, package installation, a rootfs distribution, or unrestricted arbitrary shell execution.
-
-## Upstream attribution
-
-Pocket Agent Host uses and is designed to package the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project from Nous Research. Pocket Agent Host is independently maintained and is not an official Nous Research product. Every distribution that includes upstream Hermes code must retain Hermes’ license and copyright notices alongside this project’s MIT license.
-
-## Development
+The project uses Expo SDK 54, React Native 0.81, Expo Router 6, TypeScript, NativeWind, a local Android Expo module, and Chaquopy 17 for the embedded Python runtime. The JavaScript preview is Metro-only; the Android foreground service is available only in a custom Android build.
 
 ```bash
 pnpm install
 pnpm dev
-pnpm check
 ```
 
-Use the mobile preview to review the control plane. Validating protected storage, foreground execution, background resilience, process recovery, and the embedded CPython worker requires a custom Android development build or release APK—not Expo Go or the web preview.
+Run the source validation gates with:
 
-## Roadmap
+```bash
+pnpm test
+pnpm check
+pnpm run sbom:js
+pnpm run sbom:python
+pnpm run audit:licenses
+pnpm run release:preflight
+```
 
-The next engineering milestone is to create the native Android module: reproducible ARM64 CPython assets, Android-compatible Hermes wheels, a JNI launcher, a Kotlin foreground service, and a local typed health/control protocol. The implementation must be tested across reboot, networking loss, low storage, app process death, Telegram token rotation, and unauthorized chat attempts before any 24/7 host claim is made.
+A native ARM64 release build requires the documented Android SDK, NDK, Java, private CPython toolchain, and prebuilt wheels. The constrained build command is documented in [`docs/reproducible-release-policy.md`](docs/reproducible-release-policy.md). Do not rebuild the APK in a memory-constrained environment unless `.artifacts/wheels/` contains the required ARM64 wheels and `POCKET_HERMES_BUILDPYTHON` points to the configured CPython 3.11 executable.
+
+## Release evidence
+
+The release evidence record separates source-side verification from checks that require external hardware or publication infrastructure.
+
+| Evidence | Current result |
+|---|---|
+| Deterministic policy, contract, security, and UI tests | Passed in the sandbox |
+| TypeScript check | Passed with `tsc --noEmit` |
+| JavaScript SBOM | Generated from the production dependency graph |
+| Python SBOM | CycloneDX 1.6 generated for pinned embedded runtime components |
+| License audit | Zero manual-review and zero blocked findings in the recorded release gate |
+| Release configuration | Unsigned-by-default F-Droid path; no debug-key fallback |
+| Existing ARM64 APK | Preserved and hash-verified historical artifact; a fresh post-tag build is still required for publication evidence |
+
+Read [`docs/release-evidence.md`](docs/release-evidence.md) for the exact recorded artifact hash, evidence boundaries, and F-Droid requirements. The F-Droid maintainer checklist is [`docs/fdroid-submission-checklist.md`](docs/fdroid-submission-checklist.md), and the upstream recipe is [`metadata/com.app.pockethermes.yml`](metadata/com.app.pockethermes.yml).
+
+## Privacy and security boundaries
+
+Pocket Agent Host contains no analytics SDK, advertising SDK, account system, or Pocket Agent Host-operated cloud relay. Host readiness, CPU/RAM, battery, storage, task state, schedule state, and bounded diagnostics remain in application-private storage. Telegram traffic leaves the device through Telegram when the configured bot is active, and model prompts/responses leave through the HTTPS endpoint selected by the owner.
+
+Credentials are not printed in logs or included in ordinary activity records. Android builds use protected storage backed by Android Keystore-backed mechanisms. Owners can delete Telegram and model credentials from Settings, which invokes native deletion and stops the host. The app does not ship root access, unrestricted shell execution, a system-wide file scanner, or package installation.
+
+## Licensing and attribution
+
+Pocket Agent Host application code is released under the [MIT License](LICENSE). The embedded runtime uses the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project from Nous Research. Pocket Agent Host is independently maintained and is not an official Nous Research product. Hermes copyright and license notices must remain with distributions that include upstream Hermes code.
+
+## Contributing
+
+Contributions should preserve the private-owner boundary, keep native-only states honest in web preview, avoid telemetry and proprietary runtime dependencies, and add deterministic tests for new policy or persistence behavior. Before opening a merge request, run the validation commands above and update the relevant traceability, privacy, threat-model, or F-Droid documentation when behavior changes.
+
+## References
+
+[1]: https://gitlab.com/theredhacker0345/pocket-agent-host "Pocket Agent Host GitLab repository"
+
+[2]: https://gitlab.com/theredhacker0345/pocket-agent-host/-/tree/v1.0.0 "Pocket Agent Host v1.0.0 source tag"
+
+[3]: https://github.com/NousResearch/hermes-agent "Hermes Agent upstream repository"
+
+[4]: https://f-droid.org/en/docs/Build_Metadata_Reference/ "F-Droid Build Metadata Reference"
+
+[5]: https://f-droid.org/en/docs/Reproducible_Builds/ "F-Droid Reproducible Builds"
+
+[6]: https://developer.android.com/develop/background-work/services/fgs "Android foreground services"
+
+[7]: https://developer.android.com/privacy-and-security/keystore "Android Keystore system"

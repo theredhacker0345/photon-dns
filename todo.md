@@ -129,3 +129,5 @@
 - [x] Add a source-controlled unsigned-release policy, release preflight, and F-Droid handoff evidence that cannot fall back to the debug signing key
 - [x] Run final sandbox test, type, SBOM, license, and APK-integrity validation gates
 - [ ] Publish an immutable public source tag and complete F-Droid build-server plus post-gap-closure physical-device validation (requires maintainer-controlled public hosting, credentials, and hardware)
+- [x] Upgrade README with current app UI screenshots and the shipped Pocket Agent Host icon
+- [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update

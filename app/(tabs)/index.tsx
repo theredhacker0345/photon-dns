@@ -41,7 +41,7 @@ export default function HostScreen() {
     <ScreenContainer className="px-5" safeAreaClassName="bg-background">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.topline}>
-          <View style={styles.brandCopy}><Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET HERMES</Text><View style={styles.brandMeta}><View style={[styles.brandDot, { backgroundColor: phase === "unconfigured" ? colors.warning : colors.success }]} /><Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID AGENT HOST</Text></View></View>
+          <View style={styles.brandCopy}><Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET AGENT HOST</Text><View style={styles.brandMeta}><View style={[styles.brandDot, { backgroundColor: phase === "unconfigured" ? colors.warning : colors.success }]} /><Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID AGENT HOST</Text></View></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Open host setup" onPress={() => router.push("/setup" as never)} style={({ pressed }) => [styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="settings" size={20} color={colors.foreground} /></Pressable>
         </View>
 
