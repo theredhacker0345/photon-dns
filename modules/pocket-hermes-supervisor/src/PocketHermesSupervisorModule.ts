@@ -82,6 +82,27 @@ export type NativeSupervisorScheduleRun = {
 
 export type NativeSupervisorScheduleInput = Pick<NativeSupervisorSchedule, "id" | "title" | "expression" | "body" | "enabled">;
 
+/** Secret-free status of the Android-only, owner-gated QuickJS executor. */
+export type NativeCodeSandboxStatus = {
+  enabled: boolean;
+  activeApprovals: number;
+  defaultTimeoutMs: number;
+  defaultMemoryBytes: number;
+  defaultMaxOutputBytes: number;
+};
+
+export type NativeCodeJobProposal = { hash: string; sourceBytes: number; approvalRequired: boolean };
+export type NativeCodeJobApproval = { hash: string; expiresAt: string; approved?: boolean; revoked?: boolean };
+export type NativeCodeJobResult = {
+  hash: string;
+  status: "ok" | "error" | "timeout" | "rejected";
+  output: string;
+  truncated: boolean;
+  timedOut: boolean;
+  occurredAt: string;
+};
+export type NativeCodeJobRequest = { source: string; timeoutMs?: string; memoryBytes?: string; maxOutputBytes?: string };
+
 export type NativeSupervisorStartConfig = {
   telegramToken: string;
   ownerChatId: string;
@@ -118,6 +139,12 @@ type SupervisorModule = {
   updateMcpRuntimeConfig(mcpConfigJson?: string): Promise<{ status: "updated" }>;
   stopSupervisor(): Promise<{ status: "stopped" }>;
   clearConfiguration(): Promise<{ status: "cleared" }>;
+  getCodeSandboxStatus(): Promise<NativeCodeSandboxStatus>;
+  setCodeSandboxEnabled(enabled: boolean): Promise<NativeCodeSandboxStatus>;
+  proposeCodeJob(source: string): Promise<NativeCodeJobProposal>;
+  approveCodeJob(source: string): Promise<NativeCodeJobApproval>;
+  revokeCodeJob(sourceHash: string): Promise<NativeCodeJobApproval>;
+  runApprovedCodeJob(request: NativeCodeJobRequest): Promise<NativeCodeJobResult>;
 };
 
 export default requireNativeModule<SupervisorModule>("PocketHermesSupervisor");

@@ -1,7 +1,7 @@
 # Secure Code-Execution Sandbox Design
 
 **Author:** Manus AI  
-**Status:** Proposed design; no runtime implementation in this document  
+**Status:** Version-1 owner-console implementation completed; model-originated proposal delivery and sealed scheduling remain deferred
 **Decision:** Add an owner-approved, capability-free JavaScript evaluation tier in a new Android isolated process. Keep the existing CPython/Hermes host out of the execution trust boundary.
 
 ## Executive decision

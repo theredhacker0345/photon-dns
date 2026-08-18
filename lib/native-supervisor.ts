@@ -1,6 +1,11 @@
 import { Platform } from "react-native";
 
 import PocketHermesSupervisorModule, {
+  type NativeCodeJobApproval,
+  type NativeCodeJobProposal,
+  type NativeCodeJobRequest,
+  type NativeCodeJobResult,
+  type NativeCodeSandboxStatus,
   type NativeModelPreflight,
   type NativeSupervisorContext,
   type NativeSupervisorContextCompression,
@@ -194,6 +199,61 @@ export async function clearNativeSupervisorConfiguration(): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Reads Android-only code-execution policy. Web preview intentionally cannot simulate this boundary. */
+export async function getNativeCodeSandboxStatus(): Promise<NativeCodeSandboxStatus | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.getCodeSandboxStatus();
+  } catch {
+    return null;
+  }
+}
+
+export async function setNativeCodeSandboxEnabled(enabled: boolean): Promise<NativeCodeSandboxStatus | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.setCodeSandboxEnabled(enabled);
+  } catch {
+    return null;
+  }
+}
+
+export async function proposeNativeCodeJob(source: string): Promise<NativeCodeJobProposal | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.proposeCodeJob(source);
+  } catch {
+    return null;
+  }
+}
+
+export async function approveNativeCodeJob(source: string): Promise<NativeCodeJobApproval | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.approveCodeJob(source);
+  } catch {
+    return null;
+  }
+}
+
+export async function revokeNativeCodeJob(sourceHash: string): Promise<NativeCodeJobApproval | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.revokeCodeJob(sourceHash);
+  } catch {
+    return null;
+  }
+}
+
+export async function runNativeApprovedCodeJob(request: NativeCodeJobRequest): Promise<NativeCodeJobResult | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.runApprovedCodeJob(request);
+  } catch {
+    return null;
   }
 }
 

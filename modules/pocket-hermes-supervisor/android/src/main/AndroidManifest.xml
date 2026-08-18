@@ -11,6 +11,12 @@
       android:exported="false"
       android:foregroundServiceType="dataSync"
       android:stopWithTask="false" />
+    <service
+      android:name=".QuickJsSandboxService"
+      android:exported="false"
+      android:isolatedProcess="true"
+      android:process=":code_sandbox"
+      android:stopWithTask="true" />
     <receiver
       android:name=".PocketHermesBootReceiver"
       android:directBootAware="false"

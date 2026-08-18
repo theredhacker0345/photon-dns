@@ -12,5 +12,6 @@ This record closes the non-standard metadata findings from the generated JavaScr
 | `python-dateutil` | Apache/BSD classifier wording | FOSS-compatible | Dual Apache 2.0/BSD metadata in the bundled distribution. |
 | `requireg@0.2.2` | `Unknown` in SBOM metadata | MIT | The installed package includes `node_modules/requireg/LICENSE`; its package metadata declares MIT. |
 | `seq-queue@0.0.5` | `Unknown` in SBOM metadata | MIT | The installed package includes `node_modules/seq-queue/LICENSE`, whose text is the MIT License. |
+| QuickJS `2025-09-13` | Vendored native source, built through the Android NDK | MIT | `modules/pocket-hermes-supervisor/android/src/main/cpp/third_party/quickjs/LICENSE` retains the upstream license; `docs/quickjs-source-lock.md` records the official source revision and review scope. |
 
 The release audit accepts only explicit FOSS classifications or the two source-backed overrides above. It fails for all `manual-review` and `blocked` findings. Maintainers must rerun `pnpm sbom:js`, `pnpm sbom`, and `pnpm audit:licenses` from the clean release source before publishing.

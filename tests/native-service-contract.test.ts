@@ -147,4 +147,49 @@ describe("native Android host declaration contract", () => {
     expect(service).toContain("update_remote_mcp_config");
     expect(service).toContain("fun clearPersistedConfiguration");
   });
+
+  it("keeps code evaluation in a non-exported isolated QuickJS service with no host capabilities", () => {
+    const manifest = read("AndroidManifest.xml");
+    const policy = read("java/expo/modules/pockethermessupervisor/CodeSandboxPolicy.kt");
+    const service = read("java/expo/modules/pockethermessupervisor/QuickJsSandboxService.kt");
+    const jni = read("cpp/quickjs_sandbox_jni.c");
+    const cmake = read("cpp/CMakeLists.txt");
+    const quickJsLicense = read("cpp/quickjs/LICENSE");
+    const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
+
+    expect(manifest).toContain(".QuickJsSandboxService");
+    expect(manifest).toContain('android:isolatedProcess="true"');
+    expect(manifest).toContain('android:exported="false"');
+
+    expect(jni).toContain("JS_SetMemoryLimit");
+    expect(jni).toContain("JS_SetMaxStackSize");
+    expect(jni).toContain("JS_SetCanBlock(runtime, 0)");
+    expect(jni).toContain("JS_SetInterruptHandler");
+    expect(jni).toContain("reject_module_loader");
+    expect(jni).toContain("JS_SetModuleLoaderFunc(runtime, NULL, reject_module_loader, NULL)");
+    expect(jni).not.toContain("js_std");
+    expect(jni).not.toContain("js_init_module_os");
+    expect(jni).not.toContain("std.urlGet");
+    expect(cmake).toContain("-std=gnu11");
+    expect(quickJsLicense).toContain("MIT");
+
+    expect(policy).toContain("EncryptedSharedPreferences");
+    expect(policy).toContain("private const val APPROVAL_TTL_MS = 10 * 60 * 1000L");
+    expect(policy).toContain('"fixedExecutionEnvelope" to true');
+    expect(policy).toContain("private fun usesFixedEnvelope");
+    expect(policy).toContain("approved code jobs use the fixed 750 ms, 16 MiB, and 8 KiB execution envelope");
+    expect(policy).toContain("MessageDigest.getInstance(\"SHA-256\")");
+    expect(policy).toContain("source hash has no active owner approval");
+    expect(policy).toContain("Context.BIND_AUTO_CREATE");
+    expect(policy).toContain("BINDER_RESPONSE_GRACE_MS");
+    expect(policy).toContain("isolated executor exceeded the fixed execution envelope");
+    expect(policy).toContain("private const val MAX_AUDIT_ENTRIES = 50");
+    expect(policy).toContain("private fun pruneLedger");
+    expect(policy).toContain("context.stopService(Intent(context, QuickJsSandboxService::class.java))");
+    expect(service).toContain("MAX_BINDER_REQUEST_BYTES");
+    expect(service).toContain("stopSelf()");
+    expect(module).toContain('AsyncFunction("proposeCodeJob")');
+    expect(module).toContain('AsyncFunction("approveCodeJob")');
+    expect(module).toContain('AsyncFunction("runApprovedCodeJob")');
+  });
 });

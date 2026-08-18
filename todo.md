@@ -223,4 +223,17 @@
 - [x] Define the code-execution threat model, denied capabilities, owner approvals, and resource limits
 - [x] Produce an implementation-ready phased design covering runtime, filesystem, network, process, and observability controls
 - [x] Review the design against F-Droid, ARM64, and physical-device validation constraints before requesting implementation approval
-- [ ] Implement the owner-approved QuickJS isolated-process code sandbox only after explicit design approval
+- [x] Implement the owner-approved QuickJS isolated-process code sandbox only after explicit design approval
+- [x] Vendor a pinned, source-verifiable ARM64 QuickJS runtime with a minimal JNI bridge and FOSS license/SBOM evidence
+- [x] Register a non-exported Android isolated-process execution service with one-request lifecycle and bounded Binder IPC
+- [x] Implement sealed JavaScript job contracts, source-hash approval, revocation, timeout, memory, output, and workspace policy enforcement
+- [x] Add off-by-default Settings and Agent Console owner controls for proposing, approving, revoking, and inspecting code jobs
+- [x] Prove no terminal, filesystem, network, module, plugin, local MCP, or Android API escapes with deterministic and native regression tests
+- [ ] Validate release packaging, checkpoint, and publish the completed QuickJS sandbox implementation to GitLab
+- [ ] Validate, checkpoint, and publish the defensive QuickJS sandbox review to GitLab
+- [x] Perform a defensive review of the QuickJS isolated process, JNI evaluator, Binder envelope, approval store, and owner controls
+- [x] Add regression coverage for verified escape-prevention and resource-abuse boundaries without adding shell or Python execution
+- [x] Document confirmed protections, residual risks, and physical-device checks in a defensive sandbox audit
+- [x] Bind every QuickJS approval to the fixed default execution envelope and reject per-run resource-policy overrides
+- [x] Bound and prune encrypted QuickJS audit and expired-approval records to prevent unbounded app-private storage growth
+- [x] Enforce a parent-side Binder response deadline and unbind the isolated executor when it fails to return within the fixed execution envelope

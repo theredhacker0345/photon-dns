@@ -1,4 +1,4 @@
-import type { NativeModelPreflight, NativeSupervisorDiagnostic, NativeSupervisorHealth, NativeSupervisorSchedule, NativeSupervisorScheduleInput, NativeSupervisorScheduleRun, NativeSupervisorStartConfig, NativeSupervisorTask, NativeSupervisorTelemetry } from "./PocketHermesSupervisorModule";
+import type { NativeCodeJobApproval, NativeCodeJobProposal, NativeCodeJobRequest, NativeCodeJobResult, NativeCodeSandboxStatus, NativeModelPreflight, NativeSupervisorDiagnostic, NativeSupervisorHealth, NativeSupervisorSchedule, NativeSupervisorScheduleInput, NativeSupervisorScheduleRun, NativeSupervisorStartConfig, NativeSupervisorTask, NativeSupervisorTelemetry } from "./PocketHermesSupervisorModule";
 
 const unavailable = new Error("The Pocket Agent Host Android supervisor is unavailable in web preview.");
 
@@ -46,6 +46,24 @@ const PocketHermesSupervisorModule = {
     throw unavailable;
   },
   async clearConfiguration(): Promise<{ status: "cleared" }> {
+    throw unavailable;
+  },
+  async getCodeSandboxStatus(): Promise<NativeCodeSandboxStatus> {
+    throw unavailable;
+  },
+  async setCodeSandboxEnabled(_enabled: boolean): Promise<NativeCodeSandboxStatus> {
+    throw unavailable;
+  },
+  async proposeCodeJob(_source: string): Promise<NativeCodeJobProposal> {
+    throw unavailable;
+  },
+  async approveCodeJob(_source: string): Promise<NativeCodeJobApproval> {
+    throw unavailable;
+  },
+  async revokeCodeJob(_sourceHash: string): Promise<NativeCodeJobApproval> {
+    throw unavailable;
+  },
+  async runApprovedCodeJob(_request: NativeCodeJobRequest): Promise<NativeCodeJobResult> {
     throw unavailable;
   },
 };

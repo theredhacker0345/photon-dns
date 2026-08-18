@@ -160,6 +160,49 @@ class PocketHermesSupervisorModule : Module() {
       mapOf("ok" to result.optBoolean("ok", false), "reason" to result.optString("reason", "model preflight unavailable"))
     }
 
+    AsyncFunction("getCodeSandboxStatus") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      CodeSandboxPolicy.status(context)
+    }
+
+    AsyncFunction("setCodeSandboxEnabled") { enabled: Boolean ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      CodeSandboxPolicy.setEnabled(context, enabled)
+    }
+
+    AsyncFunction("proposeCodeJob") { source: String -> CodeSandboxPolicy.propose(source) }
+
+    AsyncFunction("approveCodeJob") { source: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      CodeSandboxPolicy.approve(context, source)
+    }
+
+    AsyncFunction("revokeCodeJob") { sourceHash: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      CodeSandboxPolicy.revoke(context, sourceHash)
+    }
+
+    AsyncFunction("runApprovedCodeJob") { request: Map<String, String> ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      CodeSandboxPolicy.execute(
+        context,
+        request["source"].orEmpty(),
+        request["timeoutMs"]?.toIntOrNull(),
+        request["memoryBytes"]?.toIntOrNull(),
+        request["maxOutputBytes"]?.toIntOrNull(),
+      )
+    }
+
     AsyncFunction("startSupervisor") { config: Map<String, String?> ->
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Agent Host supervisor requires an Android application context."
