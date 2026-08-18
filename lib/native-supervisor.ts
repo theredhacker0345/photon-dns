@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import PocketHermesSupervisorModule, {
+  type NativeCodeAuditEntry,
   type NativeCodeJobApproval,
   type NativeCodeJobProposal,
   type NativeCodeJobRequest,
@@ -218,6 +219,16 @@ export async function setNativeCodeSandboxEnabled(enabled: boolean): Promise<Nat
     return await PocketHermesSupervisorModule.setCodeSandboxEnabled(enabled);
   } catch {
     return null;
+  }
+}
+
+/** Reads bounded, redacted QuickJS history; source and raw execution output are never returned. */
+export async function listNativeCodeAuditLog(): Promise<NativeCodeAuditEntry[]> {
+  if (Platform.OS === "web") return [];
+  try {
+    return await PocketHermesSupervisorModule.listCodeAuditLog();
+  } catch {
+    return [];
   }
 }
 

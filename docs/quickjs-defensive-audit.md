@@ -25,6 +25,12 @@ The first implementation also relied solely on QuickJS's cooperative interrupt h
 
 Finally, encrypted audit and expired-approval records are now pruned. Audit records include only the source hash, result status, timestamp, result byte count, truncation, and timeout metadata—never source text, credentials, or result content.
 
+## Owner-Visible Audit History
+
+The Android Agent Console includes an **Execution history** card for the local owner. It reads at most 50 encrypted ledger entries through a narrow native bridge, sorts them newest first, and renders a compact status, timestamp, sealed-hash prefix, result-byte count, truncation marker, and timeout marker. The card is intentionally omitted from web preview, and it provides unavailable and empty states rather than simulated history.
+
+The audit-read contract is purposefully narrower than the immediate execution-result contract. It never returns submitted source, raw output, exception text, credentials, approval expiry records, or arbitrary encrypted-preference values. Malformed ledger records are ignored, output-byte values are clamped to the fixed output ceiling, and unknown statuses normalize to `error`. This preserves useful owner oversight without turning historical bookkeeping into a source or output archive.
+
 ## Residual Risks and Explicit Limits
 
 > Android isolated processes are an important containment layer, not a replacement for a patched operating system or a secure device. A compromised OS, kernel, boot chain, or accessibility/root tool can defeat app-level controls.
@@ -43,6 +49,7 @@ Before relying on code execution, test on the target dedicated phone with notifi
 4. Run an intentional loop and verify a timeout is returned near the fixed envelope and the executor does not remain active.
 5. Request oversized source and Binder payloads; verify rejection without an application crash.
 6. Repeat more than 50 approved runs and verify private audit storage remains bounded.
+7. Open **Execution history**, refresh it, and verify that it displays only redacted metadata; source, result content, credentials, and exception text must remain absent.
 
 ## References
 

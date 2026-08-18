@@ -56,6 +56,22 @@ internal object CodeSandboxPolicy {
     return status(context)
   }
 
+  /**
+   * Returns a bounded owner-visible history of execution metadata. This deliberately
+   * omits submitted source, output bodies, exception text, and all approval records.
+   */
+  fun listAuditLog(context: Context): List<Map<String, Any>> {
+    val preferences = preferences(context)
+    pruneLedger(preferences)
+    return preferences.all
+      .asSequence()
+      .filter { (key, _) -> key.startsWith(AUDIT_PREFIX) }
+      .mapNotNull { (_, value) -> auditMetadata(value as? String) }
+      .sortedByDescending { entry -> entry["occurredAt"].toString().toLongOrNull() ?: 0L }
+      .take(MAX_AUDIT_ENTRIES)
+      .toList()
+  }
+
   fun propose(source: String): Map<String, Any> {
     validateSource(source)
     return mapOf("hash" to hash(source), "sourceBytes" to source.toByteArray(Charsets.UTF_8).size, "approvalRequired" to true)
@@ -175,6 +191,23 @@ internal object CodeSandboxPolicy {
     (timeoutMs == null || timeoutMs == DEFAULT_TIMEOUT_MS) &&
       (memoryBytes == null || memoryBytes == DEFAULT_MEMORY_BYTES) &&
       (maxOutputBytes == null || maxOutputBytes == DEFAULT_MAX_OUTPUT_BYTES)
+
+  /** Maps encrypted ledger JSON into the precise, owner-safe viewer schema. */
+  private fun auditMetadata(rawEntry: String?): Map<String, Any>? {
+    val entry = runCatching { JSONObject(rawEntry.orEmpty()) }.getOrNull() ?: return null
+    val sourceHash = entry.optString("hash")
+    if (!sourceHash.matches(Regex("[a-f0-9]{64}"))) return null
+    val status = entry.optString("status").takeIf { it in setOf("ok", "error", "timeout", "rejected") } ?: "error"
+    val occurredAt = entry.optString("occurredAt").toLongOrNull() ?: return null
+    return mapOf(
+      "hash" to sourceHash,
+      "status" to status,
+      "occurredAt" to occurredAt.toString(),
+      "outputBytes" to entry.optLong("outputBytes", 0L).coerceIn(0L, MAX_OUTPUT_BYTES.toLong()),
+      "truncated" to entry.optBoolean("truncated", false),
+      "timedOut" to entry.optBoolean("timedOut", false),
+    )
+  }
 
   private fun pruneLedger(preferences: android.content.SharedPreferences) {
     val now = System.currentTimeMillis()

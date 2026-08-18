@@ -174,6 +174,13 @@ class PocketHermesSupervisorModule : Module() {
       CodeSandboxPolicy.setEnabled(context, enabled)
     }
 
+    AsyncFunction("listCodeAuditLog") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Agent Host supervisor requires an Android application context."
+      }
+      CodeSandboxPolicy.listAuditLog(context)
+    }
+
     AsyncFunction("proposeCodeJob") { source: String -> CodeSandboxPolicy.propose(source) }
 
     AsyncFunction("approveCodeJob") { source: String ->

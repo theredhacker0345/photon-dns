@@ -237,3 +237,7 @@
 - [x] Bind every QuickJS approval to the fixed default execution envelope and reject per-run resource-policy overrides
 - [x] Bound and prune encrypted QuickJS audit and expired-approval records to prevent unbounded app-private storage growth
 - [x] Enforce a parent-side Binder response deadline and unbind the isolated executor when it fails to return within the fixed execution envelope
+- [x] Add a bounded encrypted native audit-ledger read API that returns only owner-safe execution metadata
+- [x] Add an Android-only Agent Console viewer for recent code-execution history with refresh, empty, and unavailable states
+- [x] Ensure the viewer redacts source, credentials, output bodies, and raw exception text while retaining actionable status metadata
+- [x] Add audit-viewer privacy regressions, validate the Android release, checkpoint, and publish to GitLab

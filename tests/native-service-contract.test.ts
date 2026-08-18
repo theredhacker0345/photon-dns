@@ -192,4 +192,36 @@ describe("native Android host declaration contract", () => {
     expect(module).toContain('AsyncFunction("approveCodeJob")');
     expect(module).toContain('AsyncFunction("runApprovedCodeJob")');
   });
+
+  it("exposes a bounded owner audit view with metadata only and never returns code or raw execution output", () => {
+    const policy = read("java/expo/modules/pockethermessupervisor/CodeSandboxPolicy.kt");
+    const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
+    const contract = readFileSync(join(process.cwd(), "modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule.ts"), "utf8");
+    const agentConsole = readFileSync(join(process.cwd(), "app/(tabs)/agent.tsx"), "utf8");
+    const auditReader = policy.slice(policy.indexOf("fun listAuditLog"), policy.indexOf("fun propose"));
+    const auditSchema = policy.slice(policy.indexOf("private fun auditMetadata"), policy.indexOf("private fun pruneLedger"));
+    const auditView = agentConsole.slice(agentConsole.indexOf("function CodeAuditLogCard"), agentConsole.indexOf("export default function AgentScreen"));
+
+    expect(policy).toContain("private const val MAX_AUDIT_ENTRIES = 50");
+    expect(auditReader).toContain("key.startsWith(AUDIT_PREFIX)");
+    expect(auditReader).toContain("auditMetadata(value as? String)");
+    expect(auditReader).toContain(".take(MAX_AUDIT_ENTRIES)");
+    expect(auditSchema).toContain('"hash" to sourceHash');
+    expect(auditSchema).toContain('"status" to status');
+    expect(auditSchema).toContain('"occurredAt" to occurredAt.toString()');
+    expect(auditSchema).toContain('"outputBytes" to');
+    expect(auditSchema).toContain('"truncated" to');
+    expect(auditSchema).toContain('"timedOut" to');
+    expect(auditSchema).not.toContain('"source" to');
+    expect(auditSchema).not.toContain('"output" to');
+    expect(auditSchema).not.toContain('"message" to');
+    expect(module).toContain('AsyncFunction("listCodeAuditLog")');
+    expect(module).toContain("CodeSandboxPolicy.listAuditLog(context)");
+    expect(contract).toContain("export type NativeCodeAuditEntry");
+    expect(contract).toContain("listCodeAuditLog(): Promise<NativeCodeAuditEntry[]>");
+    expect(agentConsole).toContain('Platform.OS === "android" ? <CodeAuditLogCard');
+    expect(auditView).toContain("Private metadata only.");
+    expect(auditView).not.toMatch(/entry\.output(?!Bytes)/);
+    expect(auditView).not.toContain("entry.source");
+  });
 });

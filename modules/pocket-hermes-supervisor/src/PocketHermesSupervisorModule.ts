@@ -101,6 +101,15 @@ export type NativeCodeJobResult = {
   timedOut: boolean;
   occurredAt: string;
 };
+/** Redacted audit metadata; source, output bodies, exception text, and approvals never cross this contract. */
+export type NativeCodeAuditEntry = {
+  hash: string;
+  status: "ok" | "error" | "timeout" | "rejected";
+  occurredAt: string;
+  outputBytes: number;
+  truncated: boolean;
+  timedOut: boolean;
+};
 export type NativeCodeJobRequest = { source: string; timeoutMs?: string; memoryBytes?: string; maxOutputBytes?: string };
 
 export type NativeSupervisorStartConfig = {
@@ -141,6 +150,7 @@ type SupervisorModule = {
   clearConfiguration(): Promise<{ status: "cleared" }>;
   getCodeSandboxStatus(): Promise<NativeCodeSandboxStatus>;
   setCodeSandboxEnabled(enabled: boolean): Promise<NativeCodeSandboxStatus>;
+  listCodeAuditLog(): Promise<NativeCodeAuditEntry[]>;
   proposeCodeJob(source: string): Promise<NativeCodeJobProposal>;
   approveCodeJob(source: string): Promise<NativeCodeJobApproval>;
   revokeCodeJob(sourceHash: string): Promise<NativeCodeJobApproval>;

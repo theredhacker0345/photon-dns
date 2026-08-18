@@ -5,8 +5,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { PageHeader, PressableCard, SecondaryButton, SectionHeading } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { approveNativeCodeJob, cancelNativeTask, compressNativeContext, enqueueNativeTask, getNativeCodeSandboxStatus, getNativeContextStatus, getSupervisorHealth, listNativeTasks, proposeNativeCodeJob, revokeNativeCodeJob, runNativeApprovedCodeJob, setNativeCodeSandboxEnabled } from "@/lib/native-supervisor";
-import type { NativeCodeJobProposal, NativeCodeJobResult, NativeCodeSandboxStatus, NativeSupervisorContext, NativeSupervisorTask } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
+import { approveNativeCodeJob, cancelNativeTask, compressNativeContext, enqueueNativeTask, formatBytes, getNativeCodeSandboxStatus, getNativeContextStatus, getSupervisorHealth, listNativeCodeAuditLog, listNativeTasks, proposeNativeCodeJob, revokeNativeCodeJob, runNativeApprovedCodeJob, setNativeCodeSandboxEnabled } from "@/lib/native-supervisor";
+import type { NativeCodeAuditEntry, NativeCodeJobProposal, NativeCodeJobResult, NativeCodeSandboxStatus, NativeSupervisorContext, NativeSupervisorTask } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
 
 function formatTaskTime(value: string) {
   const timestamp = Number(value);
@@ -21,6 +21,12 @@ function taskTone(status: NativeSupervisorTask["status"], colors: ReturnType<typ
   if (status === "succeeded") return colors.success;
   if (status === "failed" || status === "cancelled") return colors.warning;
   return colors.primary;
+}
+
+function auditTone(status: NativeCodeAuditEntry["status"], colors: ReturnType<typeof useColors>) {
+  if (status === "ok") return colors.success;
+  if (status === "rejected") return colors.warning;
+  return colors.error;
 }
 
 function ContextCard({ context, ready, compressing, onCompress }: { context: NativeSupervisorContext | null; ready: boolean; compressing: boolean; onCompress: () => void }) {
@@ -82,6 +88,25 @@ function CodeSandboxCard({ sandbox, source, proposal, result, busy, onSourceChan
   </PressableCard>;
 }
 
+function CodeAuditLogCard({ entries, available, loaded, refreshing, onRefresh }: {
+  entries: NativeCodeAuditEntry[];
+  available: boolean;
+  loaded: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const colors = useColors();
+  const visibleEntries = entries.slice(0, 8);
+  return <PressableCard style={auditStyles.card}>
+    <View style={auditStyles.header}>
+      <View style={auditStyles.titleRow}><MaterialIcons name="history" size={18} color={colors.primary} /><Text style={[auditStyles.title, { color: colors.foreground }]}>Execution history</Text></View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Refresh code execution history" onPress={onRefresh} disabled={!available || refreshing} style={({ pressed }) => [auditStyles.refresh, { borderColor: colors.border }, (pressed || !available || refreshing) && auditStyles.disabled]}><MaterialIcons name={refreshing ? "hourglass-top" : "refresh"} size={14} color={colors.primary} /><Text style={[auditStyles.refreshText, { color: colors.primary }]}>{refreshing ? "Checking" : "Refresh"}</Text></Pressable>
+    </View>
+    <Text style={[auditStyles.detail, { color: colors.muted }]}>Private metadata only. Source, output, error text, credentials, and approval records are never shown here.</Text>
+    {!available ? <View style={[auditStyles.empty, { borderColor: colors.border }]}><MaterialIcons name="phonelink-lock" size={22} color={colors.muted} /><Text style={[auditStyles.emptyTitle, { color: colors.foreground }]}>History unavailable</Text><Text style={[auditStyles.emptyDetail, { color: colors.muted }]}>The Android isolated executor must be available before its private audit metadata can be read.</Text></View> : !loaded || refreshing && !visibleEntries.length ? <View style={[auditStyles.empty, { borderColor: colors.border }]}><MaterialIcons name="hourglass-top" size={22} color={colors.muted} /><Text style={[auditStyles.emptyDetail, { color: colors.muted }]}>Checking the encrypted local ledger…</Text></View> : visibleEntries.length ? <View style={auditStyles.entries}>{visibleEntries.map((entry) => { const tone = auditTone(entry.status, colors); return <View key={`${entry.occurredAt}-${entry.hash}`} style={[auditStyles.entry, { borderColor: colors.border }]}><View style={auditStyles.entryTopline}><Text style={[auditStyles.status, { color: tone }]}>{entry.status.toUpperCase()}</Text><Text style={[auditStyles.time, { color: colors.muted }]}>{formatTaskTime(entry.occurredAt)}</Text></View><Text style={[auditStyles.meta, { color: colors.muted }]}>Job {entry.hash.slice(0, 12)}… · {formatBytes(entry.outputBytes)} metadata{entry.truncated ? " · output limited" : ""}{entry.timedOut ? " · deadline reached" : ""}</Text></View>; })}</View> : <View style={[auditStyles.empty, { borderColor: colors.border }]}><MaterialIcons name="shield" size={22} color={colors.muted} /><Text style={[auditStyles.emptyTitle, { color: colors.foreground }]}>No code executions yet</Text><Text style={[auditStyles.emptyDetail, { color: colors.muted }]}>Executed or rejected owner-approved jobs will appear as redacted metadata on this phone.</Text></View>}
+  </PressableCard>;
+}
+
 export default function AgentScreen() {
   const colors = useColors();
   const [body, setBody] = useState("");
@@ -96,6 +121,18 @@ export default function AgentScreen() {
   const [codeProposal, setCodeProposal] = useState<NativeCodeJobProposal | null>(null);
   const [codeResult, setCodeResult] = useState<NativeCodeJobResult | null>(null);
   const [codeBusy, setCodeBusy] = useState(false);
+  const [auditEntries, setAuditEntries] = useState<NativeCodeAuditEntry[]>([]);
+  const [auditLoaded, setAuditLoaded] = useState(false);
+  const [auditRefreshing, setAuditRefreshing] = useState(false);
+
+  const refreshAuditLog = useCallback(async () => {
+    if (Platform.OS !== "android") return;
+    setAuditRefreshing(true);
+    const nextEntries = await listNativeCodeAuditLog();
+    setAuditEntries(nextEntries);
+    setAuditLoaded(true);
+    setAuditRefreshing(false);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (Platform.OS === "web") return;
@@ -108,9 +145,10 @@ export default function AgentScreen() {
 
   useEffect(() => {
     void refresh();
+    void refreshAuditLog();
     const interval = setInterval(() => void refresh(), 5_000);
     return () => clearInterval(interval);
-  }, [refresh]);
+  }, [refresh, refreshAuditLog]);
 
   const submit = async () => {
     const taskBody = body.trim();
@@ -186,7 +224,7 @@ export default function AgentScreen() {
     if (Platform.OS === "web" || codeBusy || !codeProposal?.hash) { setNotice("Seal and approve the exact source on Android before running it."); return; }
     setCodeBusy(true);
     const next = await runNativeApprovedCodeJob({ source: codeSource });
-    if (next) { setCodeResult(next); setNotice(next.status === "ok" ? "Isolated code job completed." : "Isolated code job ended without exposing host details."); await refresh(); } else setNotice("The isolated executor was unavailable.");
+    if (next) { setCodeResult(next); setNotice(next.status === "ok" ? "Isolated code job completed." : "Isolated code job ended without exposing host details."); await Promise.all([refresh(), refreshAuditLog()]); } else setNotice("The isolated executor was unavailable.");
     setCodeBusy(false);
   };
 
@@ -213,6 +251,7 @@ export default function AgentScreen() {
       <PressableCard style={[styles.bridgeNotice, { backgroundColor: `${colors.primary}0A`, borderColor: `${colors.primary}28` }]}><View style={[styles.noticeIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name={isReady ? "verified-user" : "smartphone"} size={21} color={colors.primary} /></View><View style={styles.noticeCopy}><View style={styles.noticeTitleRow}><Text style={[styles.noticeTitle, { color: colors.foreground }]}>{statusTitle}</Text><View style={[styles.localBadge, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.localBadgeText, { color: colors.primary }]}>{Platform.OS === "web" ? "PREVIEW" : hostState.toUpperCase()}</Text></View></View><Text style={[styles.noticeDetail, { color: colors.muted }]}>{statusDetail}</Text></View></PressableCard>
       <ContextCard context={context} ready={isReady} compressing={compressing} onCompress={() => void compress()} />
       <CodeSandboxCard sandbox={sandbox} source={codeSource} proposal={codeProposal} result={codeResult} busy={codeBusy} onSourceChange={(value) => { setCodeSource(value); setCodeProposal(null); setCodeResult(null); }} onToggle={() => void mutateSandbox(() => setNativeCodeSandboxEnabled(!sandbox?.enabled), sandbox?.enabled ? "Code execution disabled and future runs rejected." : "Code execution armed. Every source still needs a short-lived owner approval.")} onPropose={() => void sealCode()} onApprove={() => void approveCode()} onRun={() => void runCode()} onRevoke={() => void revokeCode()} />
+      {Platform.OS === "android" ? <CodeAuditLogCard entries={auditEntries} available={sandbox !== null} loaded={auditLoaded} refreshing={auditRefreshing} onRefresh={() => void refreshAuditLog()} /> : null}
       {notice ? <View style={[styles.inlineNotice, { backgroundColor: colors.surface, borderColor: colors.border }]}><MaterialIcons name="info-outline" size={16} color={colors.primary} /><Text style={[styles.inlineNoticeText, { color: colors.muted }]}>{notice}</Text></View> : null}
       <SectionHeading eyebrow="RUNTIME HISTORY" title="Owner task queue" action={<Text style={[styles.count, { color: colors.muted }]}>{tasks.length ? `${tasks.length} tasks` : "Empty"}</Text>} />
       {tasks.length ? tasks.map((item) => { const tone = taskTone(item.status, colors); return <PressableCard key={item.id} style={styles.taskCard}><View style={styles.taskMeta}><Text style={[styles.taskLabel, { color: tone }]}>{item.status.toUpperCase()}</Text><Text style={[styles.taskTime, { color: colors.muted }]}>{formatTaskTime(item.updatedAt || item.createdAt)}</Text></View><Text style={[styles.taskBody, { color: colors.foreground }]}>{item.body}</Text>{item.result ? <View style={[styles.resultBox, { backgroundColor: colors.surface }]}><Text style={[styles.resultLabel, { color: colors.muted }]}>HERMES RESULT</Text><Text style={[styles.resultText, { color: colors.foreground }]}>{item.result}</Text></View> : null}{item.reason ? <Text style={[styles.reasonText, { color: colors.warning }]}>{item.reason}</Text> : null}{item.status === "queued" ? <Pressable accessibilityRole="button" onPress={() => void cancel(item.id)} style={({ pressed }) => [styles.cancel, { borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="close" size={14} color={colors.muted} /><Text style={[styles.cancelText, { color: colors.muted }]}>Cancel queued task</Text></Pressable> : null}</PressableCard>; }) : <View style={[styles.empty, { borderColor: colors.border }]}><MaterialIcons name="mark-chat-unread" size={27} color={colors.muted} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No runtime tasks yet</Text><Text style={[styles.emptyDetail, { color: colors.muted }]}>{Platform.OS === "web" ? "Install the Android APK to use the private task queue." : "Start the host, then submit an owner task below."}</Text></View>}
@@ -245,5 +284,25 @@ const sandboxStyles = StyleSheet.create({
   result: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 4 },
   resultLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
   resultText: { fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }), fontSize: 11, lineHeight: 16 },
+  disabled: { opacity: 0.52 },
+});
+
+const auditStyles = StyleSheet.create({
+  card: { gap: 10 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  titleRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 7 },
+  title: { fontSize: 15, fontWeight: "900" },
+  refresh: { minHeight: 31, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 9, paddingHorizontal: 9, justifyContent: "center" },
+  refreshText: { fontSize: 10, fontWeight: "900" },
+  detail: { fontSize: 11, lineHeight: 16, fontWeight: "600" },
+  entries: { gap: 7 },
+  entry: { gap: 4, borderWidth: 1, borderRadius: 11, paddingHorizontal: 10, paddingVertical: 9 },
+  entryTopline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  status: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  time: { fontSize: 10, fontWeight: "700" },
+  meta: { fontSize: 10, lineHeight: 15, fontWeight: "600" },
+  empty: { minHeight: 104, alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderStyle: "dashed", borderRadius: 15, padding: 16 },
+  emptyTitle: { fontSize: 13, fontWeight: "900" },
+  emptyDetail: { fontSize: 11, lineHeight: 16, fontWeight: "600", textAlign: "center" },
   disabled: { opacity: 0.52 },
 });
