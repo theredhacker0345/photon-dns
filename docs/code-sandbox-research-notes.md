@@ -1,0 +1,12 @@
+# Code Sandbox Research Notes
+
+**Collected:** 2026-08-18
+
+| Source | Verified finding | Design consequence |
+|---|---|---|
+| [Android `<service>` documentation](https://developer.android.com/guide/topics/manifest/service-element) | A service declared with `android:isolatedProcess="true"` runs in a special process isolated from the rest of the system and has no permissions of its own; service APIs are its communication channel. | Run untrusted interpreter work in a non-exported isolated service, not in the existing privileged foreground host process. |
+| [Android Security Checklist](https://developer.android.com/privacy-and-security/security-tips) | Android internal storage is app-private by default; external storage is globally readable/writable and must be treated as untrusted. Android advises minimizing permissions and not dynamically loading unverified executables. | Use internal storage only, expose no external storage, do not download runtimes/modules/code, and validate every bridge message. |
+| [QuickJS documentation](https://bellard.org/quickjs/quickjs.html) | QuickJS is small and embeddable; its host API offers a runtime memory limit and interrupt handler. Its command-line standard library includes file, process, environment, and network-related functions. | Use QuickJS only through a custom native embedding that omits the `std` and `os` modules, native-module loading, and host callbacks; never package or call the command-line wrapper. Apply native memory and interrupt limits. |
+| [wasm3 repository](https://github.com/wasm3/wasm3) | wasm3 is MIT licensed, supports Android, has gas metering and linear-memory constraints, but is in minimal-maintenance mode. | Consider a capability-free WASM tier only after the small JavaScript tier is stable; do not make wasm3 the initial owner-facing execution surface. |
+| [F-Droid Inclusion Policy](https://f-droid.org/en/docs/Inclusion_Policy/) | F-Droid requires FLOSS dependencies, source-build transparency, and explicit opt-in before downloading executable binaries. | Vendor pinned source for the interpreter, document its license/SBOM evidence, and prohibit runtime downloads of modules, compilers, and executable artifacts. |
+| [F-Droid Reproducible Builds](https://f-droid.org/en/docs/Reproducible_Builds/) | Native/NDK components are especially sensitive for reproducibility and must have deterministic source builds. | Pin NDK/toolchain versions, add native build checks, and include a reproducibility validation path before claiming F-Droid readiness. |

@@ -219,3 +219,8 @@
 - [x] Add regression coverage, validate, checkpoint, and publish the sandbox and tool-surface update to GitLab
 - [x] Enforce an empty upstream toolset for every embedded agent session so bundled terminal, browser, file, plugin, and local MCP code cannot be exposed
 - [x] Document the app-private workspace boundary and the only owner-invocable tool surface: approved remote MCP commands
+- [x] Research Android-compatible FOSS isolation layers for an embedded agent code-execution sandbox
+- [x] Define the code-execution threat model, denied capabilities, owner approvals, and resource limits
+- [x] Produce an implementation-ready phased design covering runtime, filesystem, network, process, and observability controls
+- [x] Review the design against F-Droid, ARM64, and physical-device validation constraints before requesting implementation approval
+- [ ] Implement the owner-approved QuickJS isolated-process code sandbox only after explicit design approval
