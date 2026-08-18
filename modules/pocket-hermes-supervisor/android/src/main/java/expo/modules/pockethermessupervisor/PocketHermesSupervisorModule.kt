@@ -25,14 +25,17 @@ class PocketHermesSupervisorModule : Module() {
         .firstOrNull()
       val usedBytes = (processMemory?.totalPss ?: 0).toLong() * 1024L
 
+      val workspaceDirectory = File(context.filesDir, "pocket-hermes/runtime")
+      val workspaceUsedBytes = SupervisorRuntimeState.freshWorkspaceBytes()
+        ?: directoryBytes(workspaceDirectory).also(SupervisorRuntimeState::recordWorkspaceBytes)
       mapOf(
         "agentStatus" to if (SupervisorRuntimeState.isRunning) SupervisorRuntimeState.workerStatus else "stopped",
-        "cpuPercent" to SupervisorRuntimeState.sampleCpuPercent(),
+        "cpuPercent" to if (SupervisorRuntimeState.isRunning) SupervisorRuntimeState.latestCpuPercent() else SupervisorRuntimeState.sampleCpuPercent(),
         "cpuCoreCount" to Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
         "ramUsedBytes" to usedBytes,
         "ramTotalBytes" to memoryInfo.totalMem,
         "storageFreeBytes" to context.filesDir.usableSpace.coerceAtLeast(0L),
-        "workspaceUsedBytes" to directoryBytes(File(context.filesDir, "pocket-hermes/runtime")),
+        "workspaceUsedBytes" to workspaceUsedBytes,
         "sampledAt" to System.currentTimeMillis().toString(),
       )
     }

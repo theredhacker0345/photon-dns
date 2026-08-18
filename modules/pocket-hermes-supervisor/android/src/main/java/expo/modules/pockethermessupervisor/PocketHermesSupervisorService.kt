@@ -226,10 +226,14 @@ class PocketHermesSupervisorService : Service() {
   }
 
   /** Evaluated for direct starts, recovery, and boot restoration. */
-  private fun hostPolicyBlock(config: PocketHermesWorkerConfig): String? {
+  private fun hostPolicyBlock(
+    config: PocketHermesWorkerConfig,
+    workspaceUsedBytes: Long = privateWorkspaceBytes(),
+    processRamBytes: Long = processPssBytes(),
+  ): String? {
     if (filesDir.usableSpace < config.minimumFreeStorageBytes) return "host policy blocked runtime: insufficient free storage"
-    if (privateWorkspaceBytes() > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
-    if (processPssBytes() > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
+    if (workspaceUsedBytes > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
+    if (processRamBytes > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
     if (!config.chargingAware) return null
     val battery = currentBatterySnapshot() ?: return "host policy blocked runtime: charging state unavailable"
     return if (battery.isCharging) null else "host policy blocked runtime: device is not charging"
@@ -260,9 +264,13 @@ class PocketHermesSupervisorService : Service() {
   }
 
   /** Enforces only this host process and its app-private workspace, never device-wide resources. */
-  private fun resourceLimitBlock(config: PocketHermesWorkerConfig): String? {
-    if (privateWorkspaceBytes() > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
-    if (processPssBytes() > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
+  private fun resourceLimitBlock(
+    config: PocketHermesWorkerConfig,
+    workspaceUsedBytes: Long = privateWorkspaceBytes(),
+    processRamBytes: Long = processPssBytes(),
+  ): String? {
+    if (workspaceUsedBytes > config.maximumWorkspaceBytes) return "host resource limit reached: private workspace quota"
+    if (processRamBytes > config.maximumProcessRamBytes) return "host resource limit reached: RAM guardrail"
     val cpuPercent = SupervisorRuntimeState.sampleCpuPercent()
     consecutiveCpuLimitBreaches = if (cpuPercent > config.maximumCpuPercent) consecutiveCpuLimitBreaches + 1 else 0
     return if (consecutiveCpuLimitBreaches >= CPU_LIMIT_CONSECUTIVE_SAMPLES) {
@@ -279,6 +287,7 @@ class PocketHermesSupervisorService : Service() {
     .walkTopDown()
     .filter { it.isFile }
     .sumOf { file -> runCatching { file.length() }.getOrDefault(0L) }
+    .also(SupervisorRuntimeState::recordWorkspaceBytes)
 
   private fun stopForResourceLimit(reason: String) {
     hostRequested = false
@@ -320,13 +329,15 @@ class PocketHermesSupervisorService : Service() {
         health.optLong("lastHeartbeatAt", 0L).takeIf { it > 0L },
       )
       activeConfig?.let { config ->
-        hostPolicyBlock(config)?.let { reason ->
+        val workspaceUsedBytes = privateWorkspaceBytes()
+        val processRamBytes = processPssBytes()
+        hostPolicyBlock(config, workspaceUsedBytes, processRamBytes)?.let { reason ->
           publishPolicyWarning(reason)
           stopForResourceLimit(reason)
           return
         }
         hostPolicyWarning(config)?.let(::publishPolicyWarning)
-        resourceLimitBlock(config)?.let { reason ->
+        resourceLimitBlock(config, workspaceUsedBytes, processRamBytes)?.let { reason ->
           stopForResourceLimit(reason)
           return
         }

@@ -40,7 +40,7 @@ describe("native Android host declaration contract", () => {
     const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
     expect(service).toContain("val chargingAware: Boolean = true");
     expect(service).toContain("val minimumFreeStorageBytes");
-    expect(service).toContain("hostPolicyBlock(config)");
+    expect(service).toContain("hostPolicyBlock(config, workspaceUsedBytes, processRamBytes)");
     expect(service).toContain("Intent.ACTION_BATTERY_CHANGED");
     expect(service).toContain("filesDir.usableSpace < config.minimumFreeStorageBytes");
     expect(service).toContain("PREF_CHARGING_AWARE");
@@ -51,7 +51,7 @@ describe("native Android host declaration contract", () => {
 
   it("rechecks active charging and storage policy and emits native owner-visible safety warnings", () => {
     const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
-    expect(service).toContain("hostPolicyBlock(config)?.let");
+    expect(service).toContain("hostPolicyBlock(config, workspaceUsedBytes, processRamBytes)?.let");
     expect(service).toContain("private fun hostPolicyWarning(config: PocketHermesWorkerConfig)");
     expect(service).toContain("config.lowBatteryPercent");
     expect(service).toContain("POLICY_ALERT_CHANNEL_ID");
@@ -69,7 +69,7 @@ describe("native Android host declaration contract", () => {
     expect(service).toContain("PREF_MAXIMUM_CPU_PERCENT");
     expect(service).toContain("PREF_MAXIMUM_PROCESS_RAM_BYTES");
     expect(service).toContain("PREF_MAXIMUM_WORKSPACE_BYTES");
-    expect(service).toContain("resourceLimitBlock(config)");
+    expect(service).toContain("resourceLimitBlock(config, workspaceUsedBytes, processRamBytes)");
     expect(service).toContain("CPU_LIMIT_CONSECUTIVE_SAMPLES");
     expect(module).toContain("maximumCpuPercent");
     expect(module).toContain("maximumProcessRamBytes");

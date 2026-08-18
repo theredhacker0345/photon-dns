@@ -2,6 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 
 import { EventIcon, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ResourceHistoryChart } from "@/components/resource-history-chart";
@@ -25,9 +26,10 @@ function formatFreeStorage(bytes: number | null) {
 
 export default function HostScreen() {
   const colors = useColors();
+  const isFocused = useIsFocused();
   const { config, phase, events, hydrated, prepareRuntime, stopHost } = usePocketHermes();
   const readiness = useHostReadiness(config.policy.minimumFreeStorageBytes);
-  const { telemetry, status: telemetryStatus, history: telemetryHistory } = useSupervisorTelemetry(config.policy);
+  const { telemetry, status: telemetryStatus, history: telemetryHistory } = useSupervisorTelemetry(config.policy, isFocused);
   const { permission: alertPermission, enableAlerts } = useHostAlerts(readiness, config.policy);
   const canPrepare = config.hasTelegramToken && Boolean(config.allowedChatId);
   const presentation = getHomePhasePresentation(phase);

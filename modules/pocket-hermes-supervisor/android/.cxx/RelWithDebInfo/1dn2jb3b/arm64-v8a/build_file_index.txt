@@ -1,0 +1,1 @@
+/home/ubuntu/pocket-hermes/modules/pocket-hermes-supervisor/android/src/main/cpp/CMakeLists.txt

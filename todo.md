@@ -245,3 +245,7 @@
 - [x] Refine the Home dashboard visual hierarchy and host-status presentation without changing runtime safety semantics
 - [x] Improve metric, readiness, and primary-action affordances for fast owner scanning
 - [x] Add UI contract regression coverage, validate the Home UX update, checkpoint, and publish to GitLab
+- [x] Audit all mobile screens, shared components, state subscriptions, telemetry polling, lists, and Android runtime paths for performance and frame-rate risks
+- [x] Measure release bundle and build characteristics, then identify only evidence-backed optimization opportunities
+- [x] Implement safe render, memory, list, polling, or native-runtime optimizations without weakening host safety semantics
+- [x] Add performance regression coverage, validate the release build, checkpoint, and publish the optimization update to GitLab

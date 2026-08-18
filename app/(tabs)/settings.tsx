@@ -1,6 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 
 import { ModelCatalog } from "@/components/model-catalog";
 import { ModelProviderPicker } from "@/components/model-provider-picker";
@@ -18,9 +19,10 @@ import { useThemeContext } from "@/lib/theme-provider";
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const isFocused = useIsFocused();
   const { themeId, setThemeId } = useThemeContext();
   const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
-  const { telemetry } = useSupervisorTelemetry();
+  const { telemetry } = useSupervisorTelemetry(defaultHostRuntimePolicy, isFocused);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
   const [modelProvider, setModelProvider] = useState<ModelProviderId>(config.modelProvider);

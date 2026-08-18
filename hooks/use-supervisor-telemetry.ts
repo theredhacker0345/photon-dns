@@ -16,13 +16,14 @@ export type SupervisorTelemetryState = {
 const initialState: SupervisorTelemetryState = { telemetry: null, history: [], status: "loading", refreshedAt: null };
 
 /** Polls native telemetry and retains only a volatile, bounded chart history for the dashboard session. */
-export function useSupervisorTelemetry(policy: HostRuntimePolicy = defaultHostRuntimePolicy) {
+export function useSupervisorTelemetry(policy: HostRuntimePolicy = defaultHostRuntimePolicy, enabled = true) {
   const [state, setState] = useState<SupervisorTelemetryState>(initialState);
   const hasReceivedNativeSample = useRef(false);
   const policyRef = useRef(policy);
   policyRef.current = policy;
 
   useEffect(() => {
+    if (!enabled) return;
     let mounted = true;
     const refresh = async () => {
       const telemetry = await getSupervisorTelemetry();
@@ -41,7 +42,7 @@ export function useSupervisorTelemetry(policy: HostRuntimePolicy = defaultHostRu
     void refresh();
     const interval = setInterval(() => void refresh(), 12_000);
     return () => { mounted = false; clearInterval(interval); };
-  }, []);
+  }, [enabled]);
 
   return state;
 }

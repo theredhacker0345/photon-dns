@@ -1,0 +1,1 @@
+/home/ubuntu/pocket-hermes/modules/pocket-hermes-supervisor/android/build/intermediates/cxx/RelWithDebInfo/1dn2jb3b/obj/arm64-v8a

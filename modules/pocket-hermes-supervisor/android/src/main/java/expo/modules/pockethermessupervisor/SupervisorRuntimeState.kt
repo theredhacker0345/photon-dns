@@ -9,6 +9,7 @@ import java.util.ArrayDeque
  * contains no secrets, Telegram credentials, or arbitrary process-launch APIs.
  */
 object SupervisorRuntimeState {
+  private const val WORKSPACE_SNAPSHOT_MAX_AGE_MS = 15_000L
   @Volatile
   var isRunning: Boolean = false
 
@@ -98,6 +99,9 @@ object SupervisorRuntimeState {
 
   private var lastCpuTimeMillis: Long = 0L
   private var lastWallTimeMillis: Long = 0L
+  @Volatile private var latestCpuPercent: Double = 0.0
+  @Volatile private var latestWorkspaceBytes: Long? = null
+  @Volatile private var latestWorkspaceSampleElapsedMs: Long = 0L
 
   @Synchronized
   fun sampleCpuPercent(): Double {
@@ -115,5 +119,18 @@ object SupervisorRuntimeState {
     val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
     return ((elapsedCpu.toDouble() / elapsedWall.toDouble()) * 100.0 / cores.toDouble())
       .coerceIn(0.0, 100.0)
+      .also { latestCpuPercent = it }
+  }
+
+  fun latestCpuPercent(): Double = latestCpuPercent
+
+  fun recordWorkspaceBytes(bytes: Long) {
+    latestWorkspaceBytes = bytes.coerceAtLeast(0L)
+    latestWorkspaceSampleElapsedMs = SystemClock.elapsedRealtime()
+  }
+
+  fun freshWorkspaceBytes(): Long? {
+    val bytes = latestWorkspaceBytes ?: return null
+    return bytes.takeIf { SystemClock.elapsedRealtime() - latestWorkspaceSampleElapsedMs <= WORKSPACE_SNAPSHOT_MAX_AGE_MS }
   }
 }

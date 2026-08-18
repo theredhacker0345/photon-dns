@@ -1,6 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useCallback, useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 
 import { PageHeader, PressableCard, SecondaryButton, SectionHeading } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
@@ -109,6 +110,7 @@ function CodeAuditLogCard({ entries, available, loaded, refreshing, onRefresh }:
 
 export default function AgentScreen() {
   const colors = useColors();
+  const isFocused = useIsFocused();
   const [body, setBody] = useState("");
   const [tasks, setTasks] = useState<NativeSupervisorTask[]>([]);
   const [hostState, setHostState] = useState<"running" | "starting" | "degraded" | "stopped" | "preview">(Platform.OS === "web" ? "preview" : "stopped");
@@ -144,11 +146,12 @@ export default function AgentScreen() {
   }, []);
 
   useEffect(() => {
+    if (!isFocused) return;
     void refresh();
     void refreshAuditLog();
     const interval = setInterval(() => void refresh(), 5_000);
     return () => clearInterval(interval);
-  }, [refresh, refreshAuditLog]);
+  }, [isFocused, refresh, refreshAuditLog]);
 
   const submit = async () => {
     const taskBody = body.trim();
