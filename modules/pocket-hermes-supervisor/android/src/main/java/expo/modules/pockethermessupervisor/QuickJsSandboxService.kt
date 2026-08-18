@@ -27,13 +27,15 @@ class QuickJsSandboxService : Service() {
       }
       val request = JSONObject(requestJson)
       val source = request.optString("source", "")
+      val inputJson = request.opt("inputJson")?.takeUnless { it == JSONObject.NULL }?.toString()
       val timeoutMs = request.optInt("timeoutMs", CodeSandboxPolicy.DEFAULT_TIMEOUT_MS)
       val memoryBytes = request.optInt("memoryBytes", CodeSandboxPolicy.DEFAULT_MEMORY_BYTES)
       val maxOutputBytes = request.optInt("maxOutputBytes", CodeSandboxPolicy.DEFAULT_MAX_OUTPUT_BYTES)
       if (source.isBlank()) return CodeSandboxPolicy.resultJson("rejected", "source is required", false, false)
       if (source.toByteArray(Charsets.UTF_8).size > CodeSandboxPolicy.MAX_SOURCE_BYTES) return CodeSandboxPolicy.resultJson("rejected", "source exceeds the 24 KiB policy limit", false, false)
+      if (inputJson != null && inputJson.toByteArray(Charsets.UTF_8).size > CodeSandboxPolicy.MAX_INPUT_BYTES) return CodeSandboxPolicy.resultJson("rejected", "skill input exceeds the 8 KiB policy limit", false, false)
 
-      val result = QuickJsSandbox.execute(source, memoryBytes, timeoutMs, maxOutputBytes)
+      val result = QuickJsSandbox.execute(source, inputJson, memoryBytes, timeoutMs, maxOutputBytes)
       CodeSandboxPolicy.resultJson(result.status, result.output, result.truncated, result.timedOut)
     } catch (_: Exception) {
       CodeSandboxPolicy.resultJson("rejected", "malformed sandbox request", false, false)

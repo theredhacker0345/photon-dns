@@ -286,6 +286,7 @@ class PocketHermesSupervisorModule : Module() {
         request["timeoutMs"]?.toIntOrNull(),
         request["memoryBytes"]?.toIntOrNull(),
         request["maxOutputBytes"]?.toIntOrNull(),
+        request["inputJson"]?.takeIf { it.isNotBlank() },
       )
     }
 

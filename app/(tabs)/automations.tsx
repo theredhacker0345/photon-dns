@@ -4,6 +4,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextI
 
 import { PageHeader, PressableCard, PrimaryButton, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
+import { SkillsManager } from "@/components/skills-manager";
 import { useColors } from "@/hooks/use-colors";
 import {
   deleteNativeSchedule,
@@ -108,6 +109,8 @@ export default function AutomationsScreen() {
         )) : (
           <View style={[styles.empty, { borderColor: colors.border }]}><MaterialIcons name="auto-awesome-motion" size={28} color={colors.muted} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No private schedules saved</Text><Text style={[styles.emptyDetail, { color: colors.muted }]}>Create an owner-only routine. The Android host validates its cron expression before it is persisted.</Text><View style={styles.emptyAction}><SecondaryButton label="Create schedule" icon="add" onPress={() => setIsModalOpen(true)} /></View></View>
         )}
+
+        <SkillsManager />
 
         <SectionHeading eyebrow="RECENT EXECUTION" title="Run history" action={<Text style={[styles.count, { color: colors.muted }]}>{runs.length ? `${runs.length} retained` : "Empty"}</Text>} />
         {runs.length ? runs.map((run) => <View key={run.id} style={[styles.run, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={[styles.runIcon, { backgroundColor: run.status === "failed" ? `${colors.warning}18` : `${colors.success}16` }]}><MaterialIcons name={run.status === "failed" ? "error-outline" : "send"} size={17} color={run.status === "failed" ? colors.warning : colors.success} /></View><View style={styles.runCopy}><Text style={[styles.runTitle, { color: colors.foreground }]}>{run.scheduleTitle}</Text><Text style={[styles.runDetail, { color: colors.muted }]}>{run.status} · attempt {run.attempt} · {formatMoment(run.updatedAt)}</Text>{run.reason ? <Text style={[styles.runReason, { color: colors.muted }]}>{run.reason}</Text> : null}</View></View>) : <Text style={[styles.emptyHistory, { color: colors.muted }]}>Runs appear here after the Android host executes a schedule.</Text>}

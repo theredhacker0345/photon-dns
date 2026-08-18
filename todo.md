@@ -293,3 +293,11 @@
 - [x] Add regression coverage, validate the mobile release, checkpoint, and publish the creator-contact refinements
 - [x] Review the attached project feedback and identify concrete Pocket Relay corrections
 - [x] Implement, validate, checkpoint, and publish any approved corrections resulting from the attached review
+- [x] Define and validate owner-approved QuickJS skill manifests, schemas, provenance, and strict package limits
+- [x] Add app-private skill package storage and resilient persisted skill metadata
+- [x] Add immutable HTTPS-only GitHub skill import with owner review and source-hash verification
+- [x] Add constrained Hermes-assisted skill drafting that remains inactive until the owner installs and approves it
+- [x] Extend the isolated QuickJS execution bridge with bounded schema-validated JSON input
+- [x] Add compact Skills management, review, execution, revocation, and deletion flows from Automations
+- [x] Add security regressions and documentation for skills imports, approval, and removal
+- [x] Run complete release validation, checkpoint, and publish the approved skills feature to GitLab

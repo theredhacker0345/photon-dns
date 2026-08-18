@@ -15,8 +15,8 @@ internal object QuickJsSandbox {
     val timedOut: Boolean,
   )
 
-  fun execute(source: String, memoryBytes: Int, timeoutMs: Int, maxOutputBytes: Int): Result {
-    val fields = nativeExecute(source, memoryBytes, timeoutMs, maxOutputBytes).split('\t', limit = 4)
+  fun execute(source: String, inputJson: String?, memoryBytes: Int, timeoutMs: Int, maxOutputBytes: Int): Result {
+    val fields = nativeExecute(source, inputJson, memoryBytes, timeoutMs, maxOutputBytes).split('\t', limit = 4)
     val status = fields.getOrNull(0) ?: "error"
     val truncated = fields.getOrNull(1) == "1"
     val timedOut = fields.getOrNull(2) == "1"
@@ -26,5 +26,5 @@ internal object QuickJsSandbox {
     return Result(status, output, truncated, timedOut)
   }
 
-  private external fun nativeExecute(source: String, memoryBytes: Int, timeoutMs: Int, maxOutputBytes: Int): String
+  private external fun nativeExecute(source: String, inputJson: String?, memoryBytes: Int, timeoutMs: Int, maxOutputBytes: Int): String
 }

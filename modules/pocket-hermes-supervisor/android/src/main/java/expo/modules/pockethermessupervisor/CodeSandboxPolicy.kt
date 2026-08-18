@@ -8,6 +8,7 @@ import android.os.IBinder
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import org.json.JSONObject
+import org.json.JSONTokener
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.CountDownLatch
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit
 /** Main-process policy gate. The isolated executor cannot read this encrypted approval ledger. */
 internal object CodeSandboxPolicy {
   const val MAX_SOURCE_BYTES = 24 * 1024
+  const val MAX_INPUT_BYTES = 8 * 1024
   const val DEFAULT_TIMEOUT_MS = 750
   const val DEFAULT_MEMORY_BYTES = 16 * 1024 * 1024
   const val DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024
@@ -94,8 +96,9 @@ internal object CodeSandboxPolicy {
     return mapOf("hash" to sourceHash, "revoked" to true)
   }
 
-  fun execute(context: Context, source: String, timeoutMs: Int?, memoryBytes: Int?, maxOutputBytes: Int?): Map<String, Any> {
+  fun execute(context: Context, source: String, timeoutMs: Int?, memoryBytes: Int?, maxOutputBytes: Int?, inputJson: String? = null): Map<String, Any> {
     validateSource(source)
+    inputJson?.let(::validateInputJson)
     val preferences = preferences(context)
     pruneLedger(preferences)
     if (!preferences.getBoolean(ENABLED, false)) return audited(context, source, "rejected", "owner has not enabled code execution", false, false)
@@ -114,6 +117,7 @@ internal object CodeSandboxPolicy {
       .put("timeoutMs", DEFAULT_TIMEOUT_MS)
       .put("memoryBytes", DEFAULT_MEMORY_BYTES)
       .put("maxOutputBytes", DEFAULT_MAX_OUTPUT_BYTES)
+    if (inputJson != null) request.put("inputJson", inputJson)
     val raw = invokeIsolatedExecutor(context.applicationContext, request.toString())
     val result = runCatching { JSONObject(raw) }.getOrElse { JSONObject(resultJson("error", "isolated executor returned an invalid response", false, false)) }
     return audited(
@@ -228,6 +232,12 @@ internal object CodeSandboxPolicy {
   private fun validateSource(source: String) {
     if (source.isBlank()) throw IllegalArgumentException("source is required")
     if (source.toByteArray(Charsets.UTF_8).size > MAX_SOURCE_BYTES) throw IllegalArgumentException("source exceeds the 24 KiB policy limit")
+  }
+
+  /** Skill inputs are data only: a bounded JSON value is passed directly to run(input), never concatenated into source. */
+  private fun validateInputJson(inputJson: String) {
+    if (inputJson.toByteArray(Charsets.UTF_8).size > MAX_INPUT_BYTES) throw IllegalArgumentException("skill input exceeds the 8 KiB policy limit")
+    runCatching { JSONTokener(inputJson).nextValue() }.getOrElse { throw IllegalArgumentException("skill input must be valid JSON") }
   }
 
   private fun hash(source: String): String = MessageDigest.getInstance("SHA-256").digest(source.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }

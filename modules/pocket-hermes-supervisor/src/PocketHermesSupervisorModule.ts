@@ -123,7 +123,8 @@ export type NativeCodeAuditEntry = {
   truncated: boolean;
   timedOut: boolean;
 };
-export type NativeCodeJobRequest = { source: string; timeoutMs?: string; memoryBytes?: string; maxOutputBytes?: string };
+/** inputJson is bounded owner-reviewed data passed directly to a skill's run(input), never interpolated into source. */
+export type NativeCodeJobRequest = { source: string; inputJson?: string; timeoutMs?: string; memoryBytes?: string; maxOutputBytes?: string };
 
 export type NativeSupervisorStartConfig = {
   telegramToken: string;

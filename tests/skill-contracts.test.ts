@@ -1,0 +1,34 @@
+import { describe, expect, it } from "vitest";
+
+import { normalizeSkillManifest, parseSkillInput, validateJsonAgainstSchema } from "../lib/skill-contracts";
+import type { SkillManifest } from "../lib/skill-contracts";
+
+const manifest: SkillManifest = {
+  format: "pocket-relay-skill/v1", name: "word-counter", version: "1.0.0", description: "Counts words in one string without host access.", author: "Pocket Relay community", license: "GPL-3.0-or-later", type: "quickjs", entrypoint: "main.js", permissions: [], sourceSha256: "a".repeat(64),
+  inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
+  outputSchema: { type: "object", properties: { count: { type: "integer" } }, required: ["count"], additionalProperties: false },
+};
+
+describe("Pocket Relay skills contract", () => {
+  it("accepts only capability-free QuickJS manifests with a FOSS license and source hash", () => {
+    const result = normalizeSkillManifest(manifest);
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.value.permissions).toEqual([]);
+    expect(normalizeSkillManifest({ ...manifest, permissions: ["network"] }).ok).toBe(false);
+    expect(normalizeSkillManifest({ ...manifest, type: "python" }).ok).toBe(false);
+    expect(normalizeSkillManifest({ ...manifest, license: "Proprietary" }).ok).toBe(false);
+  });
+
+  it("blocks malformed, oversized, and schema-incompatible owner input before native execution", () => {
+    expect(parseSkillInput("{\"text\":\"hello relay\"}", manifest.inputSchema).ok).toBe(true);
+    expect(parseSkillInput("{\"text\":2}", manifest.inputSchema).ok).toBe(false);
+    expect(parseSkillInput("not-json", manifest.inputSchema).ok).toBe(false);
+    expect(parseSkillInput(`{\"text\":\"${"x".repeat(9000)}\"}`, manifest.inputSchema).ok).toBe(false);
+  });
+
+  it("validates a skill result against its reviewed output schema", () => {
+    expect(validateJsonAgainstSchema({ count: 2 }, manifest.outputSchema)).toBeNull();
+    expect(validateJsonAgainstSchema({ count: 2.5 }, manifest.outputSchema)).toContain("integer");
+    expect(validateJsonAgainstSchema({ count: 2, extra: true }, manifest.outputSchema)).toContain("Unexpected field");
+  });
+});

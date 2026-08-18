@@ -40,7 +40,6 @@ static char *base64_encode(const unsigned char *input, size_t input_length) {
   size_t output_length = ((input_length + 2) / 3) * 4;
   char *output = calloc(output_length + 1, 1);
   if (output == NULL) return NULL;
-
   size_t in = 0;
   size_t out = 0;
   while (in < input_length) {
@@ -48,7 +47,6 @@ static char *base64_encode(const unsigned char *input, size_t input_length) {
     int remaining = (int)(input_length - in);
     if (remaining >= 1) value |= ((uint32_t)input[in++]) << 8;
     if (remaining >= 2) value |= input[in++];
-
     output[out++] = base64_alphabet[(value >> 18) & 0x3f];
     output[out++] = base64_alphabet[(value >> 12) & 0x3f];
     output[out++] = remaining >= 1 ? base64_alphabet[(value >> 6) & 0x3f] : '=';
@@ -60,7 +58,6 @@ static char *base64_encode(const unsigned char *input, size_t input_length) {
 static jstring make_response(JNIEnv *env, const char *status, int truncated, int timed_out, const char *detail, size_t detail_length) {
   char *encoded = base64_encode((const unsigned char *)detail, detail_length);
   if (encoded == NULL) return (*env)->NewStringUTF(env, "error\t0\t0\tb3V0IG9mIG1lbW9yeQ==");
-
   size_t response_length = strlen(status) + strlen(encoded) + 16;
   char *response = calloc(response_length, 1);
   if (response == NULL) {
@@ -95,18 +92,30 @@ Java_expo_modules_pockethermessupervisor_QuickJsSandbox_nativeExecute(
     JNIEnv *env,
     jobject self,
     jstring source,
+    jstring input_json,
     jint requested_memory_bytes,
     jint requested_timeout_ms,
     jint requested_max_output_bytes) {
   (void)self;
   if (source == NULL) return (*env)->NewStringUTF(env, "error\t0\t0\tc291cmNlIGlzIHJlcXVpcmVk");
 
-  const char *input = (*env)->GetStringUTFChars(env, source, NULL);
-  if (input == NULL) return (*env)->NewStringUTF(env, "error\t0\t0\tb3V0IG9mIG1lbW9yeQ==");
-  size_t input_length = strlen(input);
-  if (input_length > 24576) {
-    (*env)->ReleaseStringUTFChars(env, source, input);
+  const char *source_text = (*env)->GetStringUTFChars(env, source, NULL);
+  if (source_text == NULL) return (*env)->NewStringUTF(env, "error\t0\t0\tb3V0IG1lbW9yeQ==");
+  size_t source_length = strlen(source_text);
+  if (source_length > 24576) {
+    (*env)->ReleaseStringUTFChars(env, source, source_text);
     return (*env)->NewStringUTF(env, "error\t0\t0\tc291cmNlIGV4Y2VlZHMgdGhlIDI0IEtpQiBwb2xpY3kgbGltaXQ=");
+  }
+  const char *input_text = input_json == NULL ? NULL : (*env)->GetStringUTFChars(env, input_json, NULL);
+  if (input_json != NULL && input_text == NULL) {
+    (*env)->ReleaseStringUTFChars(env, source, source_text);
+    return (*env)->NewStringUTF(env, "error\t0\t0\tb3V0IG9mIG1lbW9yeQ==");
+  }
+  size_t input_length = input_text == NULL ? 0 : strlen(input_text);
+  if (input_length > 8192) {
+    if (input_text != NULL) (*env)->ReleaseStringUTFChars(env, input_json, input_text);
+    (*env)->ReleaseStringUTFChars(env, source, source_text);
+    return (*env)->NewStringUTF(env, "error\t0\t0\tc2tpbGwgaW5wdXQgZXhjZWVkcyB0aGUgOCBLaUIgcG9saWN5IGxpbWl0");
   }
 
   size_t memory_limit = (size_t)requested_memory_bytes;
@@ -125,7 +134,8 @@ Java_expo_modules_pockethermessupervisor_QuickJsSandbox_nativeExecute(
   };
   JSRuntime *runtime = JS_NewRuntime();
   if (runtime == NULL) {
-    (*env)->ReleaseStringUTFChars(env, source, input);
+    if (input_text != NULL) (*env)->ReleaseStringUTFChars(env, input_json, input_text);
+    (*env)->ReleaseStringUTFChars(env, source, source_text);
     return (*env)->NewStringUTF(env, "error\t0\t0\tdW5hYmxlIHRvIGNyZWF0ZSBKYXZhU2NyaXB0IHJ1bnRpbWU=");
   }
   JS_SetMemoryLimit(runtime, memory_limit);
@@ -137,17 +147,73 @@ Java_expo_modules_pockethermessupervisor_QuickJsSandbox_nativeExecute(
   JSContext *context = JS_NewContext(runtime);
   if (context == NULL) {
     JS_FreeRuntime(runtime);
-    (*env)->ReleaseStringUTFChars(env, source, input);
+    if (input_text != NULL) (*env)->ReleaseStringUTFChars(env, input_json, input_text);
+    (*env)->ReleaseStringUTFChars(env, source, source_text);
     return (*env)->NewStringUTF(env, "error\t0\t0\tdW5hYmxlIHRvIGNyZWF0ZSBKYXZhU2NyaXB0IGNvbnRleHQ=");
   }
 
-  JSValue value = JS_Eval(context, input, input_length, "<owner-approved>", JS_EVAL_TYPE_GLOBAL);
-  (*env)->ReleaseStringUTFChars(env, source, input);
+  JSValue value = JS_Eval(context, source_text, source_length, "<owner-approved>", JS_EVAL_TYPE_GLOBAL);
+  (*env)->ReleaseStringUTFChars(env, source, source_text);
   if (JS_IsException(value)) {
+    if (input_text != NULL) (*env)->ReleaseStringUTFChars(env, input_json, input_text);
     jstring response = exception_response(env, context, atomic_load(&deadline.timed_out), max_output_bytes);
     JS_FreeContext(context);
     JS_FreeRuntime(runtime);
     return response;
+  }
+
+  /* Input is parsed as an in-memory QuickJS value, never interpolated into source text. */
+  if (input_text != NULL) {
+    JSValue skill_input = JS_ParseJSON(context, input_text, input_length, "<skill-input>");
+    (*env)->ReleaseStringUTFChars(env, input_json, input_text);
+    if (JS_IsException(skill_input)) {
+      JS_FreeValue(context, value);
+      jstring response = exception_response(env, context, atomic_load(&deadline.timed_out), max_output_bytes);
+      JS_FreeContext(context);
+      JS_FreeRuntime(runtime);
+      return response;
+    }
+    JSValue global = JS_GetGlobalObject(context);
+    JSValue run = JS_GetPropertyStr(context, global, "run");
+    if (!JS_IsFunction(context, run)) {
+      const char *message = "skill source must define a synchronous run(input) function";
+      JS_FreeValue(context, run);
+      JS_FreeValue(context, global);
+      JS_FreeValue(context, skill_input);
+      JS_FreeValue(context, value);
+      jstring response = make_response(env, "error", 0, 0, message, strlen(message));
+      JS_FreeContext(context);
+      JS_FreeRuntime(runtime);
+      return response;
+    }
+    JS_FreeValue(context, value);
+    value = JS_Call(context, run, global, 1, &skill_input);
+    JS_FreeValue(context, run);
+    JS_FreeValue(context, global);
+    JS_FreeValue(context, skill_input);
+    if (JS_IsException(value)) {
+      jstring response = exception_response(env, context, atomic_load(&deadline.timed_out), max_output_bytes);
+      JS_FreeContext(context);
+      JS_FreeRuntime(runtime);
+      return response;
+    }
+    JSValue json_value = JS_JSONStringify(context, value, JS_UNDEFINED, JS_UNDEFINED);
+    JS_FreeValue(context, value);
+    value = json_value;
+    if (JS_IsException(value)) {
+      jstring response = exception_response(env, context, atomic_load(&deadline.timed_out), max_output_bytes);
+      JS_FreeContext(context);
+      JS_FreeRuntime(runtime);
+      return response;
+    }
+    if (JS_IsUndefined(value)) {
+      const char *message = "skill result must be JSON-serializable";
+      JS_FreeValue(context, value);
+      jstring response = make_response(env, "error", 0, 0, message, strlen(message));
+      JS_FreeContext(context);
+      JS_FreeRuntime(runtime);
+      return response;
+    }
   }
 
   size_t output_length = 0;

@@ -7,15 +7,20 @@ import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from 
 import { canStartWorker, defaultHostRuntimePolicy, defaultTelegramProxyConfiguration, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, isSafeTelegramProxyConfiguration, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId, type PublicTelegramProxyConfiguration, type TelegramProxyType } from "@/lib/host-contracts";
 import { fetchProviderModels, getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
-import { clearNativeSupervisorConfiguration, preflightNativeModel, sendNativeTelegramTestMessage, startNativeSupervisor, stopNativeSupervisor, testNativeTelegramGateway, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
+import { approveNativeCodeJob, clearNativeSupervisorConfiguration, enqueueNativeTask, listNativeTasks, preflightNativeModel, proposeNativeCodeJob, revokeNativeCodeJob, runNativeApprovedCodeJob, sendNativeTelegramTestMessage, startNativeSupervisor, stopNativeSupervisor, testNativeTelegramGateway, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
 import { discoverRemoteMcpTools, type McpDiscoveryResult } from "@/lib/mcp-client";
 import { MAX_REMOTE_MCP_SERVERS, normalizeRemoteMcpEndpoint, validateRemoteMcpDraft, type McpAuthMode, type McpToolApproval, type McpToolManifestItem, type RemoteMcpServer } from "@/lib/mcp-contracts";
+import { importSkillFromGitHub } from "@/lib/github-skill-import";
+import { buildSkillDraftPrompt, parseAiSkillDraftResponse } from "@/lib/skill-ai-draft";
+import { MAX_INSTALLED_SKILLS, MAX_SKILL_DRAFTS, type InstalledSkill, type SkillDraft, type SkillProvenance, isSafeSkillIdentifier, normalizeSkillManifest, parseSkillInput, validateJsonAgainstSchema } from "@/lib/skill-contracts";
+import { discardStagedSkillPackage, installStagedSkillPackage, readInstalledSkillPackage, readStagedSkillPackage, removeInstalledSkillPackage, stageSkillPackage } from "@/lib/skill-storage";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
 export type HostEvent = { id: string; title: string; detail: string; severity: "info" | "success" | "warning"; createdAt: string };
 export type Automation = { id: string; title: string; expression: string; delivery: string; enabled: boolean; createdAt: string };
 export type AgentDraft = { id: string; body: string; createdAt: string };
 export type SavedProviderConnection = { id: string; label: string; provider: ModelProviderId; endpoint: string; hasApiKey: boolean; createdAt: string };
+export type AiSkillDraftRequest = { id: string; taskId: string; request: string; createdAt: string; status: "queued" | "review_ready" | "failed"; detail: string | null };
 export const MAX_SAVED_PROVIDER_CONNECTIONS = 8;
 
 type PublicHostConfig = {
@@ -29,7 +34,7 @@ type PublicHostConfig = {
   telegramProxy: PublicTelegramProxyConfiguration;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[] };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -69,6 +74,15 @@ type PocketHermesContextValue = PersistedState & {
   setMcpServerEnabled: (serverId: string, enabled: boolean) => void;
   approveMcpTool: (serverId: string, toolName: string) => void;
   revokeMcpToolApproval: (serverId: string, toolName: string) => void;
+  importSkill: (githubUrl: string) => Promise<{ ok: boolean; message: string; draftId?: string }>;
+  requestAiSkillDraft: (request: string) => Promise<{ ok: boolean; message: string }>;
+  refreshAiSkillDraftRequests: () => Promise<void>;
+  getSkillDraftSource: (draftId: string) => Promise<string | null>;
+  installSkillDraft: (draftId: string) => Promise<{ ok: boolean; message: string; skillId?: string }>;
+  discardSkillDraft: (draftId: string) => Promise<void>;
+  setSkillEnabled: (skillId: string, enabled: boolean) => Promise<void>;
+  runSkill: (skillId: string, inputJson: string) => Promise<{ ok: boolean; message: string; output?: string }>;
+  removeSkill: (skillId: string) => Promise<void>;
   toggleFavoriteModel: (modelId: string) => void;
   isFavoriteModel: (modelId: string) => boolean;
   prepareRuntime: (readiness?: HostReadinessSnapshot) => Promise<void>;
@@ -98,7 +112,7 @@ const emptyConfig: PublicHostConfig = {
   telegramProxy: defaultTelegramProxyConfiguration,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [] };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -124,6 +138,63 @@ function normalizeSavedProviderConnections(value: unknown): SavedProviderConnect
       }];
     })
     .slice(0, MAX_SAVED_PROVIDER_CONNECTIONS);
+}
+
+function normalizeSkillProvenance(value: unknown): SkillProvenance | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Record<string, unknown>;
+  if (item.kind !== "github" && item.kind !== "ai") return null;
+  const text = (key: string, maximum: number) => typeof item[key] === "string" ? item[key].trim().slice(0, maximum) : undefined;
+  return {
+    kind: item.kind,
+    originalUrl: text("originalUrl", 600),
+    repository: text("repository", 300),
+    commitSha: text("commitSha", 64),
+    manifestUrl: text("manifestUrl", 600),
+    sourceUrl: text("sourceUrl", 600),
+    request: text("request", 600),
+  };
+}
+
+function normalizeSkillDrafts(value: unknown): SkillDraft[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate): SkillDraft[] => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const item = candidate as Record<string, unknown>;
+    const id = typeof item.id === "string" ? item.id : "";
+    const manifest = normalizeSkillManifest(item.manifest);
+    const provenance = normalizeSkillProvenance(item.provenance);
+    if (!isSafeSkillIdentifier(id) || !manifest.ok || !provenance) return [];
+    return [{ id, manifest: manifest.value, provenance, createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date(0).toISOString() }];
+  }).slice(0, MAX_SKILL_DRAFTS);
+}
+
+function normalizeInstalledSkills(value: unknown): InstalledSkill[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate): InstalledSkill[] => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const item = candidate as Record<string, unknown>;
+    const id = typeof item.id === "string" ? item.id : "";
+    const manifest = normalizeSkillManifest(item.manifest);
+    const provenance = normalizeSkillProvenance(item.provenance);
+    const lastRunStatus = item.lastRunStatus === "ok" || item.lastRunStatus === "error" || item.lastRunStatus === "timeout" || item.lastRunStatus === "rejected" ? item.lastRunStatus : null;
+    if (!isSafeSkillIdentifier(id) || !manifest.ok || !provenance) return [];
+    return [{ id, manifest: manifest.value, provenance, installedAt: typeof item.installedAt === "string" ? item.installedAt : new Date(0).toISOString(), enabled: item.enabled === true, lastRunAt: typeof item.lastRunAt === "string" ? item.lastRunAt : null, lastRunStatus }];
+  }).slice(0, MAX_INSTALLED_SKILLS);
+}
+
+function normalizeAiSkillDraftRequests(value: unknown): AiSkillDraftRequest[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate): AiSkillDraftRequest[] => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const item = candidate as Record<string, unknown>;
+    const id = typeof item.id === "string" ? item.id : "";
+    const taskId = typeof item.taskId === "string" ? item.taskId : "";
+    const request = typeof item.request === "string" ? item.request.trim().slice(0, 600) : "";
+    const status = item.status === "queued" || item.status === "review_ready" || item.status === "failed" ? item.status : null;
+    if (!isSafeSkillIdentifier(id) || !taskId || !request || !status) return [];
+    return [{ id, taskId, request, status, createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date(0).toISOString(), detail: typeof item.detail === "string" ? item.detail.slice(0, 240) : null }];
+  }).slice(0, MAX_SKILL_DRAFTS);
 }
 
 async function createMcpRuntimeConfig(
@@ -218,6 +289,9 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             mcpApprovals: Array.isArray(parsed.mcpApprovals) ? parsed.mcpApprovals.filter((approval) => approval && typeof approval.expiresAt === "string" && Date.parse(approval.expiresAt) > Date.now()).slice(0, 240) : [],
             providerConnections,
             activeProviderConnectionId,
+            skillDrafts: normalizeSkillDrafts(parsed.skillDrafts),
+            installedSkills: normalizeInstalledSkills(parsed.installedSkills),
+            aiSkillDraftRequests: normalizeAiSkillDraftRequests(parsed.aiSkillDraftRequests),
           });
         }
       } catch {
@@ -430,6 +504,144 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   const revokeMcpToolApproval = useCallback((serverId: string, toolName: string) => {
     setState((current) => ({ ...current, mcpApprovals: current.mcpApprovals.filter((approval) => !(approval.serverId === serverId && approval.toolName === toolName)) }));
   }, []);
+
+  const importSkill = useCallback(async (githubUrl: string) => {
+    if (Platform.OS !== "android") return { ok: false, message: "GitHub skill packages are reviewed and stored only by the installed Android app." };
+    if (state.skillDrafts.length >= MAX_SKILL_DRAFTS) return { ok: false, message: `Keep up to ${MAX_SKILL_DRAFTS} staged skills. Discard one before importing another.` };
+    const imported = await importSkillFromGitHub(githubUrl);
+    if (!imported.ok) return imported;
+    const draftId = createId("skill-draft");
+    try {
+      await stageSkillPackage(draftId, imported.value.skillPackage);
+      const draft: SkillDraft = { id: draftId, manifest: imported.value.skillPackage.manifest, provenance: imported.value.provenance, createdAt: new Date().toISOString() };
+      setState((current) => ({ ...current, skillDrafts: [draft, ...current.skillDrafts].slice(0, MAX_SKILL_DRAFTS), events: [{ id: createId("event"), title: "GitHub skill staged for review", detail: `${draft.manifest.name} was pinned to an immutable commit and is not installed or executable yet.`, severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+      return { ok: true, message: "Skill fetched from one immutable GitHub commit. Review its manifest and source before installing.", draftId };
+    } catch {
+      return { ok: false, message: "The verified GitHub package could not be placed in Android-private staged storage." };
+    }
+  }, [state.skillDrafts.length]);
+
+  const requestAiSkillDraft = useCallback(async (request: string) => {
+    const cleanRequest = request.trim();
+    if (Platform.OS !== "android") return { ok: false, message: "AI skill drafting is available only through the installed Android host." };
+    if (cleanRequest.length < 8 || cleanRequest.length > 600) return { ok: false, message: "Describe the skill in 8–600 characters." };
+    if (state.aiSkillDraftRequests.filter((item) => item.status === "queued").length >= 2) return { ok: false, message: "Wait for an existing AI skill draft request before queuing another." };
+    const taskId = createId("ai-skill-task");
+    const task = await enqueueNativeTask({ id: taskId, body: buildSkillDraftPrompt(cleanRequest) });
+    if (!task) return { ok: false, message: "Start the private Hermes host before requesting an AI skill draft." };
+    const draftRequest: AiSkillDraftRequest = { id: createId("ai-skill"), taskId, request: cleanRequest, createdAt: new Date().toISOString(), status: "queued", detail: null };
+    setState((current) => ({ ...current, aiSkillDraftRequests: [draftRequest, ...current.aiSkillDraftRequests].slice(0, MAX_SKILL_DRAFTS), events: [{ id: createId("event"), title: "AI skill draft requested", detail: "Hermes may only return an untrusted draft. Pocket Relay will require owner review, installation, and a short-lived execution approval.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+    return { ok: true, message: "Hermes is preparing an untrusted skill draft. Check its status here after the task finishes." };
+  }, [state.aiSkillDraftRequests]);
+
+  const refreshAiSkillDraftRequests = useCallback(async () => {
+    if (Platform.OS !== "android" || !state.aiSkillDraftRequests.some((item) => item.status === "queued")) return;
+    const tasks = await listNativeTasks();
+    const taskById = new Map(tasks.map((task) => [task.id, task]));
+    const resolvedDrafts: SkillDraft[] = [];
+    const nextRequests: AiSkillDraftRequest[] = [];
+    for (const request of state.aiSkillDraftRequests) {
+      if (request.status !== "queued") { nextRequests.push(request); continue; }
+      const task = taskById.get(request.taskId);
+      if (!task || task.status === "queued" || task.status === "running") { nextRequests.push(request); continue; }
+      if (task.status !== "succeeded" || !task.result) {
+        nextRequests.push({ ...request, status: "failed", detail: task?.reason ?? "Hermes did not return a completed skill draft." });
+        continue;
+      }
+      const parsed = await parseAiSkillDraftResponse(task.result, request.request);
+      if (!parsed.ok) {
+        nextRequests.push({ ...request, status: "failed", detail: parsed.message });
+        continue;
+      }
+      try {
+        await stageSkillPackage(request.id, parsed.value.skillPackage);
+        resolvedDrafts.push({ id: request.id, manifest: parsed.value.skillPackage.manifest, provenance: parsed.value.provenance, createdAt: new Date().toISOString() });
+        nextRequests.push({ ...request, status: "review_ready", detail: "A QuickJS skill draft is ready for owner review." });
+      } catch {
+        nextRequests.push({ ...request, status: "failed", detail: "The validated draft could not be placed in Android-private staged storage." });
+      }
+    }
+    if (!resolvedDrafts.length && nextRequests.every((item, index) => item.status === state.aiSkillDraftRequests[index]?.status && item.detail === state.aiSkillDraftRequests[index]?.detail)) return;
+    setState((current) => ({
+      ...current,
+      skillDrafts: [...resolvedDrafts, ...current.skillDrafts.filter((draft) => !resolvedDrafts.some((resolved) => resolved.id === draft.id))].slice(0, MAX_SKILL_DRAFTS),
+      aiSkillDraftRequests: nextRequests.slice(0, MAX_SKILL_DRAFTS),
+      events: resolvedDrafts.length ? [{ id: createId("event"), title: "AI skill draft ready for review", detail: "The draft remains staged and cannot run until you install, enable, and approve its exact source hash.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) : current.events,
+    }));
+  }, [state.aiSkillDraftRequests]);
+
+  const installSkillDraft = useCallback(async (draftId: string) => {
+    const draft = state.skillDrafts.find((item) => item.id === draftId);
+    if (!draft) return { ok: false, message: "This staged skill is no longer available." };
+    if (state.installedSkills.length >= MAX_INSTALLED_SKILLS) return { ok: false, message: `Pocket Relay supports up to ${MAX_INSTALLED_SKILLS} installed skills. Remove one before installing another.` };
+    if (state.installedSkills.some((item) => item.manifest.sourceSha256 === draft.manifest.sourceSha256)) return { ok: false, message: "This exact skill source is already installed." };
+    const skillId = createId("skill");
+    try {
+      await installStagedSkillPackage(draftId, skillId);
+      const installed: InstalledSkill = { id: skillId, manifest: draft.manifest, provenance: draft.provenance, installedAt: new Date().toISOString(), enabled: false, lastRunAt: null, lastRunStatus: null };
+      setState((current) => ({ ...current, skillDrafts: current.skillDrafts.filter((item) => item.id !== draftId), installedSkills: [installed, ...current.installedSkills].slice(0, MAX_INSTALLED_SKILLS), events: [{ id: createId("event"), title: "Skill installed inactive", detail: `${installed.manifest.name} is stored privately but remains disabled. Enable it and approve each exact execution source before it can run.`, severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+      return { ok: true, message: "Skill installed as inactive. It cannot run until you enable and approve it.", skillId };
+    } catch {
+      return { ok: false, message: "The reviewed staged package could not be installed privately." };
+    }
+  }, [state.installedSkills, state.skillDrafts]);
+
+  const getSkillDraftSource = useCallback(async (draftId: string) => {
+    if (!state.skillDrafts.some((item) => item.id === draftId)) return null;
+    try { return (await readStagedSkillPackage(draftId)).source; } catch { return null; }
+  }, [state.skillDrafts]);
+
+  const discardSkillDraft = useCallback(async (draftId: string) => {
+    await discardStagedSkillPackage(draftId).catch(() => undefined);
+    setState((current) => ({ ...current, skillDrafts: current.skillDrafts.filter((item) => item.id !== draftId), aiSkillDraftRequests: current.aiSkillDraftRequests.filter((item) => item.id !== draftId) }));
+  }, []);
+
+  const setSkillEnabled = useCallback(async (skillId: string, enabled: boolean) => {
+    const skill = state.installedSkills.find((item) => item.id === skillId);
+    if (!skill) return;
+    if (!enabled) await revokeNativeCodeJob(skill.manifest.sourceSha256).catch(() => null);
+    setState((current) => ({ ...current, installedSkills: current.installedSkills.map((item) => item.id === skillId ? { ...item, enabled } : item), events: [{ id: createId("event"), title: enabled ? "Skill enabled" : "Skill disabled", detail: enabled ? `${skill.manifest.name} is eligible for owner-initiated review and execution; its source is not yet approved.` : `${skill.manifest.name} was disabled and its active source approval was revoked.`, severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+  }, [state.installedSkills]);
+
+  const runSkill = useCallback(async (skillId: string, inputJson: string) => {
+    const skill = state.installedSkills.find((item) => item.id === skillId);
+    if (!skill) return { ok: false, message: "This installed skill is no longer available." };
+    if (!skill.enabled) return { ok: false, message: "Enable this skill before reviewing and running it." };
+    const input = parseSkillInput(inputJson, skill.manifest.inputSchema);
+    if (!input.ok) return { ok: false, message: input.message };
+    try {
+      const storedPackage = await readInstalledSkillPackage(skillId);
+      if (storedPackage.manifest.sourceSha256 !== skill.manifest.sourceSha256) return { ok: false, message: "The private skill package no longer matches its reviewed manifest and was blocked." };
+      const proposal = await proposeNativeCodeJob(storedPackage.source);
+      if (!proposal || proposal.hash !== skill.manifest.sourceSha256 || !proposal.approvalRequired) return { ok: false, message: "The isolated executor could not seal this exact installed source for owner approval." };
+      const approval = await approveNativeCodeJob(storedPackage.source);
+      if (!approval?.approved || approval.hash !== skill.manifest.sourceSha256) return { ok: false, message: "The owner approval for this exact source could not be recorded." };
+      const result = await runNativeApprovedCodeJob({ source: storedPackage.source, inputJson });
+      if (!result) return { ok: false, message: "The isolated executor did not return a result." };
+      const occurredAt = new Date().toISOString();
+      let message = result.output;
+      let ok = result.status === "ok";
+      if (ok) {
+        try {
+          const output = JSON.parse(result.output) as unknown;
+          const outputIssue = validateJsonAgainstSchema(output, skill.manifest.outputSchema);
+          if (outputIssue) { ok = false; message = `Skill output did not match its reviewed output schema: ${outputIssue}`; }
+        } catch { ok = false; message = "The skill returned non-JSON output, which does not match its reviewed output schema."; }
+      }
+      const recordedStatus = ok ? "ok" : (result.status === "timeout" ? "timeout" : result.status === "rejected" ? "rejected" : "error");
+      setState((current) => ({ ...current, installedSkills: current.installedSkills.map((item) => item.id === skillId ? { ...item, lastRunAt: occurredAt, lastRunStatus: recordedStatus } : item), events: [{ id: createId("event"), title: ok ? "Skill executed in isolation" : "Skill execution stopped", detail: ok ? `${skill.manifest.name} completed under the fixed 750 ms, 16 MiB, and 8 KiB sandbox envelope.` : `${skill.manifest.name}: ${message.slice(0, 180)}`, severity: ok ? "success" as const : "warning" as const, createdAt: occurredAt }, ...current.events].slice(0, 60) }));
+      return ok ? { ok: true, message: "Skill completed in the isolated QuickJS process.", output: result.output } : { ok: false, message };
+    } catch {
+      return { ok: false, message: "The app-private skill package could not be verified for execution." };
+    }
+  }, [state.installedSkills]);
+
+  const removeSkill = useCallback(async (skillId: string) => {
+    const skill = state.installedSkills.find((item) => item.id === skillId);
+    if (!skill) return;
+    await Promise.all([revokeNativeCodeJob(skill.manifest.sourceSha256).catch(() => null), removeInstalledSkillPackage(skillId).catch(() => undefined)]);
+    setState((current) => ({ ...current, installedSkills: current.installedSkills.filter((item) => item.id !== skillId), events: [{ id: createId("event"), title: "Skill deleted", detail: `${skill.manifest.name}, its private package files, and its active source approval were removed from this phone.`, severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+  }, [state.installedSkills]);
 
   const prepareRuntime = useCallback(async (readiness?: HostReadinessSnapshot) => {
     const [telegramToken, modelApiKey, mcpConfigJson, telegramProxyCredential] = await Promise.all([
@@ -648,7 +860,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, [state.providerConnections]);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 
