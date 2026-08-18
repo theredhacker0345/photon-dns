@@ -45,7 +45,12 @@ type SaveConfigurationInput = {
   clearTelegramProxyCredential?: boolean;
   policy?: HostRuntimePolicy;
 };
-type GatewayTestResult = { ok: boolean; message: string; botName?: string };
+export type GatewayTestInput = {
+  telegramToken?: string;
+  telegramProxy?: Pick<PublicTelegramProxyConfiguration, "type" | "host" | "port">;
+  telegramProxyCredential?: string;
+};
+export type GatewayTestResult = { ok: boolean; message: string; botName?: string };
 type TestMessageResult = { ok: boolean; message: string; messageId?: number; deliveredAt?: string };
 type ModelTestResult = { ok: boolean; message: string };
 type SaveMcpServerInput = { id?: string; name: string; endpoint: string; authMode: McpAuthMode; credential?: string; enabled?: boolean };
@@ -54,7 +59,7 @@ type PocketHermesContextValue = PersistedState & {
   saveConfiguration: (input: SaveConfigurationInput) => Promise<{ ok: boolean; message: string; connectionId?: string }>;
   selectProviderConnection: (connectionId: string) => Promise<void>;
   removeProviderConnection: (connectionId: string) => Promise<void>;
-  testGateway: () => Promise<GatewayTestResult>;
+  testGateway: (input?: GatewayTestInput) => Promise<GatewayTestResult>;
   sendTestMessage: () => Promise<TestMessageResult>;
   testModel: () => Promise<ModelTestResult>;
   discoverModels: (input: { provider: ModelProviderId; endpoint: string; apiKey?: string }) => Promise<ModelDiscoveryResult>;
@@ -478,15 +483,30 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     });
   }, [state.activeProviderConnectionId, state.config, state.mcpServers, state.mcpTools, state.mcpApprovals]);
 
-  const testGateway = useCallback(async (): Promise<GatewayTestResult> => {
-    const token = await readSecret(TELEGRAM_TOKEN_KEY);
+  const testGateway = useCallback(async (input?: GatewayTestInput): Promise<GatewayTestResult> => {
+    const draftProxy = input?.telegramProxy
+      ? {
+          type: input.telegramProxy.type,
+          host: input.telegramProxy.type === "none" ? "" : input.telegramProxy.host.trim(),
+          port: input.telegramProxy.type === "none" ? null : input.telegramProxy.port,
+          hasCredentials: Boolean(input.telegramProxyCredential?.trim()),
+        }
+      : state.config.telegramProxy;
+    if (!isSafeTelegramProxyConfiguration(draftProxy)) {
+      return { ok: false, message: "Choose Direct or provide a valid HTTP or SOCKS5 proxy hostname and port before checking Telegram." };
+    }
+    const token = input?.telegramToken?.trim() || await readSecret(TELEGRAM_TOKEN_KEY);
     if (!token) return { ok: false, message: "Add a protected Telegram bot token before testing the gateway." };
-    const proxyCredential = await readSecret(TELEGRAM_PROXY_CREDENTIAL_KEY);
+    const savedRouteMatchesDraft = draftProxy.type === state.config.telegramProxy.type
+      && draftProxy.host === state.config.telegramProxy.host
+      && draftProxy.port === state.config.telegramProxy.port;
+    const proxyCredential = input?.telegramProxyCredential?.trim()
+      || (savedRouteMatchesDraft ? await readSecret(TELEGRAM_PROXY_CREDENTIAL_KEY) : "");
     const nativeResult = await testNativeTelegramGateway({
       telegramToken: token,
-      telegramProxyType: state.config.telegramProxy.type,
-      telegramProxyHost: state.config.telegramProxy.host || undefined,
-      telegramProxyPort: state.config.telegramProxy.port ?? undefined,
+      telegramProxyType: draftProxy.type,
+      telegramProxyHost: draftProxy.host || undefined,
+      telegramProxyPort: draftProxy.port ?? undefined,
       telegramProxyCredential: proxyCredential || undefined,
     });
     if (nativeResult) {
@@ -498,7 +518,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Gateway credential verified", detail: "Telegram accepted the protected bot credential through the configured device route.", severity: "success" });
       return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName };
     }
-    if (state.config.telegramProxy.type !== "none") {
+    if (draftProxy.type !== "none") {
       return { ok: false, message: "Telegram proxy checks require the installed Android build; web preview cannot route traffic through a device proxy." };
     }
     try {

@@ -7,6 +7,7 @@ import { ModelCatalog } from "@/components/model-catalog";
 import { ModelProviderPicker } from "@/components/model-provider-picker";
 import { PageHeader, PressableCard, PrimaryButton, RuntimePill, SectionHeading, SecondaryButton } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
+import { TelegramRouteStatus } from "@/components/telegram-route-status";
 import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import { useSupervisorTelemetry } from "@/hooks/use-supervisor-telemetry";
@@ -21,7 +22,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const isFocused = useIsFocused();
   const { themeId, setThemeId } = useThemeContext();
-  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
   const { telemetry } = useSupervisorTelemetry(defaultHostRuntimePolicy, isFocused);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
@@ -373,6 +374,13 @@ export default function SettingsScreen() {
             {config.telegramProxy.hasCredentials && !clearTelegramProxyCredential ? <Pressable accessibilityRole="button" onPress={() => setClearTelegramProxyCredential(true)} style={({ pressed }) => [styles.inlineDangerButton, { borderColor: `${colors.error}55`, backgroundColor: `${colors.error}12` }, pressed && styles.themeOptionPressed]}><Text style={[styles.inlineDangerText, { color: colors.error }]}>Clear saved proxy credential when I save</Text></Pressable> : null}
             {clearTelegramProxyCredential ? <Text style={[styles.helper, { color: colors.warning }]}>The saved proxy credential will be removed when you save this setup.</Text> : null}
           </> : null}
+          <TelegramRouteStatus
+            telegramToken={token}
+            hasSavedTelegramToken={config.hasTelegramToken}
+            proxy={{ type: telegramProxyType, host: telegramProxyHost, port: telegramProxyType === "none" ? null : Number(telegramProxyPort) }}
+            proxyCredential={telegramProxyCredential}
+            testGateway={testGateway}
+          />
           {Platform.OS === "web" ? <View style={[styles.webNotice, { backgroundColor: `${colors.warning}16` }]}><MaterialIcons name="warning-amber" size={17} color={colors.warning} /><Text style={[styles.webNoticeText, { color: colors.warning }]}>Web preview uses temporary browser storage. Use Android for Keystore protection.</Text></View> : null}
         </PressableCard>
 
