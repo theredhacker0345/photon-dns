@@ -284,3 +284,6 @@
 - [x] Add latency regression coverage, validate the Android release, checkpoint, and publish the route-latency enhancement
 - [x] Update the README for shared owner conversations, secure Telegram proxy routes, live route status, and measured latency
 - [x] Validate README links and documentation regressions, checkpoint, and publish the README refresh
+- [x] Add a concise creator introduction derived from the approved portfolio to the appropriate Pocket Relay interface
+- [x] Add a Hire action with email and direct WhatsApp contact options using the owner-supplied contact details
+- [ ] Add regression coverage, validate the mobile release, checkpoint, and publish the creator-contact update

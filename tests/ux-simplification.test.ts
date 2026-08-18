@@ -34,4 +34,14 @@ describe("focused mobile control-plane presentation", () => {
     expect(settings).toContain("Long press one to remove its metadata and protected API token.");
     expect(settings).toContain("API tokens are never displayed here.");
   });
+
+  it("keeps creator attribution concise and exposes Hire choices only through user-triggered email and WhatsApp links", () => {
+    expect(settings).toContain('SectionHeading eyebrow="CREATOR" title="Built for open, owner-controlled hosting"');
+    expect(settings).toContain("Created by Ubaid ur Rehman");
+    expect(settings).toContain("A self-taught FOSS developer and security researcher.");
+    expect(settings).toContain('label={showHireChoices ? "Close hiring options" : "Hire Ubaid"}');
+    expect(settings).toContain("mailto:arifubaid0345@gmail.com");
+    expect(settings).toContain("https://wa.me/923352706540");
+    expect(settings).toContain("await Linking.openURL(url);");
+  });
 });
