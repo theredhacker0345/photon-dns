@@ -18,7 +18,7 @@ Pocket Relay is for people who want to dedicate an old Android phone to a long-r
 
 | Start here | Understand the host | Build and contribute |
 |---|---|---|
-| [What you get](#what-you-get) · [First-run path](#first-run-path) · [UI gallery](#ui-gallery) | [Privacy and safety boundaries](#privacy-and-safety-boundaries) · [Architecture](#architecture) · [Resource guardrails](#resource-guardrails) | [Development](#development) · [Release and f-droid](#release-and-f-droid) · [Contributing](#contributing) |
+| [What you get](#what-you-get) · [First-run path](#first-run-path) · [Telegram conversations and routing](#telegram-conversations-and-routing) · [UI gallery](#ui-gallery) | [Privacy and safety boundaries](#privacy-and-safety-boundaries) · [Architecture](#architecture) · [Resource guardrails](#resource-guardrails) | [Development](#development) · [Release and f-droid](#release-and-f-droid) · [Contributing](#contributing) |
 
 ## What you get
 
@@ -26,9 +26,10 @@ The app is a focused mobile control plane for an Android-hosted agent. Its opera
 
 | Capability | What the host provides |
 |---|---|
-| **Private Telegram control** | A private-owner gateway for submitting work and receiving responses. Messages from unverified chats and groups are rejected by policy. |
+| **Private Telegram control** | A private-owner gateway for submitting work and receiving responses. Messages from unverified chats and groups are rejected by policy. The gateway can use Direct, HTTP, or SOCKS5 routing. |
 | **Provider-aware model setup** | Hosted presets for OpenAI, OpenRouter, Groq, Mistral AI, Kilo Code, and custom HTTPS OpenAI-compatible services; plus explicit same-network Ollama and LM Studio presets. Owners can test a connection, inspect request latency, refresh `/models`, search the catalog, and save favorites. |
-| **Agent Console** | Durable task submission, bounded local task history, active-session context-window metadata, and a safe manual **Compress context** action. Conversation text does not cross the Python/Kotlin/JavaScript control-plane bridge. |
+| **Shared owner conversation** | The Agent Console and authenticated Telegram owner chat use the same Hermes session. A bounded 100-entry, owner-visible app-private transcript records the cross-surface conversation, and **Reset conversation** safely clears the displayed ledger and starts a new Hermes context. |
+| **Telegram route diagnostics** | Setup and Settings show route-specific feedback for Direct, HTTP, and SOCKS5 drafts. A successful native Telegram Bot API check displays its measured `getMe` latency in milliseconds; proxy credentials are never shown in the UI or diagnostic result. |
 | **Remote MCP connectors** | Only owner-selected remote HTTPS Streamable HTTP MCP servers with optional bearer authentication are supported. Local, stdio, private-network, redirect, and unapproved-tool routes are blocked; the app never runs arbitrary connector code. |
 | **24/7 host supervision** | An Android foreground service, persistent notification, charging and storage readiness checks, bounded recovery, optional boot recovery, and local schedules. Android requires special handling for foreground work because background execution is constrained by the platform.[1] |
 | **Resource observability** | Native CPU, process-RAM, storage, charging, and capacity readings; a volatile dashboard history chart; configurable warning and critical percentages; and hardware-aware recommended limits. |
@@ -41,9 +42,23 @@ The setup flow is deliberately short and fail-closed. It guides the owner throug
 | Step | Owner action | Host safeguard |
 |---|---|---|
 | **1. Identify the host** | Name the dedicated phone and review its charging and storage readiness. | The app surfaces whether the phone is suitable for persistent operation before start. |
-| **2. Lock the gateway** | Add the Telegram bot token and the private owner chat ID, then run the gateway test. | Unrecognized and group conversations are not treated as owners. |
+| **2. Lock the gateway** | Add the Telegram bot token and the private owner chat ID, choose Direct, HTTP, or SOCKS5 routing if needed, then run the gateway test. | Unrecognized and group conversations are not treated as owners. Proxy credentials use protected storage; a successful test reports the active route and measured check latency. |
 | **3. Select a model** | Choose a provider, test the endpoint, refresh the model catalog, and choose a model. | Hosted and custom services require an explicit HTTPS OpenAI-compatible URL and protected token. Ollama and LM Studio may use HTTP only at a numeric private-LAN address; their bearer token is optional. |
 | **4. Set the policy** | Choose resource limits, notification behavior, and startup preferences. | Values are normalized and handed to the native supervisor only after validation. |
+
+## Telegram conversations and routing
+
+Pocket Relay is designed for one configured owner, not a collection of disconnected chat surfaces. A message sent in the Android Agent Console and a message received from the authenticated Telegram owner chat continue the same canonical Hermes owner session. Telegram-originated replies keep the normal Telegram delivery path; app-originated replies are rendered in the console and mirrored **once** to the configured owner chat. This avoids duplicate Telegram replies while making a change of surface feel continuous.
+
+| Route | Use case | Live check result | Data boundary |
+|---|---|---|---|
+| **Direct** | Telegram is reachable from the phone’s normal network route. | Displays the authenticated gateway result and measured Telegram Bot API latency. | No proxy configuration is sent. |
+| **HTTP** | A trusted HTTP proxy is required for Telegram reachability. | Displays the selected route, check progress, redacted result, and measured latency on success. | Only Telegram Bot API traffic uses the proxy. |
+| **SOCKS5** | A trusted SOCKS5 proxy is required for Telegram reachability. | Displays the selected route, check progress, redacted result, and measured latency on success. | Only Telegram Bot API traffic uses the proxy. |
+
+Proxy routing is optional and intentionally narrow. It does **not** redirect model-provider calls, remote MCP traffic, Android telemetry, or other application network traffic. Host, port, and route type are public configuration; an optional `username:password` proxy credential follows the Android protected-secret path and is never rendered back into the form, transcript, logs, or diagnostic output. Invalid proxy addresses, URL-embedded credentials, paths, fragments, control characters, and ports outside `1–65535` are rejected before the worker starts.
+
+The route status answers whether the selected route can currently reach Telegram from the phone. It does not certify a third-party proxy’s privacy, availability, or future reachability. Owners should use a proxy they trust, validate it from the physical Android device, then send a Telegram message and an Agent Console message to confirm the shared conversation and single-reply behavior. See the [conversation synchronization and proxy design](docs/conversation-sync-and-proxy.md) for the detailed retention, delivery, and verification model.
 
 ## Why Pocket Relay is connected-operation only
 
@@ -72,10 +87,10 @@ The important design decision is not merely that the runtime is on a phone; it i
 | The host does | The host does **not** do |
 |---|---|
 | Run its embedded worker and private workspace inside the app’s Android boundary. | Expose an interactive shell, a visible Termux workflow, arbitrary package installation, root access, or access to other apps’ files. |
-| Store Telegram, provider, and MCP credentials through Android protected storage backed by Android Keystore mechanisms.[2] | Put secrets in normal UI state, ordinary logs, telemetry, task history, or diagnostic exports. |
+| Store Telegram, proxy, provider, and MCP credentials through Android protected storage backed by Android Keystore mechanisms.[2] | Put secrets in normal UI state, ordinary logs, telemetry, task history, conversation entries, or diagnostic exports. |
 | Keep telemetry, schedules, bounded history, and host events locally. | Include analytics SDKs, advertising SDKs, accounts, or a Pocket Relay-operated cloud relay. |
 | Require explicit owner grants before an MCP tool can run. | Launch local MCP processes, accept stdio connectors, follow redirects to private destinations, or treat discovery as permission. |
-| Display numeric context-window metadata and request session-preserving compression. | Render a conversation transcript through the control-plane bridge. |
+| Display a bounded, owner-visible conversation ledger with role, origin, delivery state, and timestamp; display numeric context-window metadata and request session-preserving compression. | Expose raw runtime diagnostics, session-store paths, provider/MCP/Telegram/proxy credentials, or conversation history to non-owner chats. |
 
 Credential removal is an operational action, not a cosmetic one: it stops the host and clears corresponding native configuration. The full [threat model](docs/threat-model.md), [privacy notes](docs/privacy.md), and [remote MCP guide](docs/mcp-connectors.md) explain the enforced boundaries and their residual risks.
 
@@ -108,8 +123,8 @@ Missing native values are never guessed. If the app cannot obtain a reading, it 
                                 │ embedded runtime handoff
 ┌───────────────────────────────▼──────────────────────────────────────┐
 │ Embedded CPython 3.11 worker                                          │
-│ Hermes Agent · owner-only Telegram gateway · task queue · scheduler   │
-│ provider preflight · private workspace · approved HTTPS MCP adapter   │
+│ Hermes Agent · shared owner Telegram session · task queue · scheduler │
+│ Telegram-only Direct/HTTP/SOCKS5 route · private workspace · MCP      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -164,6 +179,7 @@ For the exact evidence boundary, artifact context, and handoff sequence, read [r
 | How the native worker and supervisor divide responsibility | [Native runtime contract](docs/native-runtime-contract.md) |
 | Model discovery behavior and supported endpoint shape | [Provider model discovery research](docs/provider-model-discovery-research.md) |
 | Hermes source provenance, pin, and upgrade controls | [Hermes runtime pinning](docs/hermes-runtime-pinning.md) |
+| Shared owner conversations, Telegram proxy routes, and verification limits | [Conversation synchronization and proxy design](docs/conversation-sync-and-proxy.md) |
 | Local Ollama and LM Studio endpoint compatibility | [Local-provider compatibility research](docs/local-provider-compatibility-research.md) |
 | Themes and the minimal control-plane design | [Theme system](docs/theme-system.md) · [Minimal UI design](docs/minimal-ui-design.md) |
 | Build requirements, license checks, and artifact evidence | [Reproducible release policy](docs/reproducible-release-policy.md) · [License verification](docs/license-verification.md) · [Release evidence](docs/release-evidence.md) |
