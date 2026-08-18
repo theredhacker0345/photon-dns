@@ -313,3 +313,5 @@
 - [x] Verify touch targets, labels, contrast, font scaling, theme parity, and high-risk action feedback
 - [x] Add UI/UX decision evidence and regression coverage for the premium refinement
 - [x] Run complete validation, checkpoint, and publish the premium UI/UX refinement to GitLab
+- [x] Redesign the creator attribution and contact card with clearer hierarchy, concise copy, and accessible action grouping
+- [x] Validate, checkpoint, and publish the creator-card refinement to GitLab
