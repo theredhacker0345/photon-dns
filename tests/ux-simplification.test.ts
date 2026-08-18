@@ -19,7 +19,9 @@ describe("focused mobile control-plane presentation", () => {
 
   it("keeps the Agent Console conversation-first while retaining owner safeguards behind an explicit disclosure", () => {
     expect(agent).toContain("const [advancedVisible, setAdvancedVisible] = useState(false);");
-    expect(agent).toContain('SectionHeading eyebrow="CONVERSATION" title="Owner task queue"');
+    expect(agent).toContain('SectionHeading eyebrow="SHARED OWNER CHAT" title="Conversation"');
+    expect(agent).toContain("This private, bounded timeline combines this phone and your authorized Telegram chat.");
+    expect(agent).toContain("Clear shared conversation & context");
     expect(agent).toContain("Owner tools & safeguards");
     expect(agent).toContain("Context controls, isolated JavaScript, and execution metadata");
     expect(agent).toContain("{advancedVisible ? <View style={advancedStyles.content}>");

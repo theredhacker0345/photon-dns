@@ -38,6 +38,26 @@ export const defaultHostRuntimePolicy: HostRuntimePolicy = {
 
 export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "kilo" | "ollama" | "lmstudio" | "custom";
 
+/**
+ * The proxy destination is public metadata; any username/password remains in
+ * platform secure storage and is passed only during native runtime launch.
+ */
+export type TelegramProxyType = "none" | "http" | "socks5";
+
+export type PublicTelegramProxyConfiguration = {
+  type: TelegramProxyType;
+  host: string;
+  port: number | null;
+  hasCredentials: boolean;
+};
+
+export const defaultTelegramProxyConfiguration: PublicTelegramProxyConfiguration = {
+  type: "none",
+  host: "",
+  port: null,
+  hasCredentials: false,
+};
+
 export type PublicModelConfiguration = {
   provider: ModelProviderId;
   endpoint: string;
@@ -100,6 +120,18 @@ export type HostDiagnostic = {
 };
 
 const httpsUrl = /^https:\/\//i;
+
+const safeProxyHostname = /^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)$/;
+
+export function isSafeTelegramProxyConfiguration(proxy: PublicTelegramProxyConfiguration) {
+  if (proxy.type === "none") return proxy.host.trim() === "" && proxy.port === null;
+  const host = proxy.host.trim();
+  const port = proxy.port;
+  if (!host || !Number.isInteger(port) || !port || port < 1 || port > 65_535) return false;
+  if (host.includes("/") || host.includes("@") || host.includes(":")) return false;
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  return ipv4 ? ipv4.slice(1).every((part) => Number(part) <= 255) : safeProxyHostname.test(host);
+}
 
 export function isLocalNetworkProvider(provider: ModelProviderId) {
   return provider === "ollama" || provider === "lmstudio";

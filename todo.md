@@ -272,3 +272,9 @@
 - [x] Add safe same-network Ollama and LM Studio model-provider presets without weakening remote HTTPS defaults
 - [x] Explain the online-only operating model and explicit remote HTTPS-only MCP limitation in the documentation
 - [x] Add regression coverage, validate the release, checkpoint, and publish the branding, local-provider, and supply-chain update
+- [x] Audit current in-app task chat, Telegram owner-message, durable context, and Android networking behavior
+- [x] Define a private owner conversation model that synchronizes app and Telegram messages without duplicate delivery or credential exposure
+- [x] Add bounded durable conversation context and explicit owner controls for viewing or clearing it
+- [x] Synchronize owner-authenticated inbound Telegram messages and in-app task messages into one conversation history and deliver agent replies to both surfaces
+- [x] Add secure optional Telegram proxy configuration for supported proxy transports with protected proxy credentials and connection diagnostics
+- [ ] Add regression coverage, validate the Android release, checkpoint, and publish the conversation synchronization and proxy update

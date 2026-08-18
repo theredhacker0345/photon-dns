@@ -101,6 +101,25 @@ class PocketHermesSupervisorModule : Module() {
       taskMap(JSONObject(raw))
     }
 
+    AsyncFunction("listConversation") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      val entries = org.json.JSONArray(workerModule(context).callAttr("list_conversation_json").toString())
+      (0 until entries.length()).map { index -> conversationEntryMap(entries.getJSONObject(index)) }
+    }
+
+    AsyncFunction("resetConversation") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      val result = JSONObject(workerModule(context).callAttr("reset_conversation_json").toString())
+      mapOf(
+        "ok" to result.optBoolean("ok", false),
+        "message" to result.optString("message", "Conversation reset is unavailable."),
+      )
+    }
+
     AsyncFunction("upsertSchedule") { schedule: Map<String, String> ->
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Relay supervisor requires an Android application context."
@@ -164,6 +183,61 @@ class PocketHermesSupervisorModule : Module() {
       mapOf("ok" to result.optBoolean("ok", false), "reason" to result.optString("reason", "model preflight unavailable"))
     }
 
+    AsyncFunction("testTelegramGateway") { config: Map<String, String?> ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      val token = config["telegramToken"]?.trim().orEmpty()
+      val proxyType = config["telegramProxyType"]?.trim()?.lowercase()?.ifBlank { "none" } ?: "none"
+      val proxyHost = config["telegramProxyHost"]?.trim()?.ifBlank { null }
+      val proxyPort = config["telegramProxyPort"]?.toIntOrNull()
+      if (!isSafeTelegramProxy(proxyType, proxyHost, proxyPort)) {
+        throw IllegalArgumentException("Pocket Relay rejected the Telegram proxy configuration.")
+      }
+      val result = JSONObject(workerModule(context).callAttr(
+        "test_telegram_gateway",
+        token,
+        proxyType,
+        proxyHost,
+        proxyPort,
+        config["telegramProxyCredential"]?.trim()?.ifBlank { null },
+      ).toString())
+      mapOf(
+        "ok" to result.optBoolean("ok", false),
+        "message" to result.optString("message", "Telegram verification is unavailable."),
+        "botName" to result.opt("botName")?.takeUnless { it == JSONObject.NULL }?.toString(),
+      )
+    }
+
+    AsyncFunction("sendTelegramTestMessage") { config: Map<String, String?> ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      val token = config["telegramToken"]?.trim().orEmpty()
+      val ownerChatId = config["ownerChatId"]?.trim().orEmpty()
+      val proxyType = config["telegramProxyType"]?.trim()?.lowercase()?.ifBlank { "none" } ?: "none"
+      val proxyHost = config["telegramProxyHost"]?.trim()?.ifBlank { null }
+      val proxyPort = config["telegramProxyPort"]?.toIntOrNull()
+      if (!isSafeTelegramProxy(proxyType, proxyHost, proxyPort)) {
+        throw IllegalArgumentException("Pocket Relay rejected the Telegram proxy configuration.")
+      }
+      val result = JSONObject(workerModule(context).callAttr(
+        "send_telegram_test_message",
+        token,
+        ownerChatId,
+        proxyType,
+        proxyHost,
+        proxyPort,
+        config["telegramProxyCredential"]?.trim()?.ifBlank { null },
+      ).toString())
+      mapOf(
+        "ok" to result.optBoolean("ok", false),
+        "message" to result.optString("message", "Telegram test delivery is unavailable."),
+        "messageId" to result.opt("messageId")?.takeUnless { it == JSONObject.NULL },
+        "deliveredAt" to result.opt("deliveredAt")?.takeUnless { it == JSONObject.NULL },
+      )
+    }
+
     AsyncFunction("getCodeSandboxStatus") {
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Relay supervisor requires an Android application context."
@@ -220,6 +294,12 @@ class PocketHermesSupervisorModule : Module() {
       }
       val telegramToken = config["telegramToken"]?.trim().orEmpty()
       val ownerChatId = config["ownerChatId"]?.trim().orEmpty()
+      val telegramProxyType = config["telegramProxyType"]?.trim()?.lowercase()?.ifBlank { "none" } ?: "none"
+      val telegramProxyHost = config["telegramProxyHost"]?.trim()?.ifBlank { null }
+      val telegramProxyPort = config["telegramProxyPort"]?.toIntOrNull()
+      if (!isSafeTelegramProxy(telegramProxyType, telegramProxyHost, telegramProxyPort)) {
+        throw IllegalArgumentException("Pocket Relay rejected the Telegram proxy configuration.")
+      }
       if (telegramToken.isBlank() || ownerChatId.isBlank()) {
         throw IllegalArgumentException("Pocket Relay requires a Telegram token and owner chat ID to start.")
       }
@@ -232,6 +312,10 @@ class PocketHermesSupervisorModule : Module() {
           modelEndpoint = config["modelEndpoint"]?.trim()?.ifBlank { null },
           modelApiKey = config["modelApiKey"]?.trim()?.ifBlank { null },
           modelName = config["modelName"]?.trim()?.ifBlank { null },
+          telegramProxyType = telegramProxyType,
+          telegramProxyHost = telegramProxyHost,
+          telegramProxyPort = telegramProxyPort,
+          telegramProxyCredential = config["telegramProxyCredential"]?.trim()?.ifBlank { null },
           mcpConfigJson = config["mcpConfigJson"]?.trim()?.ifBlank { null },
           restartAfterBoot = config["restartAfterBoot"]?.toBooleanStrictOrNull() ?: false,
           chargingAware = config["chargingAware"]?.toBooleanStrictOrNull() ?: true,
@@ -283,6 +367,14 @@ class PocketHermesSupervisorModule : Module() {
     "reason" to task.opt("reason")?.takeUnless { it == JSONObject.NULL }?.toString(),
   )
 
+  private fun conversationEntryMap(entry: JSONObject): Map<String, Any> = mapOf(
+    "id" to entry.optString("id"),
+    "role" to entry.optString("role", "assistant"),
+    "origin" to entry.optString("origin", "system"),
+    "body" to entry.optString("body"),
+    "createdAt" to entry.optLong("createdAt", 0L),
+  )
+
   private fun contextMap(context: JSONObject): Map<String, Any?> = mapOf(
     "available" to context.optBoolean("available", false),
     "modelName" to context.opt("modelName")?.takeUnless { it == JSONObject.NULL }?.toString(),
@@ -300,6 +392,14 @@ class PocketHermesSupervisorModule : Module() {
     Python.getInstance().getModule("pocket_hermes_worker").also { worker ->
     worker.callAttr("set_storage_root", java.io.File(context.filesDir, "pocket-hermes/runtime").apply { mkdirs() }.absolutePath)
     }
+  }
+
+  /** Proxy endpoints may be DNS names or IPv4 literals; URL paths and embedded credentials are rejected. */
+  private fun isSafeTelegramProxy(type: String, host: String?, port: Int?): Boolean {
+    if (type == "none") return host == null && port == null
+    if (type !in setOf("http", "socks5") || host.isNullOrBlank() || port !in 1..65_535) return false
+    if (host.contains(Regex("[/:@]"))) return false
+    return host.matches(Regex("[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?"))
   }
 
   /** Reads only the app-private Hermes runtime directory; no shared storage is inspected. */

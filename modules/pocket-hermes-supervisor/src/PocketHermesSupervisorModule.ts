@@ -27,6 +27,8 @@ export type NativeSupervisorDiagnostic = {
 };
 
 export type NativeModelPreflight = { ok: boolean; reason: string };
+export type NativeTelegramGatewayTest = { ok: boolean; message: string; botName?: string | null };
+export type NativeTelegramTestMessage = { ok: boolean; message: string; messageId?: number | null; deliveredAt?: number | null };
 
 /** Secret-free active owner-session context measurement from the embedded Hermes runtime. */
 export type NativeSupervisorContext = {
@@ -57,6 +59,17 @@ export type NativeSupervisorTask = {
   result: string | null;
   reason: string | null;
 };
+
+/** Redacted owner-only turn retained in the bounded shared app and Telegram conversation ledger. */
+export type NativeSupervisorConversationEntry = {
+  id: string;
+  role: "user" | "assistant" | "system";
+  origin: "app" | "telegram" | "schedule" | "system";
+  body: string;
+  createdAt: number;
+};
+
+export type NativeSupervisorConversationReset = { ok: boolean; message: string };
 
 export type NativeSupervisorSchedule = {
   id: string;
@@ -119,6 +132,11 @@ export type NativeSupervisorStartConfig = {
   modelEndpoint?: string;
   modelApiKey?: string;
   modelName?: string;
+  /** Telegram-only proxy data is assembled from protected launch state. */
+  telegramProxyType?: "none" | "http" | "socks5";
+  telegramProxyHost?: string;
+  telegramProxyPort?: number;
+  telegramProxyCredential?: string;
   /** Protected JSON payload assembled at launch time; never persisted in JS state. */
   mcpConfigJson?: string;
   restartAfterBoot?: boolean;
@@ -139,11 +157,15 @@ type SupervisorModule = {
   enqueueTask(task: { id: string; body: string }): Promise<NativeSupervisorTask>;
   listTasks(): Promise<NativeSupervisorTask[]>;
   cancelTask(taskId: string): Promise<NativeSupervisorTask>;
+  listConversation(): Promise<NativeSupervisorConversationEntry[]>;
+  resetConversation(): Promise<NativeSupervisorConversationReset>;
   upsertSchedule(schedule: NativeSupervisorScheduleInput): Promise<NativeSupervisorSchedule>;
   listSchedules(): Promise<NativeSupervisorSchedule[]>;
   setScheduleEnabled(scheduleId: string, enabled: boolean): Promise<NativeSupervisorSchedule>;
   deleteSchedule(scheduleId: string): Promise<{ status: "deleted" }>;
   listScheduleRuns(): Promise<NativeSupervisorScheduleRun[]>;
+  testTelegramGateway(config: Pick<NativeSupervisorStartConfig, "telegramToken" | "telegramProxyType" | "telegramProxyHost" | "telegramProxyPort" | "telegramProxyCredential">): Promise<NativeTelegramGatewayTest>;
+  sendTelegramTestMessage(config: Pick<NativeSupervisorStartConfig, "telegramToken" | "ownerChatId" | "telegramProxyType" | "telegramProxyHost" | "telegramProxyPort" | "telegramProxyCredential">): Promise<NativeTelegramTestMessage>;
   preflightModel(config: Pick<NativeSupervisorStartConfig, "modelProvider" | "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight>;
   startSupervisor(config: NativeSupervisorStartConfig): Promise<{ status: "starting" }>;
   updateMcpRuntimeConfig(mcpConfigJson?: string): Promise<{ status: "updated" }>;

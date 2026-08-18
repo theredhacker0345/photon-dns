@@ -10,7 +10,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import { useSupervisorTelemetry } from "@/hooks/use-supervisor-telemetry";
-import { defaultHostRuntimePolicy, requiresModelApiKey, type ModelProviderId } from "@/lib/host-contracts";
+import { defaultHostRuntimePolicy, requiresModelApiKey, type ModelProviderId, type TelegramProxyType } from "@/lib/host-contracts";
 import type { McpAuthMode } from "@/lib/mcp-contracts";
 import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
@@ -30,6 +30,11 @@ export default function SettingsScreen() {
   const [modelName, setModelName] = useState(config.modelName);
   const [modelApiKey, setModelApiKey] = useState("");
   const [token, setToken] = useState("");
+  const [telegramProxyType, setTelegramProxyType] = useState<TelegramProxyType>(config.telegramProxy.type);
+  const [telegramProxyHost, setTelegramProxyHost] = useState(config.telegramProxy.host);
+  const [telegramProxyPort, setTelegramProxyPort] = useState(config.telegramProxy.port ? String(config.telegramProxy.port) : "");
+  const [telegramProxyCredential, setTelegramProxyCredential] = useState("");
+  const [clearTelegramProxyCredential, setClearTelegramProxyCredential] = useState(false);
   const [chargingAware, setChargingAware] = useState(config.policy.chargingAware);
   const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
   const [lowBatteryPercent, setLowBatteryPercent] = useState(String(config.policy.lowBatteryPercent));
@@ -98,6 +103,13 @@ export default function SettingsScreen() {
       modelEndpoint: endpoint,
       modelName,
       telegramToken: token,
+      telegramProxy: {
+        type: telegramProxyType,
+        host: telegramProxyHost,
+        port: telegramProxyType === "none" ? null : Number(telegramProxyPort),
+      },
+      telegramProxyCredential,
+      clearTelegramProxyCredential,
       modelApiKey,
       providerConnectionId: addingProvider ? null : activeProviderConnectionId,
       createProviderConnection: addingProvider || !activeProviderConnectionId,
@@ -117,6 +129,8 @@ export default function SettingsScreen() {
     setSaving(false);
     if (result.ok) {
       setToken("");
+      setTelegramProxyCredential("");
+      setClearTelegramProxyCredential(false);
       setModelApiKey("");
       setAddingProvider(false);
       if (endpoint && (modelApiKey.trim() || config.hasModelApiKey || !requiresModelApiKey(modelProvider))) {
@@ -340,6 +354,25 @@ export default function SettingsScreen() {
           <Label text="Private owner Telegram user ID" color={colors.muted} />
           <TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="number-pad" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Text style={[styles.helper, { color: colors.muted }]}>Pocket Relay accepts one private owner identity only. Group IDs are intentionally rejected because a group can contain other users.</Text>
+          <Label text="Telegram network route" color={colors.muted} />
+          <View style={styles.authSelector}>
+            {(["none", "http", "socks5"] as TelegramProxyType[]).map((type) => {
+              const selected = telegramProxyType === type;
+              const label = type === "none" ? "Direct" : type === "http" ? "HTTP" : "SOCKS5";
+              return <Pressable key={type} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => { setTelegramProxyType(type); if (type === "none") setClearTelegramProxyCredential(true); }} style={({ pressed }) => [styles.authOption, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? `${colors.primary}16` : colors.background }, pressed && styles.themeOptionPressed]}><Text style={[styles.authOptionText, { color: selected ? colors.primary : colors.foreground }]}>{label}</Text></Pressable>;
+            })}
+          </View>
+          {telegramProxyType !== "none" ? <>
+            <Text style={[styles.helper, { color: colors.muted }]}>Routes only Telegram through the selected proxy. Model-provider and MCP traffic keep their own direct, HTTPS-only paths.</Text>
+            <View style={styles.resourceFields}>
+              <View style={styles.resourceField}><Label text="Proxy host" color={colors.muted} /><TextInput value={telegramProxyHost} onChangeText={setTelegramProxyHost} placeholder="proxy.example.net" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
+              <View style={styles.resourceField}><Label text="Port" color={colors.muted} /><TextInput value={telegramProxyPort} onChangeText={setTelegramProxyPort} placeholder={telegramProxyType === "http" ? "8080" : "1080"} placeholderTextColor={colors.muted} keyboardType="number-pad" maxLength={5} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></View>
+            </View>
+            <Label text="Proxy username:password · optional" color={colors.muted} />
+            <TextInput value={telegramProxyCredential} onChangeText={(value) => { setTelegramProxyCredential(value); setClearTelegramProxyCredential(false); }} placeholder={config.telegramProxy.hasCredentials && !clearTelegramProxyCredential ? "Protected credential saved — leave blank to keep" : "username:password"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+            {config.telegramProxy.hasCredentials && !clearTelegramProxyCredential ? <Pressable accessibilityRole="button" onPress={() => setClearTelegramProxyCredential(true)} style={({ pressed }) => [styles.inlineDangerButton, { borderColor: `${colors.error}55`, backgroundColor: `${colors.error}12` }, pressed && styles.themeOptionPressed]}><Text style={[styles.inlineDangerText, { color: colors.error }]}>Clear saved proxy credential when I save</Text></Pressable> : null}
+            {clearTelegramProxyCredential ? <Text style={[styles.helper, { color: colors.warning }]}>The saved proxy credential will be removed when you save this setup.</Text> : null}
+          </> : null}
           {Platform.OS === "web" ? <View style={[styles.webNotice, { backgroundColor: `${colors.warning}16` }]}><MaterialIcons name="warning-amber" size={17} color={colors.warning} /><Text style={[styles.webNoticeText, { color: colors.warning }]}>Web preview uses temporary browser storage. Use Android for Keystore protection.</Text></View> : null}
         </PressableCard>
 
@@ -417,6 +450,6 @@ function Label({ text, color }: { text: string; color: string }) { return <Text 
 
 const styles = StyleSheet.create({
   content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, providerConnectionsCard: { gap: 9 }, providerConnectionList: { gap: 7 }, providerConnectionRow: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 68, borderWidth: 1, borderRadius: 14, padding: 10 }, providerConnectionIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" }, providerConnectionCopy: { flex: 1, gap: 2 }, providerConnectionTitle: { fontSize: 13, fontWeight: "900" }, providerConnectionDetail: { fontSize: 11, lineHeight: 15, fontWeight: "700" }, providerConnectionEndpoint: { fontSize: 10, lineHeight: 14, fontWeight: "600" }, providerActiveLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 }, activeProviderSummary: { gap: 4, borderWidth: 1, borderRadius: 14, padding: 12 }, activeProviderSummaryHeader: { flexDirection: "row", alignItems: "center", gap: 7 }, activeProviderSummaryTitle: { fontSize: 12, fontWeight: "900" }, activeProviderSummaryValue: { fontSize: 15, fontWeight: "900", marginTop: 2 }, activeProviderSummaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
-  securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" },
+  securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, inlineDangerButton: { alignSelf: "flex-start", minHeight: 34, borderWidth: 1, borderRadius: 10, justifyContent: "center", paddingHorizontal: 10 }, inlineDangerText: { fontSize: 11, fontWeight: "900" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });

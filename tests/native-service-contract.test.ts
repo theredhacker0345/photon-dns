@@ -148,6 +148,37 @@ describe("native Android host declaration contract", () => {
     expect(service).toContain("fun clearPersistedConfiguration");
   });
 
+  it("threads Telegram-only proxy settings and the bounded shared owner conversation across native boundaries", () => {
+    const worker = read("python/pocket_hermes_worker.py");
+    const module = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
+    const service = read("java/expo/modules/pockethermessupervisor/PocketHermesSupervisorService.kt");
+    const contract = readFileSync(join(process.cwd(), "modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule.ts"), "utf8");
+
+    expect(worker).toContain("def _normalize_telegram_proxy(");
+    expect(worker).toContain('os.environ["TELEGRAM_PROXY"] = telegram_proxy_url');
+    expect(worker).toContain("def test_telegram_gateway(");
+    expect(worker).toContain("def send_telegram_test_message(");
+    expect(worker).toContain("def list_conversation_json()");
+    expect(worker).toContain("def reset_conversation_json()");
+    expect(worker).toContain("_MAX_CONVERSATION_ENTRIES = 100");
+    expect(worker).toContain("_redact_conversation_text");
+
+    expect(service).toContain("telegramProxyType");
+    expect(service).toContain("PREF_TELEGRAM_PROXY_CREDENTIAL");
+    expect(service).toContain("EXTRA_TELEGRAM_PROXY_PORT");
+    expect(module).toContain("telegramProxyCredential");
+    expect(module).toContain('AsyncFunction("testTelegramGateway")');
+    expect(module).toContain('AsyncFunction("sendTelegramTestMessage")');
+    expect(module).toContain('AsyncFunction("listConversation")');
+    expect(module).toContain('AsyncFunction("resetConversation")');
+
+    expect(contract).toContain("telegramProxyType?: \"none\" | \"http\" | \"socks5\"");
+    expect(contract).toContain("telegramProxyCredential?: string");
+    expect(contract).toContain("NativeSupervisorConversationEntry");
+    expect(contract).toContain("listConversation(): Promise<NativeSupervisorConversationEntry[]>");
+    expect(contract).toContain("resetConversation(): Promise<NativeSupervisorConversationReset>");
+  });
+
   it("keeps code evaluation in a non-exported isolated QuickJS service with no host capabilities", () => {
     const manifest = read("AndroidManifest.xml");
     const policy = read("java/expo/modules/pockethermessupervisor/CodeSandboxPolicy.kt");

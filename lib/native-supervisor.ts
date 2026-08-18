@@ -10,6 +10,7 @@ import PocketHermesSupervisorModule, {
   type NativeModelPreflight,
   type NativeSupervisorContext,
   type NativeSupervisorContextCompression,
+  type NativeSupervisorConversationEntry,
   type NativeSupervisorDiagnostic,
   type NativeSupervisorHealth,
   type NativeSupervisorSchedule,
@@ -17,6 +18,8 @@ import PocketHermesSupervisorModule, {
   type NativeSupervisorScheduleRun,
   type NativeSupervisorStartConfig,
   type NativeSupervisorTask,
+  type NativeTelegramGatewayTest,
+  type NativeTelegramTestMessage,
 } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
 import { formatTelemetryBytes, normalizeSupervisorTelemetry, type SupervisorTelemetry } from "./supervisor-telemetry";
 
@@ -106,6 +109,26 @@ export async function cancelNativeTask(taskId: string): Promise<NativeSupervisor
   }
 }
 
+/** Reads the bounded, redacted owner transcript shared by the app and Telegram. */
+export async function listNativeConversation(): Promise<NativeSupervisorConversationEntry[]> {
+  if (Platform.OS === "web") return [];
+  try {
+    return await PocketHermesSupervisorModule.listConversation();
+  } catch {
+    return [];
+  }
+}
+
+/** Clears the app-private mirrored transcript and resets the owner’s shared model session. */
+export async function resetNativeConversation(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    return (await PocketHermesSupervisorModule.resetConversation()).ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Saves a validated, owner-only schedule in Android private storage. */
 export async function upsertNativeSchedule(schedule: NativeSupervisorScheduleInput): Promise<NativeSupervisorSchedule | null> {
   if (Platform.OS === "web") return null;
@@ -157,6 +180,26 @@ export async function preflightNativeModel(config: Pick<NativeSupervisorStartCon
   if (Platform.OS === "web") return null;
   try {
     return await PocketHermesSupervisorModule.preflightModel(config);
+  } catch {
+    return null;
+  }
+}
+
+/** Verifies the private bot through the exact native HTTP/SOCKS5 route used by the gateway. */
+export async function testNativeTelegramGateway(config: Pick<NativeSupervisorStartConfig, "telegramToken" | "telegramProxyType" | "telegramProxyHost" | "telegramProxyPort" | "telegramProxyCredential">): Promise<NativeTelegramGatewayTest | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.testTelegramGateway(config);
+  } catch {
+    return null;
+  }
+}
+
+/** Sends the owner-only confirmation through the exact native HTTP/SOCKS5 route used by the gateway. */
+export async function sendNativeTelegramTestMessage(config: Pick<NativeSupervisorStartConfig, "telegramToken" | "ownerChatId" | "telegramProxyType" | "telegramProxyHost" | "telegramProxyPort" | "telegramProxyCredential">): Promise<NativeTelegramTestMessage | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.sendTelegramTestMessage(config);
   } catch {
     return null;
   }

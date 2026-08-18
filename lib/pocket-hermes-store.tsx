@@ -4,10 +4,10 @@ import { PropsWithChildren, createContext, useCallback, useContext, useEffect, u
 import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
-import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
+import { canStartWorker, defaultHostRuntimePolicy, defaultTelegramProxyConfiguration, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, isSafeTelegramProxyConfiguration, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId, type PublicTelegramProxyConfiguration, type TelegramProxyType } from "@/lib/host-contracts";
 import { fetchProviderModels, getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
-import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
+import { clearNativeSupervisorConfiguration, preflightNativeModel, sendNativeTelegramTestMessage, startNativeSupervisor, stopNativeSupervisor, testNativeTelegramGateway, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
 import { discoverRemoteMcpTools, type McpDiscoveryResult } from "@/lib/mcp-client";
 import { MAX_REMOTE_MCP_SERVERS, normalizeRemoteMcpEndpoint, validateRemoteMcpDraft, type McpAuthMode, type McpToolApproval, type McpToolManifestItem, type RemoteMcpServer } from "@/lib/mcp-contracts";
 
@@ -26,6 +26,7 @@ type PublicHostConfig = {
   modelName: string;
   hasTelegramToken: boolean;
   hasModelApiKey: boolean;
+  telegramProxy: PublicTelegramProxyConfiguration;
   policy: HostRuntimePolicy;
 };
 type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null };
@@ -39,6 +40,9 @@ type SaveConfigurationInput = {
   modelApiKey?: string;
   providerConnectionId?: string | null;
   createProviderConnection?: boolean;
+  telegramProxy?: Pick<PublicTelegramProxyConfiguration, "type" | "host" | "port">;
+  telegramProxyCredential?: string;
+  clearTelegramProxyCredential?: boolean;
   policy?: HostRuntimePolicy;
 };
 type GatewayTestResult = { ok: boolean; message: string; botName?: string };
@@ -73,6 +77,7 @@ type PocketHermesContextValue = PersistedState & {
 
 const STORAGE_KEY = "pocket-hermes.control-plane.v1";
 const TELEGRAM_TOKEN_KEY = "pocket-hermes.telegram-token";
+const TELEGRAM_PROXY_CREDENTIAL_KEY = "pocket-hermes.telegram-proxy-credential";
 const MODEL_API_KEY = "pocket-hermes.model-api-key";
 const PROVIDER_CREDENTIAL_PREFIX = "pocket-hermes.provider-credential.";
 const MCP_CREDENTIAL_PREFIX = "pocket-hermes.mcp-credential.";
@@ -85,6 +90,7 @@ const emptyConfig: PublicHostConfig = {
   modelName: "",
   hasTelegramToken: false,
   hasModelApiKey: false,
+  telegramProxy: defaultTelegramProxyConfiguration,
   policy: defaultHostRuntimePolicy,
 };
 const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null };
@@ -180,7 +186,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       try {
         const [saved, favoriteIds] = await Promise.all([AsyncStorage.getItem(STORAGE_KEY), loadFavoriteModelIds()]);
         const parsed = saved ? (JSON.parse(saved) as PersistedState) : initialState;
-        const [tokenAvailable, modelKeyAvailable] = await Promise.all([hasSecret(TELEGRAM_TOKEN_KEY), hasSecret(MODEL_API_KEY)]);
+        const [tokenAvailable, modelKeyAvailable, proxyCredentialAvailable] = await Promise.all([hasSecret(TELEGRAM_TOKEN_KEY), hasSecret(MODEL_API_KEY), hasSecret(TELEGRAM_PROXY_CREDENTIAL_KEY)]);
         if (active) {
           const providerConnections = normalizeSavedProviderConnections(parsed.providerConnections);
           const activeProviderConnectionId = providerConnections.some((connection) => connection.id === parsed.activeProviderConnectionId) ? parsed.activeProviderConnectionId : null;
@@ -192,6 +198,11 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
               policy: { ...defaultHostRuntimePolicy, ...parsed.config?.policy },
               hasTelegramToken: tokenAvailable,
               hasModelApiKey: modelKeyAvailable,
+              telegramProxy: (() => {
+                const candidate = parsed.config?.telegramProxy;
+                if (!candidate || !isSafeTelegramProxyConfiguration(candidate)) return defaultTelegramProxyConfiguration;
+                return { ...candidate, hasCredentials: candidate.type === "none" ? false : proxyCredentialAvailable };
+              })(),
             },
             modelCatalog: Array.isArray(parsed.modelCatalog) ? parsed.modelCatalog.slice(0, 200) : [],
             modelCatalogFetchedAt: typeof parsed.modelCatalogFetchedAt === "string" ? parsed.modelCatalogFetchedAt : null,
@@ -242,6 +253,14 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     const modelName = input.modelName?.trim() ?? state.config.modelName;
     const suppliedModelApiKey = input.modelApiKey?.trim() ?? "";
     const policy = input.policy ?? state.config.policy;
+    const requestedProxy = input.telegramProxy ?? state.config.telegramProxy;
+    const telegramProxy: PublicTelegramProxyConfiguration = {
+      type: requestedProxy.type as TelegramProxyType,
+      host: requestedProxy.type === "none" ? "" : requestedProxy.host.trim(),
+      port: requestedProxy.type === "none" ? null : requestedProxy.port,
+      hasCredentials: requestedProxy.type !== "none" && !input.clearTelegramProxyCredential
+        && (Boolean(input.telegramProxyCredential?.trim()) || state.config.telegramProxy.hasCredentials),
+    };
     const existingConnectionId = input.providerConnectionId ?? state.activeProviderConnectionId;
     const connectionId = input.createProviderConnection || !existingConnectionId ? createId("provider") : existingConnectionId;
     if (!isValidTelegramChatId(allowedChatId)) return { ok: false, message: "Use the positive numeric Telegram user ID for your private owner chat. Groups are not supported by the owner lock." };
@@ -252,8 +271,11 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       return { ok: false, message };
     }
     if (!isSafeRuntimePolicy(policy)) return { ok: false, message: "The selected host power and storage policy is outside the supported safe range." };
+    if (!isSafeTelegramProxyConfiguration(telegramProxy)) return { ok: false, message: "Use no proxy, or enter a valid HTTP/SOCKS5 proxy hostname and port." };
     if (suppliedToken) await saveSecret(TELEGRAM_TOKEN_KEY, suppliedToken);
     if (suppliedModelApiKey) await saveSecret(providerCredentialKey(connectionId), suppliedModelApiKey);
+    if (telegramProxy.type === "none" || input.clearTelegramProxyCredential) await deleteSecret(TELEGRAM_PROXY_CREDENTIAL_KEY);
+    else if (input.telegramProxyCredential?.trim()) await saveSecret(TELEGRAM_PROXY_CREDENTIAL_KEY, input.telegramProxyCredential.trim());
     const [tokenAvailable, modelKeyAvailable] = await Promise.all([
       suppliedToken ? Promise.resolve(true) : hasSecret(TELEGRAM_TOKEN_KEY),
       suppliedModelApiKey ? Promise.resolve(true) : hasSecret(providerCredentialKey(connectionId)),
@@ -275,6 +297,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
         modelName,
         hasTelegramToken: true,
         hasModelApiKey: modelKeyAvailable,
+        telegramProxy,
         policy,
       },
       phase: "ready",
@@ -404,10 +427,11 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   }, []);
 
   const prepareRuntime = useCallback(async (readiness?: HostReadinessSnapshot) => {
-    const [telegramToken, modelApiKey, mcpConfigJson] = await Promise.all([
+    const [telegramToken, modelApiKey, mcpConfigJson, telegramProxyCredential] = await Promise.all([
       readSecret(TELEGRAM_TOKEN_KEY),
       state.activeProviderConnectionId ? readSecret(providerCredentialKey(state.activeProviderConnectionId)) : readSecret(MODEL_API_KEY),
       createMcpRuntimeConfig(state.mcpServers, state.mcpTools, state.mcpApprovals),
+      readSecret(TELEGRAM_PROXY_CREDENTIAL_KEY),
     ]);
     const currentConfig = state.config;
     const startable = canStartWorker({
@@ -434,6 +458,10 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
           maximumProcessRamBytes: currentConfig.policy.maximumProcessRamBytes,
           maximumWorkspaceBytes: currentConfig.policy.maximumWorkspaceBytes,
           mcpConfigJson,
+          telegramProxyType: currentConfig.telegramProxy.type,
+          telegramProxyHost: currentConfig.telegramProxy.host || undefined,
+          telegramProxyPort: currentConfig.telegramProxy.port ?? undefined,
+          telegramProxyCredential: telegramProxyCredential || undefined,
         })
       : false;
     setState((current) => {
@@ -453,6 +481,26 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   const testGateway = useCallback(async (): Promise<GatewayTestResult> => {
     const token = await readSecret(TELEGRAM_TOKEN_KEY);
     if (!token) return { ok: false, message: "Add a protected Telegram bot token before testing the gateway." };
+    const proxyCredential = await readSecret(TELEGRAM_PROXY_CREDENTIAL_KEY);
+    const nativeResult = await testNativeTelegramGateway({
+      telegramToken: token,
+      telegramProxyType: state.config.telegramProxy.type,
+      telegramProxyHost: state.config.telegramProxy.host || undefined,
+      telegramProxyPort: state.config.telegramProxy.port ?? undefined,
+      telegramProxyCredential: proxyCredential || undefined,
+    });
+    if (nativeResult) {
+      if (!nativeResult.ok) {
+        appendEvent({ title: "Gateway check failed", detail: nativeResult.message, severity: "warning" });
+        return { ok: false, message: nativeResult.message };
+      }
+      const botName = nativeResult.botName ? `@${nativeResult.botName}` : undefined;
+      appendEvent({ title: "Gateway credential verified", detail: "Telegram accepted the protected bot credential through the configured device route.", severity: "success" });
+      return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName };
+    }
+    if (state.config.telegramProxy.type !== "none") {
+      return { ok: false, message: "Telegram proxy checks require the installed Android build; web preview cannot route traffic through a device proxy." };
+    }
     try {
       const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
       const payload = (await response.json()) as { ok?: boolean; result?: { username?: string; first_name?: string }; description?: string };
@@ -467,12 +515,33 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Gateway check unavailable", detail: "Pocket Relay could not reach Telegram. Check the phone’s network connection and try again.", severity: "warning" });
       return { ok: false, message: "Pocket Relay could not reach Telegram. Check the phone’s network and try again." };
     }
-  }, [appendEvent]);
+  }, [appendEvent, state.config.telegramProxy]);
 
   const sendTestMessage = useCallback(async (): Promise<TestMessageResult> => {
     const token = await readSecret(TELEGRAM_TOKEN_KEY);
     const allowedChatId = state.config.allowedChatId;
     if (!token || !isValidTelegramChatId(allowedChatId)) return { ok: false, message: "Save a protected bot token and a private owner Telegram user ID before sending a test message." };
+    const proxyCredential = await readSecret(TELEGRAM_PROXY_CREDENTIAL_KEY);
+    const nativeResult = await sendNativeTelegramTestMessage({
+      telegramToken: token,
+      ownerChatId: allowedChatId,
+      telegramProxyType: state.config.telegramProxy.type,
+      telegramProxyHost: state.config.telegramProxy.host || undefined,
+      telegramProxyPort: state.config.telegramProxy.port ?? undefined,
+      telegramProxyCredential: proxyCredential || undefined,
+    });
+    if (nativeResult) {
+      if (!nativeResult.ok || typeof nativeResult.messageId !== "number") {
+        appendEvent({ title: "Test message failed", detail: nativeResult.message, severity: "warning" });
+        return { ok: false, message: nativeResult.message };
+      }
+      const deliveredAt = typeof nativeResult.deliveredAt === "number" ? new Date(nativeResult.deliveredAt * 1000).toISOString() : new Date().toISOString();
+      appendEvent({ title: "Test message delivered", detail: `Telegram confirmed receipt as message #${nativeResult.messageId}.`, severity: "success" });
+      return { ok: true, message: nativeResult.message, messageId: nativeResult.messageId, deliveredAt };
+    }
+    if (state.config.telegramProxy.type !== "none") {
+      return { ok: false, message: "Telegram proxy delivery checks require the installed Android build; web preview cannot route traffic through a device proxy." };
+    }
     try {
       const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
@@ -491,7 +560,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Test message unavailable", detail: "Pocket Relay could not reach Telegram. Check the phone’s network and try again.", severity: "warning" });
       return { ok: false, message: "Pocket Relay could not reach Telegram. Check the phone’s network and try again." };
     }
-  }, [appendEvent, state.config.allowedChatId]);
+  }, [appendEvent, state.config.allowedChatId, state.config.telegramProxy]);
 
   const testModel = useCallback(async (): Promise<ModelTestResult> => {
     const modelApiKey = state.activeProviderConnectionId ? await readSecret(providerCredentialKey(state.activeProviderConnectionId)) : await readSecret(MODEL_API_KEY);
@@ -544,10 +613,10 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
   }, [state.favoriteModelIds]);
 
   const clearSensitiveConfiguration = useCallback(async () => {
-    await Promise.all([deleteSecret(TELEGRAM_TOKEN_KEY), deleteSecret(MODEL_API_KEY), ...state.providerConnections.map((connection) => deleteSecret(providerCredentialKey(connection.id))), clearNativeSupervisorConfiguration()]);
+    await Promise.all([deleteSecret(TELEGRAM_TOKEN_KEY), deleteSecret(TELEGRAM_PROXY_CREDENTIAL_KEY), deleteSecret(MODEL_API_KEY), ...state.providerConnections.map((connection) => deleteSecret(providerCredentialKey(connection.id))), clearNativeSupervisorConfiguration()]);
     setState((current) => ({
       ...current,
-      config: { ...current.config, hasTelegramToken: false, hasModelApiKey: false },
+      config: { ...current.config, hasTelegramToken: false, hasModelApiKey: false, telegramProxy: defaultTelegramProxyConfiguration },
       providerConnections: current.providerConnections.map((connection) => ({ ...connection, hasApiKey: false })),
       modelCatalog: [],
       modelCatalogFetchedAt: null,

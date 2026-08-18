@@ -39,6 +39,10 @@ data class PocketHermesWorkerConfig(
   val maximumCpuPercent: Int = 65,
   val maximumProcessRamBytes: Long = 512L * 1024L * 1024L,
   val maximumWorkspaceBytes: Long = 512L * 1024L * 1024L,
+  val telegramProxyType: String = "none",
+  val telegramProxyHost: String? = null,
+  val telegramProxyPort: Int? = null,
+  val telegramProxyCredential: String? = null,
 )
 
 /**
@@ -218,6 +222,10 @@ class PocketHermesSupervisorService : Service() {
             config.modelProvider,
             config.mcpConfigJson,
             config.maximumWorkspaceBytes,
+            config.telegramProxyType,
+            config.telegramProxyHost,
+            config.telegramProxyPort,
+            config.telegramProxyCredential,
           )
         refreshWorkerHealth()
       } catch (error: Exception) {
@@ -389,6 +397,10 @@ class PocketHermesSupervisorService : Service() {
       .putString(PREF_MODEL_ENDPOINT, config.modelEndpoint)
       .putString(PREF_MODEL_API_KEY, config.modelApiKey)
       .putString(PREF_MODEL_NAME, config.modelName)
+      .putString(PREF_TELEGRAM_PROXY_TYPE, config.telegramProxyType)
+      .putString(PREF_TELEGRAM_PROXY_HOST, config.telegramProxyHost)
+      .putInt(PREF_TELEGRAM_PROXY_PORT, config.telegramProxyPort ?: 0)
+      .putString(PREF_TELEGRAM_PROXY_CREDENTIAL, config.telegramProxyCredential)
       .putString(PREF_MCP_CONFIG_JSON, config.mcpConfigJson)
       .putBoolean(PREF_RESTART_AFTER_BOOT, config.restartAfterBoot)
       .putBoolean(PREF_CHARGING_AWARE, config.chargingAware)
@@ -409,6 +421,10 @@ class PocketHermesSupervisorService : Service() {
         val endpoint = getString(PREF_MODEL_ENDPOINT, null)
         val apiKey = getString(PREF_MODEL_API_KEY, null)
         val modelName = getString(PREF_MODEL_NAME, null)
+        val proxyType = getString(PREF_TELEGRAM_PROXY_TYPE, "none") ?: "none"
+        val proxyHost = getString(PREF_TELEGRAM_PROXY_HOST, null)
+        val proxyPort = getInt(PREF_TELEGRAM_PROXY_PORT, 0).takeIf { it in 1..65535 }
+        val proxyCredential = getString(PREF_TELEGRAM_PROXY_CREDENTIAL, null)
         val mcpConfigJson = getString(PREF_MCP_CONFIG_JSON, null)
         if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || modelName.isNullOrBlank() || (!isLocalModelProvider(provider) && apiKey.isNullOrBlank())) null
         else PocketHermesWorkerConfig(
@@ -426,6 +442,10 @@ class PocketHermesSupervisorService : Service() {
           getInt(PREF_MAXIMUM_CPU_PERCENT, 65).coerceIn(10, 95),
           getLong(PREF_MAXIMUM_PROCESS_RAM_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_PROCESS_RAM_BYTES, MAXIMUM_RESOURCE_BYTES),
           getLong(PREF_MAXIMUM_WORKSPACE_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_WORKSPACE_BYTES, MAXIMUM_RESOURCE_BYTES),
+          proxyType,
+          proxyHost,
+          proxyPort,
+          proxyCredential,
         )
       }
     } catch (_: Exception) {
@@ -440,6 +460,10 @@ class PocketHermesSupervisorService : Service() {
     val endpoint = getStringExtra(EXTRA_MODEL_ENDPOINT)
     val apiKey = getStringExtra(EXTRA_MODEL_API_KEY)
     val modelName = getStringExtra(EXTRA_MODEL_NAME)
+    val proxyType = getStringExtra(EXTRA_TELEGRAM_PROXY_TYPE) ?: "none"
+    val proxyHost = getStringExtra(EXTRA_TELEGRAM_PROXY_HOST)
+    val proxyPort = getIntExtra(EXTRA_TELEGRAM_PROXY_PORT, 0).takeIf { it in 1..65535 }
+    val proxyCredential = getStringExtra(EXTRA_TELEGRAM_PROXY_CREDENTIAL)
     val mcpConfigJson = getStringExtra(EXTRA_MCP_CONFIG_JSON)
     if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || modelName.isNullOrBlank() || (!isLocalModelProvider(provider) && apiKey.isNullOrBlank())) return null
     return PocketHermesWorkerConfig(
@@ -457,6 +481,10 @@ class PocketHermesSupervisorService : Service() {
       getIntExtra(EXTRA_MAXIMUM_CPU_PERCENT, 65).coerceIn(10, 95),
       getLongExtra(EXTRA_MAXIMUM_PROCESS_RAM_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_PROCESS_RAM_BYTES, MAXIMUM_RESOURCE_BYTES),
       getLongExtra(EXTRA_MAXIMUM_WORKSPACE_BYTES, 512L * 1024L * 1024L).coerceIn(MINIMUM_WORKSPACE_BYTES, MAXIMUM_RESOURCE_BYTES),
+      proxyType,
+      proxyHost,
+      proxyPort,
+      proxyCredential,
     )
   }
 
@@ -472,6 +500,10 @@ class PocketHermesSupervisorService : Service() {
     private const val PREF_MODEL_ENDPOINT = "model-endpoint"
     private const val PREF_MODEL_API_KEY = "model-api-key"
     private const val PREF_MODEL_NAME = "model-name"
+    private const val PREF_TELEGRAM_PROXY_TYPE = "telegram-proxy-type"
+    private const val PREF_TELEGRAM_PROXY_HOST = "telegram-proxy-host"
+    private const val PREF_TELEGRAM_PROXY_PORT = "telegram-proxy-port"
+    private const val PREF_TELEGRAM_PROXY_CREDENTIAL = "telegram-proxy-credential"
     private const val PREF_MCP_CONFIG_JSON = "mcp-config-json"
     private const val PREF_RESTART_AFTER_BOOT = "restart-after-boot"
     private const val PREF_CHARGING_AWARE = "charging-aware"
@@ -486,6 +518,10 @@ class PocketHermesSupervisorService : Service() {
     private const val EXTRA_MODEL_ENDPOINT = "expo.modules.pockethermessupervisor.MODEL_ENDPOINT"
     private const val EXTRA_MODEL_API_KEY = "expo.modules.pockethermessupervisor.MODEL_API_KEY"
     private const val EXTRA_MODEL_NAME = "expo.modules.pockethermessupervisor.MODEL_NAME"
+    private const val EXTRA_TELEGRAM_PROXY_TYPE = "expo.modules.pockethermessupervisor.TELEGRAM_PROXY_TYPE"
+    private const val EXTRA_TELEGRAM_PROXY_HOST = "expo.modules.pockethermessupervisor.TELEGRAM_PROXY_HOST"
+    private const val EXTRA_TELEGRAM_PROXY_PORT = "expo.modules.pockethermessupervisor.TELEGRAM_PROXY_PORT"
+    private const val EXTRA_TELEGRAM_PROXY_CREDENTIAL = "expo.modules.pockethermessupervisor.TELEGRAM_PROXY_CREDENTIAL"
     private const val EXTRA_MCP_CONFIG_JSON = "expo.modules.pockethermessupervisor.MCP_CONFIG_JSON"
     private const val ACTION_UPDATE_MCP_CONFIG = "expo.modules.pockethermessupervisor.UPDATE_MCP_CONFIG"
     private const val EXTRA_RESTART_AFTER_BOOT = "expo.modules.pockethermessupervisor.RESTART_AFTER_BOOT"
@@ -512,6 +548,10 @@ class PocketHermesSupervisorService : Service() {
         putExtra(EXTRA_MODEL_ENDPOINT, config.modelEndpoint)
         putExtra(EXTRA_MODEL_API_KEY, config.modelApiKey)
         putExtra(EXTRA_MODEL_NAME, config.modelName)
+        putExtra(EXTRA_TELEGRAM_PROXY_TYPE, config.telegramProxyType)
+        putExtra(EXTRA_TELEGRAM_PROXY_HOST, config.telegramProxyHost)
+        putExtra(EXTRA_TELEGRAM_PROXY_PORT, config.telegramProxyPort ?: 0)
+        putExtra(EXTRA_TELEGRAM_PROXY_CREDENTIAL, config.telegramProxyCredential)
         putExtra(EXTRA_MCP_CONFIG_JSON, config.mcpConfigJson)
         putExtra(EXTRA_RESTART_AFTER_BOOT, config.restartAfterBoot)
         putExtra(EXTRA_CHARGING_AWARE, config.chargingAware)

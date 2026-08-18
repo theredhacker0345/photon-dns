@@ -49,6 +49,7 @@ def main() -> None:
         assert os.environ["TELEGRAM_ALLOW_ALL_USERS"] == "false"
         assert os.environ["TELEGRAM_GROUP_ALLOWED_USERS"] == ""
         assert os.environ["TELEGRAM_GROUP_ALLOWED_CHATS"] == ""
+        assert "TELEGRAM_PROXY" not in os.environ
         assert worker._embedded_gateway_toolsets() == []
         assert worker._workspace_limit_reason() is None
         try:
@@ -57,6 +58,43 @@ def main() -> None:
             pass
         else:
             raise AssertionError("worker accepted an undersized private workspace quota")
+
+        worker._configure_process(
+            telegram_token="123456:abcdefghijklmnopqrstuvwxyzABCDE",
+            owner_chat_id="123456789",
+            hermes_home=home,
+            model_endpoint="https://models.example.test/v1",
+            model_api_key="test-model-key",
+            model_name="test-model",
+            model_provider="openai",
+            telegram_proxy_type="socks5",
+            telegram_proxy_host="proxy.example.test",
+            telegram_proxy_port=1080,
+            telegram_proxy_credential="owner:protected",
+        )
+        assert os.environ["TELEGRAM_PROXY"] == "socks5://owner:protected@proxy.example.test:1080"
+        assert worker._normalize_telegram_proxy("http", "10.0.0.9", 8080, None) == "http://10.0.0.9:8080"
+        try:
+            worker._normalize_telegram_proxy("socks5", "proxy.example.test/path", 1080, None)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("worker accepted a Telegram proxy URL instead of a hostname")
+
+        worker._clear_conversation_ledger()
+        worker._record_conversation("user", "app", "Use the same owner session.")
+        worker._record_conversation("assistant", "telegram", "A token 123456:abcdefghijklmnopqrstuvwxyzABCDE must be redacted.")
+        for index in range(100):
+            worker._record_conversation("user", "telegram", f"bounded turn {index}")
+        conversation = json.loads(worker.list_conversation_json())
+        assert len(conversation) == 100
+        assert {entry["origin"] for entry in conversation}.issubset({"app", "telegram", "schedule", "system"})
+        assert all("abcdefghijklmnopqrstuvwxyzABCDE" not in entry["body"] for entry in conversation)
+        reset = json.loads(worker.reset_conversation_json())
+        assert reset["ok"] is True
+        reset_entries = json.loads(worker.list_conversation_json())
+        assert len(reset_entries) == 1
+        assert reset_entries[0]["origin"] == "system"
 
         # Queue persistence is deliberately testable without starting Hermes or
         # contacting any external service. A synthetic running marker prevents

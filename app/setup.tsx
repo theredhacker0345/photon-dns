@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 
@@ -9,7 +9,7 @@ import { useColors } from "@/hooks/use-colors";
 import { type HostReadiness, useHostReadiness } from "@/hooks/use-host-readiness";
 import { ModelCatalog } from "@/components/model-catalog";
 import { ModelProviderPicker } from "@/components/model-provider-picker";
-import { isAllowedModelEndpoint, requiresModelApiKey, type ModelProviderId } from "@/lib/host-contracts";
+import { isAllowedModelEndpoint, isSafeTelegramProxyConfiguration, requiresModelApiKey, type ModelProviderId, type TelegramProxyType } from "@/lib/host-contracts";
 import { getProviderPreset, type ModelCatalogEntry } from "@/lib/model-providers";
 import { isValidTelegramChatId } from "@/lib/pocket-hermes-policy";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
@@ -34,11 +34,21 @@ export default function HostSetupScreen() {
   const [modelName, setModelName] = useState(config.modelName);
   const [modelApiKey, setModelApiKey] = useState("");
   const [token, setToken] = useState("");
+  const [telegramProxyType, setTelegramProxyType] = useState<TelegramProxyType>(config.telegramProxy.type);
+  const [telegramProxyHost, setTelegramProxyHost] = useState(config.telegramProxy.host);
+  const [telegramProxyPort, setTelegramProxyPort] = useState(config.telegramProxy.port?.toString() ?? "");
+  const [telegramProxyCredential, setTelegramProxyCredential] = useState("");
   const [chargingAware, setChargingAware] = useState(true);
   const [restartAfterBoot, setRestartAfterBoot] = useState(config.policy.restartAfterBoot);
   const [saving, setSaving] = useState(false);
   const [discoveringModels, setDiscoveringModels] = useState(false);
   const readiness = useHostReadiness();
+  const telegramProxy = useMemo(() => ({
+    type: telegramProxyType,
+    host: telegramProxyType === "none" ? "" : telegramProxyHost.trim(),
+    port: telegramProxyType === "none" ? null : Number(telegramProxyPort),
+    hasCredentials: config.telegramProxy.hasCredentials || Boolean(telegramProxyCredential.trim()),
+  }), [config.telegramProxy.hasCredentials, telegramProxyCredential, telegramProxyHost, telegramProxyPort, telegramProxyType]);
 
   const selectProvider = (provider: ModelProviderId) => {
     setModelProvider(provider);
@@ -59,15 +69,15 @@ export default function HostSetupScreen() {
   const hasUsableToken = Boolean(token.trim()) || config.hasTelegramToken;
   const stepReady = useMemo(() => {
     if (step === 0) return Boolean(hostName.trim());
-    if (step === 1) return hasUsableToken && isValidTelegramChatId(allowedChatId.trim());
+    if (step === 1) return hasUsableToken && isValidTelegramChatId(allowedChatId.trim()) && isSafeTelegramProxyConfiguration(telegramProxy);
     if (step === 2) return Boolean(modelEndpoint.trim()) && isAllowedModelEndpoint(modelEndpoint, modelProvider) && Boolean(modelName.trim()) && (!requiresModelApiKey(modelProvider) || Boolean(modelApiKey.trim()) || config.hasModelApiKey);
     return true;
-  }, [allowedChatId, config.hasModelApiKey, hasUsableToken, hostName, modelApiKey, modelEndpoint, modelName, modelProvider, step]);
+  }, [allowedChatId, config.hasModelApiKey, hasUsableToken, hostName, modelApiKey, modelEndpoint, modelName, modelProvider, step, telegramProxy]);
 
   const validationHint = step === 0
     ? "Give this phone a recognisable name."
     : step === 1
-      ? !hasUsableToken ? "Add a Telegram bot token to continue." : "Use a numeric owner chat ID. Group IDs may begin with a minus sign."
+      ? !hasUsableToken ? "Add a Telegram bot token to continue." : !isValidTelegramChatId(allowedChatId.trim()) ? "Use a positive numeric owner chat ID. Groups are intentionally rejected." : !isSafeTelegramProxyConfiguration(telegramProxy) ? "Choose None or provide a proxy hostname and port from 1 to 65535." : ""
       : step === 2 && !modelEndpoint.trim()
         ? "Choose a provider endpoint."
       : step === 2 && !isAllowedModelEndpoint(modelEndpoint, modelProvider)
@@ -93,6 +103,8 @@ export default function HostSetupScreen() {
       modelName,
       modelApiKey,
       telegramToken: token,
+      telegramProxy: { type: telegramProxy.type, host: telegramProxy.host, port: telegramProxy.port },
+      telegramProxyCredential,
       policy: { ...config.policy, chargingAware, restartAfterBoot },
     });
     setSaving(false);
@@ -103,6 +115,7 @@ export default function HostSetupScreen() {
     }
     setToken("");
     setModelApiKey("");
+    setTelegramProxyCredential("");
     Alert.alert("Protected setup saved", "Run a safe Telegram credential check before opening the host dashboard.", [{ text: "Test gateway", onPress: () => router.replace("/gateway-test" as never) }]);
   };
 
@@ -131,7 +144,7 @@ export default function HostSetupScreen() {
         </View>
 
         {step === 0 ? <DeviceStep hostName={hostName} setHostName={setHostName} colors={colors} /> : null}
-        {step === 1 ? <TelegramStep token={token} setToken={setToken} allowedChatId={allowedChatId} setAllowedChatId={setAllowedChatId} hasTelegramToken={config.hasTelegramToken} colors={colors} /> : null}
+        {step === 1 ? <TelegramStep token={token} setToken={setToken} allowedChatId={allowedChatId} setAllowedChatId={setAllowedChatId} hasTelegramToken={config.hasTelegramToken} proxyType={telegramProxyType} setProxyType={setTelegramProxyType} proxyHost={telegramProxyHost} setProxyHost={setTelegramProxyHost} proxyPort={telegramProxyPort} setProxyPort={setTelegramProxyPort} proxyCredential={telegramProxyCredential} setProxyCredential={setTelegramProxyCredential} hasProxyCredential={config.telegramProxy.hasCredentials} colors={colors} /> : null}
         {step === 2 ? <ModelStep modelProvider={modelProvider} setModelProvider={selectProvider} modelEndpoint={modelEndpoint} setModelEndpoint={setModelEndpoint} modelName={modelName} setModelName={setModelName} modelApiKey={modelApiKey} setModelApiKey={setModelApiKey} hasModelApiKey={config.hasModelApiKey} modelCatalog={modelCatalog} modelCatalogFetchedAt={modelCatalogFetchedAt} providerConnection={providerConnection} discoveringModels={discoveringModels} refreshModels={refreshModels} selectModel={selectModel} colors={colors} /> : null}
         {step === 3 ? <PolicyStep chargingAware={chargingAware} setChargingAware={setChargingAware} restartAfterBoot={restartAfterBoot} setRestartAfterBoot={setRestartAfterBoot} hostName={hostName} hasToken={hasUsableToken} allowedChatId={allowedChatId} modelEndpoint={modelEndpoint} readiness={readiness} colors={colors} /> : null}
 
@@ -151,8 +164,8 @@ function DeviceStep({ hostName, setHostName, colors }: { hostName: string; setHo
   return <View style={styles.stepContent}><FieldLabel label="Host name" color={colors.muted} /><TextInput value={hostName} onChangeText={setHostName} placeholder="e.g. Living room host" placeholderTextColor={colors.muted} returnKeyType="done" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><PressableCard style={styles.infoCard}><View style={[styles.infoIcon, { backgroundColor: `${colors.success}16` }]}><MaterialIcons name="enhanced-encryption" size={19} color={colors.success} /></View><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>Private by default</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>The bundled Hermes workspace, schedules, and logs remain inside this app’s private storage.</Text></View></PressableCard></View>;
 }
 
-function TelegramStep({ token, setToken, allowedChatId, setAllowedChatId, hasTelegramToken, colors }: { token: string; setToken: (value: string) => void; allowedChatId: string; setAllowedChatId: (value: string) => void; hasTelegramToken: boolean; colors: ReturnType<typeof useColors> }) {
-  return <View style={styles.stepContent}><PressableCard style={[styles.statusCard, { backgroundColor: `${colors.success}0E`, borderColor: `${colors.success}2A` }]}><MaterialIcons name={hasTelegramToken ? "lock" : "vpn-key"} size={19} color={colors.success} /><Text style={[styles.statusText, { color: colors.foreground }]}>{hasTelegramToken ? "A protected bot token is already saved." : "Your token is encrypted immediately after setup."}</Text></PressableCard><FieldLabel label="Telegram bot token" color={colors.muted} /><TextInput value={token} onChangeText={setToken} placeholder={hasTelegramToken ? "Leave blank to keep saved token" : "Paste token from BotFather"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Allowed owner user ID" color={colors.muted} /><TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="number-pad" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><PressableCard style={[styles.chatHelp, { backgroundColor: `${colors.primary}0C`, borderColor: `${colors.primary}22` }]}><MaterialIcons name="help-outline" size={19} color={colors.primary} /><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>How to find your private user ID</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>Open Telegram, message @userinfobot, then copy its positive numeric user ID here. Groups and negative chat IDs are intentionally rejected.</Text></View></PressableCard><Text style={[styles.helper, { color: colors.muted }]}>The embedded gateway accepts only this one private owner identity and rejects every other incoming chat.</Text></View>;
+function TelegramStep({ token, setToken, allowedChatId, setAllowedChatId, hasTelegramToken, proxyType, setProxyType, proxyHost, setProxyHost, proxyPort, setProxyPort, proxyCredential, setProxyCredential, hasProxyCredential, colors }: { token: string; setToken: (value: string) => void; allowedChatId: string; setAllowedChatId: (value: string) => void; hasTelegramToken: boolean; proxyType: TelegramProxyType; setProxyType: (value: TelegramProxyType) => void; proxyHost: string; setProxyHost: (value: string) => void; proxyPort: string; setProxyPort: (value: string) => void; proxyCredential: string; setProxyCredential: (value: string) => void; hasProxyCredential: boolean; colors: ReturnType<typeof useColors> }) {
+  return <View style={styles.stepContent}><PressableCard style={[styles.statusCard, { backgroundColor: `${colors.success}0E`, borderColor: `${colors.success}2A` }]}><MaterialIcons name={hasTelegramToken ? "lock" : "vpn-key"} size={19} color={colors.success} /><Text style={[styles.statusText, { color: colors.foreground }]}>{hasTelegramToken ? "A protected bot token is already saved." : "Your token is encrypted immediately after setup."}</Text></PressableCard><FieldLabel label="Telegram bot token" color={colors.muted} /><TextInput value={token} onChangeText={setToken} placeholder={hasTelegramToken ? "Leave blank to keep saved token" : "Paste token from BotFather"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Allowed owner user ID" color={colors.muted} /><TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="number-pad" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><PressableCard style={[styles.chatHelp, { backgroundColor: `${colors.primary}0C`, borderColor: `${colors.primary}22` }]}><MaterialIcons name="help-outline" size={19} color={colors.primary} /><View style={styles.infoCopy}><Text style={[styles.infoTitle, { color: colors.foreground }]}>How to find your private user ID</Text><Text style={[styles.infoDetail, { color: colors.muted }]}>Open Telegram, message @userinfobot, then copy its positive numeric user ID here. Groups and negative chat IDs are intentionally rejected.</Text></View></PressableCard><FieldLabel label="Telegram network route · optional" color={colors.muted} /><View style={styles.proxySelector}>{(["none", "http", "socks5"] as TelegramProxyType[]).map((mode) => { const selected = proxyType === mode; return <Pressable key={mode} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setProxyType(mode)} style={({ pressed }) => [styles.proxyOption, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? `${colors.primary}16` : colors.background }, pressed && styles.proxyOptionPressed]}><Text style={[styles.proxyOptionText, { color: selected ? colors.primary : colors.foreground }]}>{mode === "none" ? "None" : mode === "http" ? "HTTP" : "SOCKS5"}</Text></Pressable>; })}</View>{proxyType !== "none" ? <><FieldLabel label="Proxy hostname" color={colors.muted} /><TextInput value={proxyHost} onChangeText={setProxyHost} placeholder="proxy.example.net" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label="Proxy port" color={colors.muted} /><TextInput value={proxyPort} onChangeText={setProxyPort} placeholder="1080" placeholderTextColor={colors.muted} keyboardType="number-pad" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /><FieldLabel label={hasProxyCredential ? "Replace proxy username:password · optional" : "Proxy username:password · optional"} color={colors.muted} /><TextInput value={proxyCredential} onChangeText={setProxyCredential} placeholder={hasProxyCredential ? "Leave blank to keep protected credential" : "username:password"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} /></> : null}<Text style={[styles.helper, { color: colors.muted }]}>The proxy is used only for Telegram. Model and HTTPS MCP traffic never inherit this route; proxy credentials stay protected.</Text></View>;
 }
 
 function ModelStep({ modelProvider, setModelProvider, modelEndpoint, setModelEndpoint, modelName, setModelName, modelApiKey, setModelApiKey, hasModelApiKey, modelCatalog, modelCatalogFetchedAt, providerConnection, discoveringModels, refreshModels, selectModel, colors }: { modelProvider: ModelProviderId; setModelProvider: (value: ModelProviderId) => void; modelEndpoint: string; setModelEndpoint: (value: string) => void; modelName: string; setModelName: (value: string) => void; modelApiKey: string; setModelApiKey: (value: string) => void; hasModelApiKey: boolean; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: import("@/lib/model-providers").ProviderConnectionStatus; discoveringModels: boolean; refreshModels: () => Promise<void>; selectModel: (model: ModelCatalogEntry) => void; colors: ReturnType<typeof useColors> }) {
@@ -173,7 +186,7 @@ const styles = StyleSheet.create({
   progressRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 5 }, progressItem: { alignItems: "center", gap: 6, minWidth: 53 }, progressDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: "center", justifyContent: "center" }, progressNumber: { fontSize: 12, fontWeight: "900" }, progressLabel: { fontSize: 10, fontWeight: "800" },
   hero: { borderWidth: 1, borderRadius: 28, padding: 22, gap: 10, overflow: "hidden" }, heroAura: { position: "absolute", width: 170, height: 170, borderRadius: 85, right: -60, top: -55 }, heroIcon: { width: 46, height: 46, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 2 }, eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1.15 }, title: { fontSize: 28, lineHeight: 33, fontWeight: "900", letterSpacing: -0.7, maxWidth: "92%" }, detail: { fontSize: 14, lineHeight: 20, fontWeight: "500", maxWidth: "91%" },
   stepContent: { gap: 9 }, fieldLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { minHeight: 52, borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 1 },
-  infoCard: { flexDirection: "row", gap: 12, alignItems: "flex-start", marginTop: 5 }, infoIcon: { width: 39, height: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" }, infoCopy: { flex: 1, gap: 3 }, infoTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, infoDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, statusCard: { flexDirection: "row", gap: 9, alignItems: "center", borderWidth: 1 }, statusText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "700" }, chatHelp: { flexDirection: "row", gap: 10, alignItems: "flex-start", borderWidth: 1 },
+  infoCard: { flexDirection: "row", gap: 12, alignItems: "flex-start", marginTop: 5 }, infoIcon: { width: 39, height: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" }, infoCopy: { flex: 1, gap: 3 }, infoTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, infoDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, statusCard: { flexDirection: "row", gap: 9, alignItems: "center", borderWidth: 1 }, statusText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "700" }, chatHelp: { flexDirection: "row", gap: 10, alignItems: "flex-start", borderWidth: 1 }, proxySelector: { flexDirection: "row", gap: 8 }, proxyOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 7 }, proxyOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, proxyOptionText: { fontSize: 11, fontWeight: "900" },
   readinessGrid: { flexDirection: "row", gap: 9 }, readinessCard: { flex: 1, gap: 5, minHeight: 116 }, readinessLabel: { fontSize: 13, fontWeight: "900" }, readinessDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" },
   policyRow: { flexDirection: "row", gap: 12, alignItems: "center" }, summary: { borderWidth: 1, borderRadius: 22, padding: 15, gap: 12, marginTop: 3 }, summaryEyebrow: { fontSize: 10, letterSpacing: 1, fontWeight: "900" }, summaryRow: { flexDirection: "row", alignItems: "center", gap: 10 }, summaryCopy: { flex: 1, gap: 1 }, summaryLabel: { fontSize: 13, fontWeight: "800" }, summaryValue: { fontSize: 11, lineHeight: 15, fontWeight: "600" },
   validation: { flexDirection: "row", gap: 8, alignItems: "flex-start", borderRadius: 14, padding: 11 }, validationText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "700" }, actions: { flexDirection: "row", gap: 10, alignItems: "stretch" }, backWrap: { flex: 0.6 }, continueWrap: { flex: 1.4 }, footer: { fontSize: 11, lineHeight: 16, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },

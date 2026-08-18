@@ -1,13 +1,13 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 
 import { PageHeader, PressableCard, SecondaryButton, SectionHeading } from "@/components/pocket-hermes-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { approveNativeCodeJob, cancelNativeTask, compressNativeContext, enqueueNativeTask, formatBytes, getNativeCodeSandboxStatus, getNativeContextStatus, getSupervisorHealth, listNativeCodeAuditLog, listNativeTasks, proposeNativeCodeJob, revokeNativeCodeJob, runNativeApprovedCodeJob, setNativeCodeSandboxEnabled } from "@/lib/native-supervisor";
-import type { NativeCodeAuditEntry, NativeCodeJobProposal, NativeCodeJobResult, NativeCodeSandboxStatus, NativeSupervisorContext, NativeSupervisorTask } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
+import { approveNativeCodeJob, cancelNativeTask, compressNativeContext, enqueueNativeTask, formatBytes, getNativeCodeSandboxStatus, getNativeContextStatus, getSupervisorHealth, listNativeCodeAuditLog, listNativeConversation, listNativeTasks, proposeNativeCodeJob, resetNativeConversation, revokeNativeCodeJob, runNativeApprovedCodeJob, setNativeCodeSandboxEnabled } from "@/lib/native-supervisor";
+import type { NativeCodeAuditEntry, NativeCodeJobProposal, NativeCodeJobResult, NativeCodeSandboxStatus, NativeSupervisorContext, NativeSupervisorConversationEntry, NativeSupervisorTask } from "@/modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule";
 
 function formatTaskTime(value: string) {
   const timestamp = Number(value);
@@ -28,6 +28,13 @@ function auditTone(status: NativeCodeAuditEntry["status"], colors: ReturnType<ty
   if (status === "ok") return colors.success;
   if (status === "rejected") return colors.warning;
   return colors.error;
+}
+
+function conversationOriginLabel(origin: NativeSupervisorConversationEntry["origin"]) {
+  if (origin === "app") return "THIS PHONE";
+  if (origin === "telegram") return "TELEGRAM";
+  if (origin === "schedule") return "SCHEDULE";
+  return "SYSTEM";
 }
 
 function ContextCard({ context, ready, compressing, onCompress }: { context: NativeSupervisorContext | null; ready: boolean; compressing: boolean; onCompress: () => void }) {
@@ -113,6 +120,7 @@ export default function AgentScreen() {
   const isFocused = useIsFocused();
   const [body, setBody] = useState("");
   const [tasks, setTasks] = useState<NativeSupervisorTask[]>([]);
+  const [conversation, setConversation] = useState<NativeSupervisorConversationEntry[]>([]);
   const [hostState, setHostState] = useState<"running" | "starting" | "degraded" | "stopped" | "preview">(Platform.OS === "web" ? "preview" : "stopped");
   const [context, setContext] = useState<NativeSupervisorContext | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -127,6 +135,7 @@ export default function AgentScreen() {
   const [auditLoaded, setAuditLoaded] = useState(false);
   const [auditRefreshing, setAuditRefreshing] = useState(false);
   const [advancedVisible, setAdvancedVisible] = useState(false);
+  const [resettingConversation, setResettingConversation] = useState(false);
 
   const refreshAuditLog = useCallback(async () => {
     if (Platform.OS !== "android") return;
@@ -139,8 +148,9 @@ export default function AgentScreen() {
 
   const refresh = useCallback(async () => {
     if (Platform.OS === "web") return;
-    const [nextTasks, health, nextContext, nextSandbox] = await Promise.all([listNativeTasks(), getSupervisorHealth(), getNativeContextStatus(), getNativeCodeSandboxStatus()]);
+    const [nextTasks, nextConversation, health, nextContext, nextSandbox] = await Promise.all([listNativeTasks(), listNativeConversation(), getSupervisorHealth(), getNativeContextStatus(), getNativeCodeSandboxStatus()]);
     setTasks(nextTasks.slice().reverse());
+    setConversation(nextConversation);
     setHostState(health?.state ?? "stopped");
     setContext(nextContext);
     setSandbox(nextSandbox);
@@ -168,7 +178,7 @@ export default function AgentScreen() {
     } else {
       setBody("");
       setTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
-      setNotice("Owner task queued in the private Hermes runtime.");
+      setNotice("Owner task queued. Its reply will appear here and is mirrored once to your authorized Telegram chat.");
       void refresh();
     }
     setSubmitting(false);
@@ -180,6 +190,37 @@ export default function AgentScreen() {
       setTasks((current) => current.map((item) => item.id === task.id ? task : item));
       setNotice("Queued task cancelled.");
     }
+  };
+
+  const confirmConversationReset = () => {
+    if (Platform.OS === "web") {
+      setNotice("Preview mode cannot clear Android-private conversation context.");
+      return;
+    }
+    Alert.alert(
+      "Clear shared conversation?",
+      "This clears the redacted transcript on this phone and resets the owner’s shared model context. It does not delete messages already stored by Telegram.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear & reset",
+          style: "destructive",
+          onPress: () => void (async () => {
+            setResettingConversation(true);
+            const cleared = await resetNativeConversation();
+            if (cleared) {
+              setConversation([]);
+              setContext(null);
+              setNotice("Shared conversation history and model context were reset on this phone.");
+              await refresh();
+            } else {
+              setNotice("The private conversation could not be reset. Confirm the host is running, then try again.");
+            }
+            setResettingConversation(false);
+          })(),
+        },
+      ],
+    );
   };
 
   const compress = async () => {
@@ -254,8 +295,16 @@ export default function AgentScreen() {
       <PageHeader eyebrow="PRIVATE RUNTIME" title="Agent" detail="Send private owner tasks to this phone's Hermes runtime." icon="forum" />
       <PressableCard style={[styles.bridgeNotice, { backgroundColor: `${colors.primary}0A`, borderColor: `${colors.primary}28` }]}><View style={[styles.noticeIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name={isReady ? "verified-user" : "smartphone"} size={21} color={colors.primary} /></View><View style={styles.noticeCopy}><View style={styles.noticeTitleRow}><Text style={[styles.noticeTitle, { color: colors.foreground }]}>{statusTitle}</Text><View style={[styles.localBadge, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.localBadgeText, { color: colors.primary }]}>{Platform.OS === "web" ? "PREVIEW" : hostState.toUpperCase()}</Text></View></View><Text style={[styles.noticeDetail, { color: colors.muted }]}>{statusDetail}</Text></View></PressableCard>
       {notice ? <View style={[styles.inlineNotice, { backgroundColor: colors.surface, borderColor: colors.border }]}><MaterialIcons name="info-outline" size={16} color={colors.primary} /><Text style={[styles.inlineNoticeText, { color: colors.muted }]}>{notice}</Text></View> : null}
-      <SectionHeading eyebrow="CONVERSATION" title="Owner task queue" action={<Text style={[styles.count, { color: colors.muted }]}>{tasks.length ? `${tasks.length} tasks` : "Empty"}</Text>} />
-      {tasks.length ? tasks.map((item) => { const tone = taskTone(item.status, colors); return <PressableCard key={item.id} style={styles.taskCard}><View style={styles.taskMeta}><Text style={[styles.taskLabel, { color: tone }]}>{item.status.toUpperCase()}</Text><Text style={[styles.taskTime, { color: colors.muted }]}>{formatTaskTime(item.updatedAt || item.createdAt)}</Text></View><Text style={[styles.taskBody, { color: colors.foreground }]}>{item.body}</Text>{item.result ? <View style={[styles.resultBox, { backgroundColor: colors.surface }]}><Text style={[styles.resultLabel, { color: colors.muted }]}>HERMES RESULT</Text><Text style={[styles.resultText, { color: colors.foreground }]}>{item.result}</Text></View> : null}{item.reason ? <Text style={[styles.reasonText, { color: colors.warning }]}>{item.reason}</Text> : null}{item.status === "queued" ? <Pressable accessibilityRole="button" onPress={() => void cancel(item.id)} style={({ pressed }) => [styles.cancel, { borderColor: colors.border }, pressed && styles.pressed]}><MaterialIcons name="close" size={14} color={colors.muted} /><Text style={[styles.cancelText, { color: colors.muted }]}>Cancel queued task</Text></Pressable> : null}</PressableCard>; }) : <View style={[styles.empty, { borderColor: colors.border }]}><MaterialIcons name="mark-chat-unread" size={27} color={colors.muted} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No runtime tasks yet</Text><Text style={[styles.emptyDetail, { color: colors.muted }]}>{Platform.OS === "web" ? "Install the Android APK to use the private task queue." : "Start the host, then use the composer below to send an owner task."}</Text></View>}
+      <SectionHeading eyebrow="SHARED OWNER CHAT" title="Conversation" action={<Text style={[styles.count, { color: colors.muted }]}>{conversation.length ? `${conversation.length} turns` : "Empty"}</Text>} />
+      <Text style={[styles.conversationHint, { color: colors.muted }]}>This private, bounded timeline combines this phone and your authorized Telegram chat. App replies are mirrored to Telegram once; Telegram messages remain visible in Telegram too.</Text>
+      {conversation.length ? <View style={styles.conversationList}>{conversation.map((entry) => {
+        const isAssistant = entry.role === "assistant";
+        return <View key={entry.id} style={[styles.turn, isAssistant ? styles.turnAssistant : styles.turnOwner, { backgroundColor: isAssistant ? `${colors.primary}12` : colors.surface, borderColor: isAssistant ? `${colors.primary}2D` : colors.border }]}>
+          <View style={styles.turnMeta}><Text style={[styles.turnLabel, { color: isAssistant ? colors.primary : colors.muted }]}>{isAssistant ? "POCKET RELAY" : conversationOriginLabel(entry.origin)}</Text><Text style={[styles.turnTime, { color: colors.muted }]}>{formatTaskTime(String(entry.createdAt))}</Text></View>
+          <Text selectable style={[styles.turnBody, { color: colors.foreground }]}>{entry.body}</Text>
+        </View>;
+      })}</View> : <View style={[styles.empty, { borderColor: colors.border }]}><MaterialIcons name="mark-chat-unread" size={27} color={colors.muted} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No shared conversation yet</Text><Text style={[styles.emptyDetail, { color: colors.muted }]}>{Platform.OS === "web" ? "Install the Android APK to use the shared owner conversation." : "Start the host, then send a message here or from your authorized Telegram chat."}</Text></View>}
+      <Pressable accessibilityRole="button" accessibilityLabel="Clear shared conversation and reset context" onPress={confirmConversationReset} disabled={resettingConversation || Platform.OS === "web"} style={({ pressed }) => [styles.resetConversation, { borderColor: colors.border }, (pressed || resettingConversation || Platform.OS === "web") && styles.pressed]}><MaterialIcons name="restart-alt" size={15} color={colors.muted} /><Text style={[styles.resetConversationText, { color: colors.muted }]}>{resettingConversation ? "Resetting shared context…" : "Clear shared conversation & context"}</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={advancedVisible ? "Hide owner tools and safeguards" : "Show owner tools and safeguards"} accessibilityState={{ expanded: advancedVisible }} onPress={() => setAdvancedVisible((visible) => !visible)} style={({ pressed }) => [advancedStyles.toggle, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}>
         <View style={advancedStyles.copy}><Text style={[advancedStyles.title, { color: colors.foreground }]}>Owner tools & safeguards</Text><Text style={[advancedStyles.detail, { color: colors.muted }]}>Context controls, isolated JavaScript, and execution metadata</Text></View><MaterialIcons name={advancedVisible ? "expand-less" : "expand-more"} size={24} color={colors.primary} />
       </Pressable>
@@ -270,7 +319,7 @@ export default function AgentScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 }, content: { paddingTop: 16, paddingBottom: 20, gap: 20 }, bridgeNotice: { flexDirection: "row", gap: 12, alignItems: "flex-start" }, noticeIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" }, noticeCopy: { flex: 1, gap: 4 }, noticeTitleRow: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }, noticeTitle: { flex: 1, fontSize: 14, lineHeight: 18, fontWeight: "900" }, noticeDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, localBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 }, localBadgeText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.75 }, contextCard: { gap: 10 }, contextTopline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, contextLabelRow: { flexDirection: "row", alignItems: "center", gap: 7 }, contextLabel: { fontSize: 15, fontWeight: "900" }, contextPercent: { fontSize: 16, fontWeight: "900", fontVariant: ["tabular-nums"] }, contextTrack: { height: 7, borderRadius: 99, overflow: "hidden" }, contextFill: { height: "100%", borderRadius: 99, minWidth: 0 }, contextDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, contextMeta: { fontSize: 11, lineHeight: 16, fontWeight: "600" }, contextHint: { fontSize: 10, lineHeight: 14, fontWeight: "500" }, count: { fontSize: 12, fontWeight: "700", paddingBottom: 2 }, inlineNotice: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 14, padding: 11, marginTop: -6 }, inlineNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, taskCard: { gap: 11 }, taskMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, taskLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9 }, taskTime: { fontSize: 11, fontWeight: "600" }, taskBody: { fontSize: 15, lineHeight: 22, fontWeight: "600" }, resultBox: { borderRadius: 14, padding: 11, gap: 4 }, resultLabel: { fontSize: 9, letterSpacing: 0.8, fontWeight: "900" }, resultText: { fontSize: 13, lineHeight: 19, fontWeight: "500" }, reasonText: { fontSize: 12, lineHeight: 17, fontWeight: "800" }, cancel: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 7 }, cancelText: { fontSize: 11, fontWeight: "800" }, empty: { minHeight: 180, borderWidth: 1, borderStyle: "dashed", borderRadius: 22, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 }, emptyTitle: { fontSize: 15, fontWeight: "900" }, emptyDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500", textAlign: "center" }, composer: { flexDirection: "row", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 11, paddingBottom: 10, alignItems: "flex-end" }, composerInputWrap: { flex: 1, gap: 5 }, composerLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.9, marginLeft: 2 }, input: { minHeight: 48, maxHeight: 112, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingTop: 13, fontSize: 14, lineHeight: 19, fontWeight: "500" }, send: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" }, pressed: { opacity: 0.76, transform: [{ scale: 0.97 }] },
+  flex: { flex: 1 }, content: { paddingTop: 16, paddingBottom: 20, gap: 20 }, bridgeNotice: { flexDirection: "row", gap: 12, alignItems: "flex-start" }, noticeIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" }, noticeCopy: { flex: 1, gap: 4 }, noticeTitleRow: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }, noticeTitle: { flex: 1, fontSize: 14, lineHeight: 18, fontWeight: "900" }, noticeDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, localBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 }, localBadgeText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.75 }, contextCard: { gap: 10 }, contextTopline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, contextLabelRow: { flexDirection: "row", alignItems: "center", gap: 7 }, contextLabel: { fontSize: 15, fontWeight: "900" }, contextPercent: { fontSize: 16, fontWeight: "900", fontVariant: ["tabular-nums"] }, contextTrack: { height: 7, borderRadius: 99, overflow: "hidden" }, contextFill: { height: "100%", borderRadius: 99, minWidth: 0 }, contextDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, contextMeta: { fontSize: 11, lineHeight: 16, fontWeight: "600" }, contextHint: { fontSize: 10, lineHeight: 14, fontWeight: "500" }, count: { fontSize: 12, fontWeight: "700", paddingBottom: 2 }, inlineNotice: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 14, padding: 11, marginTop: -6 }, inlineNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, conversationHint: { marginTop: -10, fontSize: 11, lineHeight: 16, fontWeight: "600" }, conversationList: { gap: 9 }, turn: { gap: 6, borderWidth: 1, borderRadius: 17, padding: 12 }, turnOwner: { alignSelf: "flex-start", maxWidth: "94%" }, turnAssistant: { alignSelf: "flex-end", maxWidth: "94%" }, turnMeta: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }, turnLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.75 }, turnTime: { fontSize: 10, fontWeight: "700" }, turnBody: { fontSize: 14, lineHeight: 20, fontWeight: "500" }, resetConversation: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginTop: -8 }, resetConversationText: { fontSize: 11, fontWeight: "800" }, empty: { minHeight: 180, borderWidth: 1, borderStyle: "dashed", borderRadius: 22, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 }, emptyTitle: { fontSize: 15, fontWeight: "900" }, emptyDetail: { fontSize: 13, lineHeight: 18, fontWeight: "500", textAlign: "center" }, composer: { flexDirection: "row", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 11, paddingBottom: 10, alignItems: "flex-end" }, composerInputWrap: { flex: 1, gap: 5 }, composerLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.9, marginLeft: 2 }, input: { minHeight: 48, maxHeight: 112, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingTop: 13, fontSize: 14, lineHeight: 19, fontWeight: "500" }, send: { width: 50, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" }, pressed: { opacity: 0.76, transform: [{ scale: 0.97 }] },
 });
 
 const advancedStyles = StyleSheet.create({

@@ -6,6 +6,7 @@ import {
   getRuntimePolicyBlock,
   isAllowedModelEndpoint,
   isSafeRuntimePolicy,
+  isSafeTelegramProxyConfiguration,
   isTerminalTaskStatus,
   type PublicHostConfiguration,
 } from "../lib/host-contracts";
@@ -24,6 +25,16 @@ describe("Pocket Relay cross-layer host contract", () => {
     expect(isAllowedModelEndpoint("http://localhost:11434/v1", "ollama")).toBe(false);
     expect(isAllowedModelEndpoint("http://model.lan/v1", "ollama")).toBe(false);
     expect(isAllowedModelEndpoint("http://192.168.1.20/v1", "openai")).toBe(false);
+  });
+
+  it("accepts only explicit credential-free Telegram proxy metadata", () => {
+    expect(isSafeTelegramProxyConfiguration({ type: "none", host: "", port: null, hasCredentials: false })).toBe(true);
+    expect(isSafeTelegramProxyConfiguration({ type: "http", host: "proxy.example.net", port: 8080, hasCredentials: true })).toBe(true);
+    expect(isSafeTelegramProxyConfiguration({ type: "socks5", host: "10.0.0.9", port: 1080, hasCredentials: false })).toBe(true);
+    expect(isSafeTelegramProxyConfiguration({ type: "http", host: "https://proxy.example.net", port: 8080, hasCredentials: false })).toBe(false);
+    expect(isSafeTelegramProxyConfiguration({ type: "socks5", host: "proxy.example.net/path", port: 1080, hasCredentials: false })).toBe(false);
+    expect(isSafeTelegramProxyConfiguration({ type: "http", host: "proxy.example.net", port: 0, hasCredentials: false })).toBe(false);
+    expect(isSafeTelegramProxyConfiguration({ type: "none", host: "proxy.example.net", port: 8080, hasCredentials: false })).toBe(false);
   });
 
   it("rejects unsafe runtime policy thresholds", () => {

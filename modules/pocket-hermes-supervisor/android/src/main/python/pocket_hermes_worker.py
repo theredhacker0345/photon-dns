@@ -18,13 +18,14 @@ import time
 from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import datetime
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
-from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
+from urllib.parse import quote, urlencode, urlparse
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener, urlopen
 from pathlib import Path
 from typing import Any
 
 _TOKEN_RE = re.compile(r"^\d+:[A-Za-z0-9_-]{30,}$")
 _CHAT_ID_RE = re.compile(r"^\d+$")
+_PROXY_HOST_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
 _state_lock = threading.RLock()
 _context_compress_lock = threading.Lock()
 _state: dict[str, Any] = {
@@ -40,10 +41,13 @@ _state: dict[str, Any] = {
     "task_drain_task": None,
     "scheduler_task": None,
     "maximum_workspace_bytes": 512 * 1024 * 1024,
+    "telegram_proxy_url": None,
 }
 _MAX_TASKS = 24
 _MAX_TASK_TEXT = 12_000
 _MAX_RESULT_TEXT = 12_000
+_MAX_CONVERSATION_ENTRIES = 100
+_MAX_CONVERSATION_TEXT = 6_000
 _MAX_SCHEDULES = 16
 _MAX_SCHEDULE_RUNS = 72
 _MAX_SCHEDULE_TITLE = 120
@@ -53,6 +57,9 @@ _MAX_MCP_ARGUMENT_BYTES = 24 * 1024
 _MIN_WORKSPACE_BYTES = 64 * 1024 * 1024
 _MAX_WORKSPACE_BYTES = 8 * 1024 * 1024 * 1024
 _MCP_COMMAND_RE = re.compile(r"^/mcp\s+([A-Za-z0-9_.-]{1,128})\s+([A-Za-z0-9_.-]{1,128})\s+(\{.*\})\s*$", re.DOTALL)
+_BOT_TOKEN_REDACTION_RE = re.compile(r"\b\d{6,}:[A-Za-z0-9_-]{30,}\b")
+_OPENAI_TOKEN_REDACTION_RE = re.compile(r"\b(?:sk|rk|gsk|sk-or-v1)-[A-Za-z0-9_-]{12,}\b", re.IGNORECASE)
+_BEARER_REDACTION_RE = re.compile(r"(?i)(authorization\s*:\s*bearer\s+)[^\s]+")
 
 
 def _embedded_gateway_toolsets() -> list[str]:
@@ -94,6 +101,12 @@ def _task_store_path() -> Path | None:
     with _state_lock:
         home = _state.get("hermes_home")
     return Path(home) / "pocket-hermes-tasks.json" if isinstance(home, str) and home else None
+
+
+def _conversation_store_path() -> Path | None:
+    with _state_lock:
+        home = _state.get("hermes_home")
+    return Path(home) / "pocket-hermes-conversation.json" if isinstance(home, str) and home else None
 
 
 def _schedule_store_path() -> Path | None:
@@ -174,6 +187,200 @@ def _write_tasks(tasks: list[dict[str, Any]]) -> None:
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(retained, separators=(",", ":")), encoding="utf-8")
     temporary.replace(path)
+
+
+def _redact_conversation_text(value: Any) -> str:
+    """Retain useful owner conversation text without persisting obvious credentials."""
+    text = str(value or "").strip()
+    text = _BOT_TOKEN_REDACTION_RE.sub("[redacted bot token]", text)
+    text = _OPENAI_TOKEN_REDACTION_RE.sub("[redacted API key]", text)
+    text = _BEARER_REDACTION_RE.sub(r"\1[redacted]", text)
+    return text[:_MAX_CONVERSATION_TEXT]
+
+
+def _public_conversation_entry(entry: dict[str, Any]) -> dict[str, str | int]:
+    role = str(entry.get("role", "assistant"))
+    origin = str(entry.get("origin", "telegram"))
+    return {
+        "id": str(entry.get("id", "")),
+        "role": role if role in {"user", "assistant", "system"} else "assistant",
+        "origin": origin if origin in {"app", "telegram", "schedule", "system"} else "system",
+        "body": _redact_conversation_text(entry.get("body", "")),
+        "createdAt": int(entry.get("createdAt", 0)),
+    }
+
+
+def _record_conversation(role: str, origin: str, body: Any) -> None:
+    text = _redact_conversation_text(body)
+    if not text:
+        return
+    path = _conversation_store_path()
+    if path is None:
+        return
+    entries = _read_json_list(path)
+    now = int(time.time() * 1000)
+    entries.append({
+        "id": f"conversation-{now}-{len(entries)}",
+        "role": role,
+        "origin": origin,
+        "body": text,
+        "createdAt": now,
+    })
+    _write_json_list(path, entries, _MAX_CONVERSATION_ENTRIES)
+
+
+def list_conversation_json() -> str:
+    """Return the bounded owner transcript from app-private storage only."""
+    entries = [_public_conversation_entry(entry) for entry in _read_json_list(_conversation_store_path())]
+    return json.dumps(entries[-_MAX_CONVERSATION_ENTRIES:], separators=(",", ":"), ensure_ascii=False)
+
+
+def _clear_conversation_ledger() -> None:
+    path = _conversation_store_path()
+    if path is not None:
+        _write_json_list(path, [], _MAX_CONVERSATION_ENTRIES)
+
+
+def _send_owner_telegram_message(text: str) -> None:
+    """Deliver an app-originated final reply through the configured private bot only."""
+    with _state_lock:
+        owner_chat_id = _state.get("owner_chat_id")
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not _TOKEN_RE.fullmatch(token) or not isinstance(owner_chat_id, str) or not _CHAT_ID_RE.fullmatch(owner_chat_id):
+        raise RuntimeError("Telegram owner delivery is unavailable.")
+    payload = urlencode({"chat_id": owner_chat_id, "text": _redact_conversation_text(text)}).encode("utf-8")
+    request = Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with _telegram_urlopen(request, timeout=15) as response:
+        if not 200 <= response.status < 300:
+            raise RuntimeError("Telegram owner delivery was rejected.")
+
+
+def _normalize_telegram_proxy(
+    proxy_type: str | None,
+    proxy_host: str | None,
+    proxy_port: int | str | None,
+    proxy_credential: str | None,
+) -> str | None:
+    """Build one Telegram transport URL without accepting URL paths or embedded credentials."""
+    mode = (proxy_type or "none").strip().lower()
+    host = (proxy_host or "").strip()
+    credential = (proxy_credential or "").strip()
+    if mode == "none":
+        if host or proxy_port not in {None, "", 0, "0"} or credential:
+            raise ValueError("Telegram proxy settings are invalid.")
+        return None
+    if mode not in {"http", "socks5"} or not _PROXY_HOST_RE.fullmatch(host) or any(value in host for value in ("/", ":", "@")):
+        raise ValueError("Telegram proxy host is invalid.")
+    try:
+        port = int(proxy_port)  # Chaquopy accepts numeric values from the Android bridge.
+    except (TypeError, ValueError):
+        raise ValueError("Telegram proxy port is invalid.") from None
+    if port < 1 or port > 65_535:
+        raise ValueError("Telegram proxy port is invalid.")
+    auth = ""
+    if credential:
+        username, separator, password = credential.partition(":")
+        if not separator or not username or not password:
+            raise ValueError("Telegram proxy credentials must use username:password format.")
+        auth = f"{quote(username, safe='')}:{quote(password, safe='')}@"
+    return f"{mode}://{auth}{host}:{port}"
+
+
+def _telegram_urlopen(request: Request, timeout: int):
+    """Open only direct Telegram API delivery through the configured proxy, if any."""
+    with _state_lock:
+        proxy_url = _state.get("telegram_proxy_url")
+    if not isinstance(proxy_url, str) or not proxy_url:
+        return urlopen(request, timeout=timeout)
+    # urllib cannot transport SOCKS5. httpx[socks] is pinned into the embedded
+    # runtime, so it is deliberately used only for Telegram proxy delivery.
+    import httpx
+
+    class _HttpxResponse:
+        def __init__(self, status: int):
+            self.status = status
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args: Any) -> None:
+            return None
+
+    data = request.data if isinstance(request.data, bytes) else None
+    headers = dict(request.header_items())
+    with httpx.Client(proxy=proxy_url, timeout=timeout) as client:
+        response = client.request(request.get_method(), request.full_url, content=data, headers=headers)
+        return _HttpxResponse(response.status_code)
+
+
+def test_telegram_gateway(
+    telegram_token: str,
+    proxy_type: str | None = None,
+    proxy_host: str | None = None,
+    proxy_port: int | str | None = None,
+    proxy_credential: str | None = None,
+) -> str:
+    """Test Telegram authentication through the same optional proxy transport without persisting any secret."""
+    try:
+        if not _TOKEN_RE.fullmatch(telegram_token):
+            raise ValueError("Telegram bot token is invalid.")
+        proxy_url = _normalize_telegram_proxy(proxy_type, proxy_host, proxy_port, proxy_credential)
+        endpoint = f"https://api.telegram.org/bot{telegram_token}/getMe"
+        if proxy_url:
+            import httpx
+            with httpx.Client(proxy=proxy_url, timeout=15) as client:
+                response = client.get(endpoint)
+                payload = response.json()
+        else:
+            with urlopen(Request(endpoint), timeout=15) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        if not isinstance(payload, dict) or not payload.get("ok"):
+            return json.dumps({"ok": False, "message": "Telegram did not accept this bot credential."}, separators=(",", ":"))
+        result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
+        return json.dumps({"ok": True, "message": "Telegram accepted the bot credential.", "botName": result.get("username") or result.get("first_name")}, separators=(",", ":"))
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError):
+        return json.dumps({"ok": False, "message": "Pocket Relay could not verify Telegram through this network route."}, separators=(",", ":"))
+    except Exception:
+        return json.dumps({"ok": False, "message": "Pocket Relay could not verify Telegram through this network route."}, separators=(",", ":"))
+
+
+def send_telegram_test_message(
+    telegram_token: str,
+    owner_chat_id: str,
+    proxy_type: str | None = None,
+    proxy_host: str | None = None,
+    proxy_port: int | str | None = None,
+    proxy_credential: str | None = None,
+) -> str:
+    """Deliver a one-off owner test through the supplied Telegram-only route."""
+    try:
+        if not _TOKEN_RE.fullmatch(telegram_token) or not _CHAT_ID_RE.fullmatch(owner_chat_id):
+            raise ValueError("Telegram owner configuration is invalid.")
+        proxy_url = _normalize_telegram_proxy(proxy_type, proxy_host, proxy_port, proxy_credential)
+        payload = {"chat_id": owner_chat_id, "text": "Pocket Relay connection check: this phone can deliver to your owner-only Telegram route."}
+        endpoint = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+        if proxy_url:
+            import httpx
+            with httpx.Client(proxy=proxy_url, timeout=15) as client:
+                response = client.post(endpoint, json=payload)
+                result = response.json()
+        else:
+            request = Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+            with urlopen(request, timeout=15) as response:
+                result = json.loads(response.read().decode("utf-8"))
+        message = result.get("result") if isinstance(result, dict) and isinstance(result.get("result"), dict) else {}
+        if not isinstance(result, dict) or not result.get("ok") or not isinstance(message.get("message_id"), int):
+            return json.dumps({"ok": False, "message": "Telegram did not confirm delivery to the private owner chat."}, separators=(",", ":"))
+        return json.dumps({"ok": True, "message": "Telegram confirmed delivery to the allowed owner chat.", "messageId": message["message_id"], "deliveredAt": message.get("date")}, separators=(",", ":"))
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError):
+        return json.dumps({"ok": False, "message": "Pocket Relay could not deliver the Telegram test message through this network route."}, separators=(",", ":"))
+    except Exception:
+        return json.dumps({"ok": False, "message": "Pocket Relay could not deliver the Telegram test message through this network route."}, separators=(",", ":"))
 
 
 def _read_json_list(path: Path | None) -> list[dict[str, Any]]:
@@ -297,6 +504,7 @@ def _queue_schedule_attempt(schedule: dict[str, Any], run: dict[str, Any]) -> No
         "result": None,
         "reason": None,
         "scheduleRunId": run["id"],
+        "origin": "schedule",
         "delivery": "owner-telegram",
     })
     _write_tasks(tasks)
@@ -392,17 +600,21 @@ async def _drain_task_queue() -> None:
                 if runner is None or not isinstance(owner_chat_id, str):
                     raise RuntimeError("runtime is unavailable")
                 is_schedule = isinstance(next_task.get("scheduleRunId"), str)
+                actor_name = "Pocket Relay scheduled task" if is_schedule else "Pocket Relay in-app owner"
                 source = SessionSource(
-                    platform=Platform.TELEGRAM if is_schedule else Platform.LOCAL,
-                    chat_id=owner_chat_id if is_schedule else f"pocket-hermes:{owner_chat_id}",
+                    # Every owner turn uses Telegram's canonical session key. This
+                    # retains one model context regardless of whether the owner
+                    # wrote from Telegram, the Android console, or a schedule.
+                    platform=Platform.TELEGRAM,
+                    chat_id=owner_chat_id,
                     chat_type="dm",
                     user_id=owner_chat_id,
-                    user_name="Pocket Relay owner",
+                    user_name=actor_name,
                 )
                 event = MessageEvent(
                     text=str(next_task["body"]),
                     user_id=owner_chat_id,
-                    user_name="Pocket Relay owner",
+                    user_name=actor_name,
                     source=source,
                     internal=True,
                 )
@@ -410,6 +622,8 @@ async def _drain_task_queue() -> None:
                 next_task["status"] = "succeeded"
                 next_task["result"] = str(response or "Task completed without a text response.")[:_MAX_RESULT_TEXT]
                 next_task["reason"] = None
+                if next_task.get("delivery") == "owner-telegram" and next_task["result"]:
+                    await asyncio.to_thread(_send_owner_telegram_message, next_task["result"])
         except Exception as exc:
             next_task["status"] = "failed"
             next_task["result"] = None
@@ -639,6 +853,10 @@ def _configure_process(
     model_provider: str | None,
     mcp_config_json: str | None = None,
     maximum_workspace_bytes: int = 512 * 1024 * 1024,
+    telegram_proxy_type: str | None = None,
+    telegram_proxy_host: str | None = None,
+    telegram_proxy_port: int | str | None = None,
+    telegram_proxy_credential: str | None = None,
 ) -> None:
     """Configure only process-local, non-persisted values for the worker."""
     if not _TOKEN_RE.fullmatch(telegram_token):
@@ -648,6 +866,7 @@ def _configure_process(
     model_endpoint = _validate_model_configuration(model_provider, model_endpoint, model_api_key, model_name)
     remote_mcp_servers = _normalize_remote_mcp_configuration(mcp_config_json)
     workspace_quota = _normalize_maximum_workspace_bytes(maximum_workspace_bytes)
+    telegram_proxy_url = _normalize_telegram_proxy(telegram_proxy_type, telegram_proxy_host, telegram_proxy_port, telegram_proxy_credential)
 
     home = Path(hermes_home).resolve()
     home.mkdir(parents=True, exist_ok=True)
@@ -658,6 +877,13 @@ def _configure_process(
     os.environ["TELEGRAM_BOT_TOKEN"] = telegram_token
     os.environ["TELEGRAM_ALLOWED_USERS"] = owner_chat_id
     os.environ["TELEGRAM_HOME_CHANNEL"] = owner_chat_id
+    if telegram_proxy_url:
+        # The upstream Telegram adapter resolves only this variable and passes
+        # it explicitly to python-telegram-bot's HTTPXRequest. Model and MCP
+        # requests intentionally never inherit a global proxy environment.
+        os.environ["TELEGRAM_PROXY"] = telegram_proxy_url
+    else:
+        os.environ.pop("TELEGRAM_PROXY", None)
     # Explicitly override any inherited or stale upstream gateway policy. The
     # embedded profile only accepts the configured private Telegram user and
     # intentionally has no group, pairing, or allow-all route.
@@ -691,6 +917,7 @@ def _configure_process(
         _state["owner_chat_id"] = owner_chat_id
         _state["remote_mcp_servers"] = remote_mcp_servers
         _state["maximum_workspace_bytes"] = workspace_quota
+        _state["telegram_proxy_url"] = telegram_proxy_url
 
 
 def preflight_model(model_provider: str, model_endpoint: str, model_api_key: str, model_name: str) -> str:
@@ -749,7 +976,21 @@ def _run_gateway() -> None:
                     return f"Remote MCP command denied: {invocation.get('reason', 'unknown policy failure')}"
                 return json.dumps(invocation.get("result"), ensure_ascii=False)[:_MAX_RESULT_TEXT]
 
-            instance._handle_message = handle_owner_mcp_command
+            async def record_owner_conversation(event: Any) -> Any:
+                """Capture only the authenticated owner's two-way conversation."""
+                with _state_lock:
+                    owner_chat_id = _state.get("owner_chat_id")
+                is_owner = str(getattr(event, "user_id", "")) == owner_chat_id
+                if is_owner:
+                    label = str(getattr(event, "user_name", ""))
+                    origin = "schedule" if label == "Pocket Relay scheduled task" else "app" if label == "Pocket Relay in-app owner" else "telegram"
+                    _record_conversation("user", origin, getattr(event, "text", ""))
+                response = await handle_owner_mcp_command(event)
+                if is_owner and response:
+                    _record_conversation("assistant", origin, response)
+                return response
+
+            instance._handle_message = record_owner_conversation
             with _state_lock:
                 _state["runner"] = instance
                 _state["last_heartbeat_at"] = int(time.time() * 1000)
@@ -806,6 +1047,10 @@ def start(
     model_provider: str | None = None,
     mcp_config_json: str | None = None,
     maximum_workspace_bytes: int = 512 * 1024 * 1024,
+    telegram_proxy_type: str | None = None,
+    telegram_proxy_host: str | None = None,
+    telegram_proxy_port: int | str | None = None,
+    telegram_proxy_credential: str | None = None,
 ) -> dict[str, str | int | None]:
     """Start exactly one owner-locked Telegram gateway in the app process."""
     with _state_lock:
@@ -822,6 +1067,10 @@ def start(
             model_provider,
             mcp_config_json,
             maximum_workspace_bytes,
+            telegram_proxy_type,
+            telegram_proxy_host,
+            telegram_proxy_port,
+            telegram_proxy_credential,
         )
         _state["status"] = "starting"
         _state["reason"] = "launch requested"
@@ -887,13 +1136,13 @@ def _unavailable_context(reason: str) -> dict[str, Any]:
 
 
 def _owner_console_source(owner_chat_id: str) -> Any:
-    """Build the exact private LOCAL source used by Agent Console task dispatch."""
+    """Build the private Telegram source shared by both owner surfaces."""
     from gateway.config import Platform
     from gateway.session import SessionSource
 
     return SessionSource(
-        platform=Platform.LOCAL,
-        chat_id=f"pocket-hermes:{owner_chat_id}",
+        platform=Platform.TELEGRAM,
+        chat_id=owner_chat_id,
         chat_type="dm",
         user_id=owner_chat_id,
         user_name="Pocket Relay owner",
@@ -907,11 +1156,11 @@ def _owner_console_session_key(runner: Any, owner_chat_id: str) -> str:
             return str(resolver(_owner_console_source(owner_chat_id)))
         except Exception:
             pass
-    return f"pocket-hermes:{owner_chat_id}"
+    return f"telegram:{owner_chat_id}"
 
 
 async def _read_owner_context_status(runner: Any, owner_chat_id: str) -> dict[str, Any]:
-    """Read numeric context metadata from the owner-local session only.
+    """Read numeric context metadata from the shared owner session only.
 
     This intentionally never serializes a transcript, prompt, tool payload, or
     provider credential across the Python/Kotlin/JS bridge.
@@ -976,6 +1225,39 @@ def context_status_json() -> str:
     return json.dumps(_context_status_payload(), separators=(",", ":"))
 
 
+def reset_conversation_json() -> str:
+    """Clear the visible ledger and reset the one canonical owner session when running."""
+    _clear_conversation_ledger()
+    with _state_lock:
+        status = _state.get("status")
+        runner = _state.get("runner")
+        loop = _state.get("loop")
+        owner_chat_id = _state.get("owner_chat_id")
+    if status != "running" or runner is None or loop is None or not isinstance(owner_chat_id, str):
+        _record_conversation("system", "system", "Conversation ledger cleared. Start the host to reset model context as well.")
+        return json.dumps({"ok": True, "message": "Conversation ledger cleared. Start the host to reset model context as well."}, separators=(",", ":"))
+    async def reset_owner_session() -> Any:
+        from gateway.platforms.base import MessageEvent
+        from gateway.session import SessionSource
+        event = MessageEvent(
+            text="/reset",
+            user_id=owner_chat_id,
+            user_name="Pocket Relay in-app owner",
+            source=SessionSource(platform=Platform.TELEGRAM, chat_id=owner_chat_id, chat_type="dm", user_id=owner_chat_id, user_name="Pocket Relay in-app owner"),
+            internal=True,
+        )
+        return await runner._handle_message(event)
+    try:
+        future = asyncio.run_coroutine_threadsafe(reset_owner_session(), loop)
+        future.result(timeout=8)
+        _clear_conversation_ledger()
+        _record_conversation("system", "system", "Conversation and model context reset by owner.")
+        return json.dumps({"ok": True, "message": "Conversation and model context reset."}, separators=(",", ":"))
+    except (FutureTimeout, RuntimeError):
+        _record_conversation("system", "system", "Conversation ledger cleared; model context reset could not be confirmed.")
+        return json.dumps({"ok": False, "message": "Conversation ledger cleared, but model context reset could not be confirmed."}, separators=(",", ":"))
+
+
 def _compression_message(raw_result: Any) -> str:
     """Map Hermes' detailed internal outcome to a stable, secret-free owner message."""
     result = str(raw_result).lower()
@@ -987,7 +1269,7 @@ def _compression_message(raw_result: Any) -> str:
 
 
 async def _compress_owner_context_async(runner: Any, owner_chat_id: str) -> dict[str, Any]:
-    """Invoke Hermes' supported `/compress` handler for the owner-local console session."""
+    """Invoke Hermes' supported `/compress` handler for the shared owner session."""
     session_key = _owner_console_session_key(runner, owner_chat_id)
     running_agents = getattr(runner, "_running_agents", None)
     if isinstance(running_agents, dict) and running_agents.get(session_key) is not None:
@@ -1068,7 +1350,17 @@ def enqueue_task(task_id: str, body: str) -> str:
     if any(task.get("id") == normalized_id for task in tasks):
         return json.dumps(_public_task(next(task for task in tasks if task.get("id") == normalized_id)), separators=(",", ":"))
     now = int(time.time() * 1000)
-    task = {"id": normalized_id, "body": normalized_body, "status": "queued", "createdAt": now, "updatedAt": now, "result": None, "reason": None}
+    task = {
+        "id": normalized_id,
+        "body": normalized_body,
+        "status": "queued",
+        "createdAt": now,
+        "updatedAt": now,
+        "result": None,
+        "reason": None,
+        "origin": "app",
+        "delivery": "owner-telegram",
+    }
     tasks.append(task)
     _write_tasks(tasks)
     _schedule_task_drain()
