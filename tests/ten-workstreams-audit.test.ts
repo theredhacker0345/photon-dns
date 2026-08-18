@@ -109,6 +109,7 @@ describe("Pocket Agent Host ten-workstream release contracts", () => {
     expect(config).toContain("with-arm64-only");
     expect(config).toContain("with-release-shrinking");
     expect(abiPlugin).toContain("arm64-v8a");
+    expect(abiPlugin).toContain("POCKET_HERMES_ANDROID_ABIS");
     expect(shrinkPlugin).toContain("android.enableMinifyInReleaseBuilds");
     expect(shrinkPlugin).toContain("android.enableShrinkResourcesInReleaseBuilds");
   });

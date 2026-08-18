@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the Pydantic Core 2.46.4 Android ARM64 wheel required by Hermes.
+# Builds the Pydantic Core 2.46.4 Android wheel required by Hermes.
 # This is a build-time helper only: the generated wheel links against
 # Chaquopy's bundled libpython at runtime, never the tiny stub below.
 set -euo pipefail
@@ -10,12 +10,21 @@ PYTHON_TAG="cp311"
 NDK_ROOT="${ANDROID_NDK_HOME:-/home/ubuntu/android-sdk/ndk/27.1.12297006}"
 RUSTUP_HOME="${RUSTUP_HOME:-/home/ubuntu/.rustup}"
 CARGO_HOME="${CARGO_HOME:-/home/ubuntu/.cargo}"
-MATURIN="${MATURIN:-${CARGO_HOME}/bin/maturin}"
+MATURIN="${MATURIN:-}"
+if [[ -z "${MATURIN}" ]]; then
+  MATURIN="$(command -v maturin || true)"
+fi
 PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
 WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
+ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
 SOURCE_URL="https://files.pythonhosted.org/packages/9d/56/921726b776ace8d8f5db44c4ef961006580d91dc52b803c489fafd1aa249/pydantic_core-${VERSION}.tar.gz"
 SOURCE_SHA256="62f875393d7f270851f20523dd2e29f082bcc82292d66db2b64ea71f64b6e1c1"
+
+python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"
+if [[ -d "${python_prefix}/lib" ]]; then
+  export LD_LIBRARY_PATH="${python_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+fi
 
 for executable in curl sha256sum tar "${MATURIN}" "${PYTHON}"; do
   command -v "${executable}" >/dev/null 2>&1 || {
@@ -25,7 +34,26 @@ for executable in curl sha256sum tar "${MATURIN}" "${PYTHON}"; do
 done
 
 NDK_BIN="${NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin"
-CLANG="${NDK_BIN}/aarch64-linux-android24-clang"
+case "${ANDROID_ABI}" in
+  arm64-v8a)
+    RUST_TARGET="aarch64-linux-android"
+    WHEEL_ABI="arm64_v8a"
+    CLANG="${NDK_BIN}/aarch64-linux-android24-clang"
+    CXX="${NDK_BIN}/aarch64-linux-android24-clang++"
+    CARGO_ENV_TARGET="AARCH64_LINUX_ANDROID"
+    ;;
+  x86_64)
+    RUST_TARGET="x86_64-linux-android"
+    WHEEL_ABI="x86_64"
+    CLANG="${NDK_BIN}/x86_64-linux-android24-clang"
+    CXX="${NDK_BIN}/x86_64-linux-android24-clang++"
+    CARGO_ENV_TARGET="X86_64_LINUX_ANDROID"
+    ;;
+  *)
+    echo "Unsupported ANDROID_ABI: ${ANDROID_ABI}. Expected arm64-v8a or x86_64." >&2
+    exit 1
+    ;;
+esac
 test -x "${CLANG}" || { echo "Android NDK clang not found at ${CLANG}" >&2; exit 1; }
 test -x "${MATURIN}" || { echo "maturin not executable at ${MATURIN}" >&2; exit 1; }
 
@@ -35,7 +63,7 @@ mkdir -p "${WORK}" "${OUT}"
 # compiling. Keep this generated metadata in the ignored build workspace.
 stdlib_dir="$("${PYTHON}" -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')"
 cp "${stdlib_dir}"/_sysconfigdata*.py "${WORK}/"
-rm -f "${OUT}/pydantic_core-${VERSION}-"*.whl
+rm -f "${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}.whl"
 curl --fail --silent --show-error --location "${SOURCE_URL}" --output "${WORK}/source.tar.gz"
 echo "${SOURCE_SHA256}  ${WORK}/source.tar.gz" | sha256sum --check --status
 tar -xzf "${WORK}/source.tar.gz" -C "${WORK}"
@@ -50,10 +78,10 @@ EOF
 
 export RUSTUP_HOME CARGO_HOME
 export ANDROID_NDK_HOME="${NDK_ROOT}"
-export CC_aarch64_linux_android="${CLANG}"
-export CXX_aarch64_linux_android="${NDK_BIN}/aarch64-linux-android24-clang++"
-export AR_aarch64_linux_android="${NDK_BIN}/llvm-ar"
-export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${CLANG}"
+export "CC_${CARGO_ENV_TARGET}=${CLANG}"
+export "CXX_${CARGO_ENV_TARGET}=${CXX}"
+export "AR_${CARGO_ENV_TARGET}=${NDK_BIN}/llvm-ar"
+export "CARGO_TARGET_${CARGO_ENV_TARGET}_LINKER=${CLANG}"
 export RUSTFLAGS="${RUSTFLAGS:-} -L native=${WORK}"
 export PYO3_CROSS=1
 export PYO3_CROSS_LIB_DIR="${WORK}"
@@ -63,12 +91,12 @@ export PYO3_CROSS_PYTHON_IMPLEMENTATION=CPython
 SOURCE_DIR="${WORK}/pydantic_core-${VERSION}"
 (
   cd "${SOURCE_DIR}"
-  "${MATURIN}" build --release --target aarch64-linux-android --interpreter "${PYTHON}" --compatibility off --out "${OUT}"
+  "${MATURIN}" build --release --target "${RUST_TARGET}" --interpreter "${PYTHON}" --compatibility off --out "${OUT}"
 )
 
 wheel="$(find "${OUT}" -maxdepth 1 -type f -name "pydantic_core-${VERSION}-*.whl" -print -quit)"
 test -n "${wheel}" || { echo "Pydantic Core wheel was not produced" >&2; exit 1; }
-target_wheel="${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_arm64_v8a.whl"
+target_wheel="${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}.whl"
 if [[ "${wheel}" != "${target_wheel}" ]]; then
   mv "${wheel}" "${target_wheel}"
 fi

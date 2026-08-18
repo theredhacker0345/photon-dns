@@ -18,6 +18,10 @@ dependencies {
 }
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+def pocketHermesAbis = (System.getenv("POCKET_HERMES_ANDROID_ABIS") ?: "arm64-v8a")
+  .split(",")
+  .collect { it.trim() }
+def pocketHermesEmulatorTestBuild = System.getenv("POCKET_HERMES_EMULATOR_TEST_BUILD") == "true"
 apply from: expoModulesCorePlugin
 applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
@@ -43,7 +47,7 @@ if (useManagedAndroidSdkVersions) {
       minSdkVersion safeExtGet("minSdkVersion", 24)
       targetSdkVersion safeExtGet("targetSdkVersion", 36)
       ndk {
-        abiFilters "arm64-v8a"
+        abiFilters(*pocketHermesAbis)
       }
       externalNativeBuild {
         cmake {
@@ -85,7 +89,10 @@ chaquopy {
     // explicit: Chaquopy rejects an interpreter with the wrong minor version.
     buildPython(System.getenv("POCKET_HERMES_BUILDPYTHON") ?: "python3.11")
     pip {
-      install("-r", "src/main/python/requirements-android.txt")
+      def requirementsFile = pocketHermesEmulatorTestBuild && pocketHermesAbis == ["x86_64"]
+        ? "src/main/python/requirements-android-x86_64.txt"
+        : "src/main/python/requirements-android.txt"
+      install("-r", requirementsFile)
     }
   }
 }
