@@ -216,6 +216,6 @@
 - [x] Trace the embedded agent’s Android workspace, Python runtime, network, and tool boundaries
 - [x] Document the verified sandbox model and the exact tools available to the agent without overstating capabilities
 - [x] Identify and repair any concrete capability-surface gap found in the sandbox or tool audit
-- [ ] Add regression coverage, validate, checkpoint, and publish the sandbox and tool-surface update to GitLab
+- [x] Add regression coverage, validate, checkpoint, and publish the sandbox and tool-surface update to GitLab
 - [x] Enforce an empty upstream toolset for every embedded agent session so bundled terminal, browser, file, plugin, and local MCP code cannot be exposed
 - [x] Document the app-private workspace boundary and the only owner-invocable tool surface: approved remote MCP commands
