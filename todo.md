@@ -271,4 +271,4 @@
 - [x] Add explicit pinned-Hermes provenance, integrity verification, and a documented upgrade process
 - [x] Add safe same-network Ollama and LM Studio model-provider presets without weakening remote HTTPS defaults
 - [x] Explain the online-only operating model and explicit remote HTTPS-only MCP limitation in the documentation
-- [ ] Add regression coverage, validate the release, checkpoint, and publish the branding, local-provider, and supply-chain update
+- [x] Add regression coverage, validate the release, checkpoint, and publish the branding, local-provider, and supply-chain update
