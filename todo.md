@@ -249,3 +249,20 @@
 - [x] Measure release bundle and build characteristics, then identify only evidence-backed optimization opportunities
 - [x] Implement safe render, memory, list, polling, or native-runtime optimizations without weakening host safety semantics
 - [x] Add performance regression coverage, validate the release build, checkpoint, and publish the optimization update to GitLab
+- [ ] Verify secure Appetize.io configuration and release APK upload prerequisites
+- [ ] Run an Appetize.io Android smoke test covering setup, Dashboard, Agent Console, Automations, Settings, and native-only unavailable states
+- [ ] Reproduce and repair any Appetize.io-observed defects, then run complete regression validation
+- [ ] Record Appetize.io test evidence, checkpoint, and publish the verified update to GitLab
+- [ ] Diagnose the failed embedded player through Appetize.io’s authenticated API and command-line workflow
+- [ ] Use supported Appetize.io API operations to inspect the uploaded APK and run or retrieve emulator-session diagnostics without relying on the website player
+- [ ] Configure a secure Android release-signing path so the Appetize.io artifact has a valid install certificate
+- [ ] Build and verify a signed release APK with Android certificate checks before uploading it for emulator testing
+- [ ] Re-run the Appetize.io Android install and smoke test with the signed artifact, capture evidence, and publish the repair
+- [ ] Fix the Appetize.io x86_64 launch crash caused by an ARM64-only React Native native-library package
+- [ ] Build and inspect a signed emulator-compatible APK that includes the required x86_64 React Native shared libraries
+- [ ] Validate the x86_64-compatible signed APK in Appetize.io, run regressions, and publish the compatibility repair
+- [x] Audit the current Home dashboard and Agent Console for removable visual noise, competing actions, and inefficient information hierarchy
+- [x] Add secure management for multiple saved AI provider connections while retaining a clear active-provider selection and zero credential display
+- [x] Simplify the Home dashboard to prioritize host state, one next action, essential resource pulse, and safety alerts
+- [x] Refine the Agent Console chat layout, empty state, conversation rendering, and controls for focused one-handed use
+- [x] Add regression coverage, validate the release, checkpoint, and publish the UX and multi-provider update

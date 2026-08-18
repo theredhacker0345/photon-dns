@@ -21,7 +21,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const isFocused = useIsFocused();
   const { themeId, setThemeId } = useThemeContext();
-  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, saveConfiguration, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
   const { telemetry } = useSupervisorTelemetry(defaultHostRuntimePolicy, isFocused);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
@@ -50,6 +50,8 @@ export default function SettingsScreen() {
   const [mcpCredential, setMcpCredential] = useState("");
   const [savingMcp, setSavingMcp] = useState(false);
   const [mcpResult, setMcpResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [addingProvider, setAddingProvider] = useState(false);
+  const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
   const editingResourcePolicy = {
     ...config.policy,
     lowBatteryPercent: Number(lowBatteryPercent),
@@ -71,6 +73,15 @@ export default function SettingsScreen() {
     void discoverModels({ provider: config.modelProvider, endpoint: config.modelEndpoint }).finally(() => setDiscoveringModels(false));
   }, [config.hasModelApiKey, config.modelProvider, config.modelEndpoint, modelCatalogFetchedAt, modelCatalog, discoverModels]);
 
+  useEffect(() => {
+    if (addingProvider) return;
+    setModelProvider(config.modelProvider);
+    setModelEndpoint(config.modelEndpoint);
+    setModelName(config.modelName);
+    setModelApiKey("");
+    setProviderTestResult(null);
+  }, [addingProvider, config.modelEndpoint, config.modelName, config.modelProvider]);
+
   const save = async () => {
     if (modelProvider === "kilo" && !providerTestResult?.ok) {
       Alert.alert("Test Kilo Code first", "Use the Test Kilo Code connection button to verify the API key before saving this provider.");
@@ -87,6 +98,8 @@ export default function SettingsScreen() {
       modelName,
       telegramToken: token,
       modelApiKey,
+      providerConnectionId: addingProvider ? null : activeProviderConnectionId,
+      createProviderConnection: addingProvider || !activeProviderConnectionId,
       policy: {
         ...config.policy,
         chargingAware,
@@ -104,6 +117,7 @@ export default function SettingsScreen() {
     if (result.ok) {
       setToken("");
       setModelApiKey("");
+      setAddingProvider(false);
       if (endpoint && (modelApiKey.trim() || config.hasModelApiKey)) {
         setDiscoveringModels(true);
         void discoverModels({ provider: modelProvider, endpoint }).finally(() => setDiscoveringModels(false));
@@ -117,6 +131,24 @@ export default function SettingsScreen() {
     setModelEndpoint(getProviderPreset(provider).defaultEndpoint);
     setModelName("");
     setProviderTestResult(null);
+  };
+
+  const beginNewProvider = () => {
+    setAddingProvider(true);
+    selectProvider("openai");
+    setModelApiKey("");
+  };
+
+  const activateProvider = async (connectionId: string) => {
+    setAddingProvider(false);
+    await selectProviderConnection(connectionId);
+  };
+
+  const removeProvider = (connectionId: string, label: string) => {
+    Alert.alert("Remove saved provider?", `Remove ${label} and its protected API token from this phone? This cannot be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: () => void removeProviderConnection(connectionId) },
+    ]);
   };
 
   const refreshModels = async () => {
@@ -230,23 +262,73 @@ export default function SettingsScreen() {
           <Text style={[styles.helper, { color: colors.muted }]}>{ThemeOptions.find((theme) => theme.id === themeId)?.description}</Text>
         </PressableCard>
 
+        <SectionHeading eyebrow="MODEL ACCESS" title="Saved providers" />
+        <PressableCard style={styles.providerConnectionsCard}>
+          {providerConnections.length ? (
+            <View style={styles.providerConnectionList}>
+              {providerConnections.map((connection) => {
+                const active = connection.id === activeProviderConnectionId;
+                const providerLabel = getProviderPreset(connection.provider).label;
+                return (
+                  <Pressable
+                    key={connection.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use ${connection.label || providerLabel} provider connection`}
+                    accessibilityHint="Long press to remove this saved provider and its protected API token."
+                    accessibilityState={{ selected: active }}
+                    onPress={() => void activateProvider(connection.id)}
+                    onLongPress={() => removeProvider(connection.id, connection.label || providerLabel)}
+                    style={({ pressed }) => [
+                      styles.providerConnectionRow,
+                      { backgroundColor: active ? `${colors.primary}12` : colors.background, borderColor: active ? `${colors.primary}62` : colors.border },
+                      pressed && styles.themeOptionPressed,
+                    ]}
+                  >
+                    <View style={[styles.providerConnectionIcon, { backgroundColor: active ? `${colors.primary}1C` : `${colors.muted}14` }]}>
+                      <MaterialIcons name={active ? "check" : "cloud-queue"} size={18} color={active ? colors.primary : colors.muted} />
+                    </View>
+                    <View style={styles.providerConnectionCopy}>
+                      <Text numberOfLines={1} style={[styles.providerConnectionTitle, { color: colors.foreground }]}>{connection.label || providerLabel}</Text>
+                      <Text numberOfLines={1} style={[styles.providerConnectionDetail, { color: colors.muted }]}>{providerLabel} · {connection.hasApiKey ? "token protected" : "token needed"}</Text>
+                      <Text numberOfLines={1} style={[styles.providerConnectionEndpoint, { color: colors.muted }]}>{connection.endpoint}</Text>
+                    </View>
+                    {active ? <Text style={[styles.providerActiveLabel, { color: colors.primary }]}>ACTIVE</Text> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={[styles.helper, { color: colors.muted }]}>No provider is saved yet. Add one to keep its protected API token separate from your other model providers.</Text>
+          )}
+          <SecondaryButton label="Add provider" icon="add" onPress={beginNewProvider} />
+          {providerConnections.length ? <Text style={[styles.helper, { color: colors.muted }]}>Tap a provider to make it active. Long press one to remove its metadata and protected API token.</Text> : null}
+        </PressableCard>
+
         <SectionHeading eyebrow="IDENTITY" title="This phone" />
         <PressableCard style={[styles.formCard, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}22` }]}>
           <Label text="Host name" color={colors.muted} />
           <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Agent Host" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Label text="AI model provider" color={colors.muted} />
-          <ModelProviderPicker selected={modelProvider} onChange={selectProvider} colors={colors} />
-          <Label text="Model endpoint · HTTPS" color={colors.muted} />
-          <TextInput value={modelEndpoint} onChangeText={(value) => { setModelEndpoint(value); setProviderTestResult(null); }} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Label text="Provider API token" color={colors.muted} />
-          <TextInput value={modelApiKey} onChangeText={(value) => { setModelApiKey(value); setProviderTestResult(null); }} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
-          <SecondaryButton label={testingProvider ? `Testing ${getProviderPreset(modelProvider).label}…` : `Test ${getProviderPreset(modelProvider).label} connection`} icon="network-check" onPress={() => void testConnection()} loading={testingProvider} disabled={testingProvider} />
-          {providerTestResult ? <View style={[styles.connectionResult, { backgroundColor: `${providerTestResult.ok ? colors.success : colors.error}12`, borderColor: `${providerTestResult.ok ? colors.success : colors.error}3A` }]}><MaterialIcons name={providerTestResult.ok ? "check-circle" : "error-outline"} size={18} color={providerTestResult.ok ? colors.success : colors.error} /><Text style={[styles.connectionResultText, { color: providerTestResult.ok ? colors.success : colors.error }]}>{providerTestResult.message}</Text></View> : null}
-          <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} connection={providerConnection} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
-          <Label text="Selected model" color={colors.muted} />
-          <TextInput value={modelName} onChangeText={setModelName} placeholder="Choose a model above or enter its ID" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Text style={[styles.helper, { color: colors.muted }]}>Refresh whenever the provider changes its catalog. The last successful catalog is kept locally without the API token.</Text>
+          {addingProvider || !activeProviderConnection ? <>
+            <Label text="AI model provider" color={colors.muted} />
+            <ModelProviderPicker selected={modelProvider} onChange={selectProvider} colors={colors} />
+            <Label text="Model endpoint · HTTPS" color={colors.muted} />
+            <TextInput value={modelEndpoint} onChangeText={(value) => { setModelEndpoint(value); setProviderTestResult(null); }} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+            <Label text="Provider API token" color={colors.muted} />
+            <TextInput value={modelApiKey} onChangeText={(value) => { setModelApiKey(value); setProviderTestResult(null); }} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+            <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
+            <SecondaryButton label={testingProvider ? `Testing ${getProviderPreset(modelProvider).label}…` : `Test ${getProviderPreset(modelProvider).label} connection`} icon="network-check" onPress={() => void testConnection()} loading={testingProvider} disabled={testingProvider} />
+            {providerTestResult ? <View style={[styles.connectionResult, { backgroundColor: `${providerTestResult.ok ? colors.success : colors.error}12`, borderColor: `${providerTestResult.ok ? colors.success : colors.error}3A` }]}><MaterialIcons name={providerTestResult.ok ? "check-circle" : "error-outline"} size={18} color={providerTestResult.ok ? colors.success : colors.error} /><Text style={[styles.connectionResultText, { color: providerTestResult.ok ? colors.success : colors.error }]}>{providerTestResult.message}</Text></View> : null}
+            <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} connection={providerConnection} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
+            <Label text="Selected model" color={colors.muted} />
+            <TextInput value={modelName} onChangeText={setModelName} placeholder="Choose a model above or enter its ID" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+            <Text style={[styles.helper, { color: colors.muted }]}>Refresh whenever the provider changes its catalog. The last successful catalog is kept locally without the API token.</Text>
+          </> : <View style={[styles.activeProviderSummary, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={styles.activeProviderSummaryHeader}><MaterialIcons name="check-circle" size={18} color={colors.success} /><Text style={[styles.activeProviderSummaryTitle, { color: colors.foreground }]}>Active provider</Text></View>
+            <Text style={[styles.activeProviderSummaryValue, { color: colors.foreground }]}>{getProviderPreset(activeProviderConnection.provider).label}</Text>
+            <Text numberOfLines={1} style={[styles.activeProviderSummaryDetail, { color: colors.muted }]}>{activeProviderConnection.endpoint}</Text>
+            <Text style={[styles.activeProviderSummaryDetail, { color: colors.muted }]}>{config.modelName || "No model selected"} · {activeProviderConnection.hasApiKey ? "API token protected" : "API token needed"}</Text>
+            <Text style={[styles.helper, { color: colors.muted }]}>Use Saved providers above to switch connections or add another. API tokens are never displayed here.</Text>
+          </View>}
         </PressableCard>
 
         <SectionHeading eyebrow="REMOTE ACCESS" title="Telegram gateway" />
@@ -333,7 +415,7 @@ export default function SettingsScreen() {
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, providerConnectionsCard: { gap: 9 }, providerConnectionList: { gap: 7 }, providerConnectionRow: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 68, borderWidth: 1, borderRadius: 14, padding: 10 }, providerConnectionIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" }, providerConnectionCopy: { flex: 1, gap: 2 }, providerConnectionTitle: { fontSize: 13, fontWeight: "900" }, providerConnectionDetail: { fontSize: 11, lineHeight: 15, fontWeight: "700" }, providerConnectionEndpoint: { fontSize: 10, lineHeight: 14, fontWeight: "600" }, providerActiveLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 }, activeProviderSummary: { gap: 4, borderWidth: 1, borderRadius: 14, padding: 12 }, activeProviderSummaryHeader: { flexDirection: "row", alignItems: "center", gap: 7 }, activeProviderSummaryTitle: { fontSize: 12, fontWeight: "900" }, activeProviderSummaryValue: { fontSize: 15, fontWeight: "900", marginTop: 2 }, activeProviderSummaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });
