@@ -279,4 +279,4 @@
 - [x] Add secure optional Telegram proxy configuration for supported proxy transports with protected proxy credentials and connection diagnostics
 - [x] Add regression coverage, validate the Android release, checkpoint, and publish the conversation synchronization and proxy update
 - [x] Add real-time Direct, HTTP, and SOCKS5 Telegram route-status feedback to Setup and Settings
-- [ ] Add route-status regression coverage, validate the Android release, checkpoint, and publish the feedback enhancement
+- [x] Add route-status regression coverage, validate the Android release, checkpoint, and publish the feedback enhancement
