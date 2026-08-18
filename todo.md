@@ -307,3 +307,9 @@
 - [x] Add sample gallery discovery, review, installation, export, and share controls to Skills
 - [x] Add regression coverage and documentation for gallery and export/share boundaries
 - [x] Run complete validation, checkpoint, and publish the gallery and export/share update to GitLab
+- [x] Audit the current Pocket Relay UI hierarchy, theme consistency, accessibility semantics, and mobile interaction states
+- [x] Normalize semantic design tokens and reusable mobile interaction primitives across all existing themes
+- [x] Refine the Home dashboard, Agent Console, Automations/Skills, Settings, and Setup visual hierarchy without removing capabilities
+- [x] Verify touch targets, labels, contrast, font scaling, theme parity, and high-risk action feedback
+- [x] Add UI/UX decision evidence and regression coverage for the premium refinement
+- [x] Run complete validation, checkpoint, and publish the premium UI/UX refinement to GitLab

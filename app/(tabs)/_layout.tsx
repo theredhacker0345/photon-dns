@@ -10,30 +10,31 @@ export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
-  const bottomPadding = isWeb ? 12 : Math.max(insets.bottom, 7);
-  const tabBarHeight = isWeb ? 64 : 56 + bottomPadding;
+  const bottomPadding = isWeb ? 12 : Math.max(insets.bottom, 8);
+  const tabBarHeight = isWeb ? 68 : 60 + bottomPadding;
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.muted,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          paddingTop: 6,
+          paddingTop: 8,
           paddingBottom: bottomPadding,
           height: tabBarHeight,
-          backgroundColor: colors.background,
+          backgroundColor: colors.surfaceRaised,
           borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          borderTopWidth: 1,
         },
         tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: "700",
-          marginTop: 1,
+          fontSize: 10,
+          fontWeight: "800",
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingHorizontal: 2,
+          paddingHorizontal: 4,
         },
       }}
     >
