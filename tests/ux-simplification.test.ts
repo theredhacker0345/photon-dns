@@ -35,13 +35,19 @@ describe("focused mobile control-plane presentation", () => {
     expect(settings).toContain("API tokens are never displayed here.");
   });
 
-  it("keeps creator attribution concise and exposes Hire choices only through user-triggered email and WhatsApp links", () => {
+  it("keeps creator attribution concise and exposes accessible Hire, email, WhatsApp, and issue-report choices only through user-triggered links", () => {
     expect(settings).toContain('SectionHeading eyebrow="CREATOR" title="Built for open, owner-controlled hosting"');
     expect(settings).toContain("Created by Ubaid ur Rehman");
     expect(settings).toContain("A self-taught FOSS developer and security researcher.");
-    expect(settings).toContain('label={showHireChoices ? "Close hiring options" : "Hire Ubaid"}');
+    expect(settings).toContain('accessibilityLabel={showHireChoices ? "Close hiring options" : "Hire Ubaid"}');
+    expect(settings).toContain('accessibilityHint="Shows direct email and WhatsApp hiring contact choices"');
+    expect(settings).toContain("onHoverIn={() => animateHireEmphasis(true)}");
+    expect(settings).toContain("Animated.timing(hireEmphasis");
     expect(settings).toContain("mailto:arifubaid0345@gmail.com");
     expect(settings).toContain("https://wa.me/923352706540");
+    expect(settings).toContain("I%27m%20interested%20in%20hiring%20you%20for%20a%20project");
+    expect(settings).toContain("https://gitlab.com/theredhacker0345/pocket-relay/-/issues/new");
+    expect(settings).toContain('label="Report an issue"');
     expect(settings).toContain("await Linking.openURL(url);");
   });
 });

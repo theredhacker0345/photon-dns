@@ -287,3 +287,7 @@
 - [x] Add a concise creator introduction derived from the approved portfolio to the appropriate Pocket Relay interface
 - [x] Add a Hire action with email and direct WhatsApp contact options using the owner-supplied contact details
 - [x] Add regression coverage, validate the mobile release, checkpoint, and publish the creator-contact update
+- [x] Add a concise prefilled WhatsApp hiring inquiry message to the creator contact flow
+- [x] Add a direct Report an issue action to the Pocket Relay GitLab issue tracker
+- [x] Add a subtle interactive emphasis to the Hire Ubaid control and validate its accessibility behavior
+- [ ] Add regression coverage, validate the mobile release, checkpoint, and publish the creator-contact refinements

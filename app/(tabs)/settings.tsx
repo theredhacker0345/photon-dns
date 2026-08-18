@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useEffect, useState } from "react";
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Animated, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 
 import { ModelCatalog } from "@/components/model-catalog";
@@ -17,6 +17,9 @@ import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } fr
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
 import { getRecommendedResourceLimits, getResourceLimitWarnings } from "@/lib/resource-guardrails";
 import { useThemeContext } from "@/lib/theme-provider";
+
+const HIRING_WHATSAPP_URL = "https://wa.me/923352706540?text=Hello%20Ubaid%2C%20I%27m%20interested%20in%20hiring%20you%20for%20a%20project.%20I%27d%20like%20to%20discuss%20the%20scope%2C%20timeline%2C%20and%20budget.";
+const PROJECT_ISSUE_TRACKER_URL = "https://gitlab.com/theredhacker0345/pocket-relay/-/issues/new";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -58,6 +61,7 @@ export default function SettingsScreen() {
   const [mcpResult, setMcpResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [addingProvider, setAddingProvider] = useState(false);
   const [showHireChoices, setShowHireChoices] = useState(false);
+  const hireEmphasis = useRef(new Animated.Value(0)).current;
   const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
   const selectedProviderRequiresApiKey = requiresModelApiKey(modelProvider);
   const editingResourcePolicy = {
@@ -258,6 +262,10 @@ export default function SettingsScreen() {
     } catch {
       Alert.alert("Contact link unavailable", `Pocket Relay could not open ${label.toLowerCase()} right now.`);
     }
+  };
+
+  const animateHireEmphasis = (active: boolean) => {
+    Animated.timing(hireEmphasis, { toValue: active ? 1 : 0, duration: 150, useNativeDriver: true }).start();
   };
 
   return (
@@ -470,10 +478,27 @@ export default function SettingsScreen() {
             <Text style={[styles.creatorTitle, { color: colors.foreground }]}>Created by Ubaid ur Rehman</Text>
             <Text style={[styles.creatorDetail, { color: colors.muted }]}>A self-taught FOSS developer and security researcher.</Text>
           </View>
-          <SecondaryButton label={showHireChoices ? "Close hiring options" : "Hire Ubaid"} icon={showHireChoices ? "expand-less" : "work-outline"} onPress={() => setShowHireChoices((visible) => !visible)} />
-          {showHireChoices ? <View style={[styles.hireChoices, { borderColor: colors.border }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showHireChoices ? "Close hiring options" : "Hire Ubaid"}
+            accessibilityHint="Shows direct email and WhatsApp hiring contact choices"
+            accessibilityState={{ expanded: showHireChoices }}
+            onPress={() => setShowHireChoices((visible) => !visible)}
+            onHoverIn={() => animateHireEmphasis(true)}
+            onHoverOut={() => animateHireEmphasis(false)}
+            onPressIn={() => animateHireEmphasis(true)}
+            onPressOut={() => animateHireEmphasis(false)}
+            style={({ pressed }) => [styles.hireButton, { backgroundColor: colors.primary, borderColor: `${colors.primary}B8` }, pressed && styles.hireButtonPressed]}
+          >
+            <Animated.View style={[styles.hireButtonContent, { opacity: hireEmphasis.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }), transform: [{ scale: hireEmphasis.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) }] }]}>
+              <MaterialIcons name={showHireChoices ? "expand-less" : "work-outline"} size={17} color={colors.background} />
+              <Text style={[styles.hireButtonText, { color: colors.background }]}>{showHireChoices ? "Close hiring options" : "Hire Ubaid"}</Text>
+            </Animated.View>
+          </Pressable>
+          {showHireChoices ? <View style={[styles.hireChoices, { borderColor: colors.border }]}> 
             <SecondaryButton label="Email Ubaid" icon="email" onPress={() => void openHireContact("mailto:arifubaid0345@gmail.com?subject=Pocket%20Relay%20project%20inquiry", "Email")} />
-            <SecondaryButton label="WhatsApp Ubaid" icon="chat" onPress={() => void openHireContact("https://wa.me/923352706540?text=Hello%20Ubaid%2C%20I%27d%20like%20to%20discuss%20hiring%20you%20for%20a%20project.", "WhatsApp")} />
+            <SecondaryButton label="WhatsApp Ubaid" icon="chat" onPress={() => void openHireContact(HIRING_WHATSAPP_URL, "WhatsApp")} />
+            <SecondaryButton label="Report an issue" icon="bug-report" onPress={() => void openHireContact(PROJECT_ISSUE_TRACKER_URL, "Issue tracker")} />
           </View> : null}
         </PressableCard>
         <Text style={[styles.footer, { color: colors.muted }]}>Pocket Relay is designed as a FOSS, app-private host. Secrets are excluded from activity history and diagnostics.</Text>
@@ -487,5 +512,5 @@ function Label({ text, color }: { text: string; color: string }) { return <Text 
 const styles = StyleSheet.create({
   content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, providerConnectionsCard: { gap: 9 }, providerConnectionList: { gap: 7 }, providerConnectionRow: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 68, borderWidth: 1, borderRadius: 14, padding: 10 }, providerConnectionIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" }, providerConnectionCopy: { flex: 1, gap: 2 }, providerConnectionTitle: { fontSize: 13, fontWeight: "900" }, providerConnectionDetail: { fontSize: 11, lineHeight: 15, fontWeight: "700" }, providerConnectionEndpoint: { fontSize: 10, lineHeight: 14, fontWeight: "600" }, providerActiveLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 }, activeProviderSummary: { gap: 4, borderWidth: 1, borderRadius: 14, padding: 12 }, activeProviderSummaryHeader: { flexDirection: "row", alignItems: "center", gap: 7 }, activeProviderSummaryTitle: { fontSize: 12, fontWeight: "900" }, activeProviderSummaryValue: { fontSize: 15, fontWeight: "900", marginTop: 2 }, activeProviderSummaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, inlineDangerButton: { alignSelf: "flex-start", minHeight: 34, borderWidth: 1, borderRadius: 10, justifyContent: "center", paddingHorizontal: 10 }, inlineDangerText: { fontSize: 11, fontWeight: "900" },
-  settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, creatorCard: { gap: 8 }, creatorIcon: { width: 39, height: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" }, creatorCopy: { gap: 3 }, creatorTitle: { fontSize: 14, fontWeight: "900" }, creatorDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, hireChoices: { gap: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10 }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, creatorCard: { gap: 8 }, creatorIcon: { width: 39, height: 39, borderRadius: 13, alignItems: "center", justifyContent: "center" }, creatorCopy: { gap: 3 }, creatorTitle: { fontSize: 14, fontWeight: "900" }, creatorDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, hireButton: { minHeight: 48, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 2 }, hireButtonPressed: { opacity: 0.9 }, hireButtonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14 }, hireButtonText: { fontSize: 13, fontWeight: "900" }, hireChoices: { gap: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10 }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });
