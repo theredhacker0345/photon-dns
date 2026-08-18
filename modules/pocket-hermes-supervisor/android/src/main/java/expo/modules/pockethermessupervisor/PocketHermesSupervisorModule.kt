@@ -206,6 +206,7 @@ class PocketHermesSupervisorModule : Module() {
         "ok" to result.optBoolean("ok", false),
         "message" to result.optString("message", "Telegram verification is unavailable."),
         "botName" to result.opt("botName")?.takeUnless { it == JSONObject.NULL }?.toString(),
+        "latencyMs" to result.opt("latencyMs")?.takeUnless { it == JSONObject.NULL }?.let { (it as? Number)?.toLong() },
       )
     }
 

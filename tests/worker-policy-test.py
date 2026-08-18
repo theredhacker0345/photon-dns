@@ -81,6 +81,30 @@ def main() -> None:
         else:
             raise AssertionError("worker accepted a Telegram proxy URL instead of a hostname")
 
+        original_urlopen = worker.urlopen
+        original_monotonic = worker.time.monotonic
+
+        class FakeTelegramResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def read(self):
+                return b'{"ok":true,"result":{"username":"relay_bot"}}'
+
+        try:
+            elapsed_samples = iter((10.0, 10.123))
+            worker.urlopen = lambda *_args, **_kwargs: FakeTelegramResponse()
+            worker.time.monotonic = lambda: next(elapsed_samples)
+            gateway_check = json.loads(worker.test_telegram_gateway("123456:abcdefghijklmnopqrstuvwxyzABCDE"))
+            assert gateway_check["ok"] is True
+            assert gateway_check["latencyMs"] == 123
+        finally:
+            worker.urlopen = original_urlopen
+            worker.time.monotonic = original_monotonic
+
         worker._clear_conversation_ledger()
         worker._record_conversation("user", "app", "Use the same owner session.")
         worker._record_conversation("assistant", "telegram", "A token 123456:abcdefghijklmnopqrstuvwxyzABCDE must be redacted.")

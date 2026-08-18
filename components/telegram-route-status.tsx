@@ -57,7 +57,7 @@ export function TelegramRouteStatus({
   const status = checking
     ? { icon: "sync" as const, color: colors.primary, title: `Checking ${routeLabel(proxy.type)}…`, detail: Platform.OS === "web" && proxy.type !== "none" ? "The installed Android build is required to run a proxy route check." : "Verifying the bot token through this route. No Telegram message is sent." }
     : result
-      ? { icon: result.ok ? "check-circle" as const : "error-outline" as const, color: result.ok ? colors.success : colors.error, title: result.ok ? `${routeLabel(proxy.type)} reachable` : `${routeLabel(proxy.type)} needs attention`, detail: result.ok && result.botName ? `${result.message} Connected as ${result.botName}.` : result.message }
+      ? { icon: result.ok ? "check-circle" as const : "error-outline" as const, color: result.ok ? colors.success : colors.error, title: result.ok ? `${routeLabel(proxy.type)} reachable${typeof result.latencyMs === "number" ? ` · ${result.latencyMs} ms` : ""}` : `${routeLabel(proxy.type)} needs attention`, detail: result.ok && result.botName ? `${result.message} Connected as ${result.botName}.` : result.message }
       : !routeReady
         ? { icon: "error-outline" as const, color: colors.warning, title: `${routeLabel(proxy.type)} needs a valid endpoint`, detail: "Enter a hostname and port from 1 to 65535, or select Direct." }
         : !(telegramToken.trim() || hasSavedTelegramToken)

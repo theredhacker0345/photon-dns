@@ -326,11 +326,13 @@ def test_telegram_gateway(
     proxy_credential: str | None = None,
 ) -> str:
     """Test Telegram authentication through the same optional proxy transport without persisting any secret."""
+    check_started_at: float | None = None
     try:
         if not _TOKEN_RE.fullmatch(telegram_token):
             raise ValueError("Telegram bot token is invalid.")
         proxy_url = _normalize_telegram_proxy(proxy_type, proxy_host, proxy_port, proxy_credential)
         endpoint = f"https://api.telegram.org/bot{telegram_token}/getMe"
+        check_started_at = time.monotonic()
         if proxy_url:
             import httpx
             with httpx.Client(proxy=proxy_url, timeout=15) as client:
@@ -339,14 +341,17 @@ def test_telegram_gateway(
         else:
             with urlopen(Request(endpoint), timeout=15) as response:
                 payload = json.loads(response.read().decode("utf-8"))
+        latency_ms = max(0, round((time.monotonic() - check_started_at) * 1000))
         if not isinstance(payload, dict) or not payload.get("ok"):
-            return json.dumps({"ok": False, "message": "Telegram did not accept this bot credential."}, separators=(",", ":"))
+            return json.dumps({"ok": False, "message": "Telegram did not accept this bot credential.", "latencyMs": latency_ms}, separators=(",", ":"))
         result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
-        return json.dumps({"ok": True, "message": "Telegram accepted the bot credential.", "botName": result.get("username") or result.get("first_name")}, separators=(",", ":"))
+        return json.dumps({"ok": True, "message": "Telegram accepted the bot credential.", "botName": result.get("username") or result.get("first_name"), "latencyMs": latency_ms}, separators=(",", ":"))
     except (HTTPError, URLError, TimeoutError, ValueError, OSError):
-        return json.dumps({"ok": False, "message": "Pocket Relay could not verify Telegram through this network route."}, separators=(",", ":"))
+        latency_ms = max(0, round((time.monotonic() - check_started_at) * 1000)) if check_started_at is not None else None
+        return json.dumps({"ok": False, "message": "Pocket Relay could not verify Telegram through this network route.", "latencyMs": latency_ms}, separators=(",", ":"))
     except Exception:
-        return json.dumps({"ok": False, "message": "Pocket Relay could not verify Telegram through this network route."}, separators=(",", ":"))
+        latency_ms = max(0, round((time.monotonic() - check_started_at) * 1000)) if check_started_at is not None else None
+        return json.dumps({"ok": False, "message": "Pocket Relay could not verify Telegram through this network route.", "latencyMs": latency_ms}, separators=(",", ":"))
 
 
 def send_telegram_test_message(

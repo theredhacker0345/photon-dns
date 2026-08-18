@@ -27,7 +27,7 @@ export type NativeSupervisorDiagnostic = {
 };
 
 export type NativeModelPreflight = { ok: boolean; reason: string };
-export type NativeTelegramGatewayTest = { ok: boolean; message: string; botName?: string | null };
+export type NativeTelegramGatewayTest = { ok: boolean; message: string; botName?: string | null; latencyMs?: number | null };
 export type NativeTelegramTestMessage = { ok: boolean; message: string; messageId?: number | null; deliveredAt?: number | null };
 
 /** Secret-free active owner-session context measurement from the embedded Hermes runtime. */

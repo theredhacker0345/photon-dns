@@ -9,6 +9,9 @@ describe("Telegram route-status feedback", () => {
   const settings = readProject("app/(tabs)/settings.tsx");
   const setup = readProject("app/setup.tsx");
   const store = readProject("lib/pocket-hermes-store.tsx");
+  const worker = readProject("modules/pocket-hermes-supervisor/android/src/main/python/pocket_hermes_worker.py");
+  const androidBridge = readProject("modules/pocket-hermes-supervisor/android/src/main/java/expo/modules/pockethermessupervisor/PocketHermesSupervisorModule.kt");
+  const nativeContract = readProject("modules/pocket-hermes-supervisor/src/PocketHermesSupervisorModule.ts");
 
   it("shows a live, route-specific status surface for Direct, HTTP, and SOCKS5 routes", () => {
     expect(status).toContain('type === "none" ? "Direct" : type === "http" ? "HTTP proxy" : "SOCKS5 proxy"');
@@ -33,6 +36,16 @@ describe("Telegram route-status feedback", () => {
     expect(status).toContain("telegramProxyCredential: proxyCredential");
     expect(status).not.toContain("{proxyCredential}");
     expect(status).not.toContain("value={proxyCredential}");
+  });
+
+  it("measures the real Telegram check and displays successful route latency in milliseconds", () => {
+    expect(worker).toContain("check_started_at = time.monotonic()");
+    expect(worker).toContain('"latencyMs": latency_ms');
+    expect(androidBridge).toContain('"latencyMs" to result.opt("latencyMs")');
+    expect(nativeContract).toContain("latencyMs?: number | null");
+    expect(store).toContain("const checkStartedAt = Date.now();");
+    expect(store).toContain("latencyMs: nativeResult.latencyMs ?? null");
+    expect(status).toContain("${result.latencyMs} ms");
   });
 
   it("makes the same route-status component available before and after first-run setup", () => {

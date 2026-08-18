@@ -50,7 +50,7 @@ export type GatewayTestInput = {
   telegramProxy?: Pick<PublicTelegramProxyConfiguration, "type" | "host" | "port">;
   telegramProxyCredential?: string;
 };
-export type GatewayTestResult = { ok: boolean; message: string; botName?: string };
+export type GatewayTestResult = { ok: boolean; message: string; botName?: string; latencyMs?: number | null };
 type TestMessageResult = { ok: boolean; message: string; messageId?: number; deliveredAt?: string };
 type ModelTestResult = { ok: boolean; message: string };
 type SaveMcpServerInput = { id?: string; name: string; endpoint: string; authMode: McpAuthMode; credential?: string; enabled?: boolean };
@@ -512,25 +512,27 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     if (nativeResult) {
       if (!nativeResult.ok) {
         appendEvent({ title: "Gateway check failed", detail: nativeResult.message, severity: "warning" });
-        return { ok: false, message: nativeResult.message };
+        return { ok: false, message: nativeResult.message, latencyMs: nativeResult.latencyMs ?? null };
       }
       const botName = nativeResult.botName ? `@${nativeResult.botName}` : undefined;
       appendEvent({ title: "Gateway credential verified", detail: "Telegram accepted the protected bot credential through the configured device route.", severity: "success" });
-      return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName };
+      return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName, latencyMs: nativeResult.latencyMs ?? null };
     }
     if (draftProxy.type !== "none") {
       return { ok: false, message: "Telegram proxy checks require the installed Android build; web preview cannot route traffic through a device proxy." };
     }
     try {
+      const checkStartedAt = Date.now();
       const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const latencyMs = Math.max(0, Date.now() - checkStartedAt);
       const payload = (await response.json()) as { ok?: boolean; result?: { username?: string; first_name?: string }; description?: string };
       if (!response.ok || !payload.ok) {
         appendEvent({ title: "Gateway check failed", detail: "Telegram did not accept the protected bot token. Recheck the token and network connection.", severity: "warning" });
-        return { ok: false, message: payload.description ?? "Telegram did not accept this bot token." };
+        return { ok: false, message: payload.description ?? "Telegram did not accept this bot token.", latencyMs };
       }
       const botName = payload.result?.username ? `@${payload.result.username}` : payload.result?.first_name;
       appendEvent({ title: "Gateway credential verified", detail: "Telegram accepted the protected bot credential. The owner chat lock will be enforced when the embedded gateway starts.", severity: "success" });
-      return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName };
+      return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName, latencyMs };
     } catch {
       appendEvent({ title: "Gateway check unavailable", detail: "Pocket Relay could not reach Telegram. Check the phone’s network connection and try again.", severity: "warning" });
       return { ok: false, message: "Pocket Relay could not reach Telegram. Check the phone’s network and try again." };
