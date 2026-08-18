@@ -281,4 +281,4 @@
 - [x] Add real-time Direct, HTTP, and SOCKS5 Telegram route-status feedback to Setup and Settings
 - [x] Add route-status regression coverage, validate the Android release, checkpoint, and publish the feedback enhancement
 - [x] Measure Telegram credential-check latency for Direct, HTTP, and SOCKS5 routes and display it beside the live route status
-- [ ] Add latency regression coverage, validate the Android release, checkpoint, and publish the route-latency enhancement
+- [x] Add latency regression coverage, validate the Android release, checkpoint, and publish the route-latency enhancement
