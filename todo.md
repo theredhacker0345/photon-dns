@@ -306,4 +306,4 @@
 - [x] Add native system-share support for exported skill packages
 - [x] Add sample gallery discovery, review, installation, export, and share controls to Skills
 - [x] Add regression coverage and documentation for gallery and export/share boundaries
-- [ ] Run complete validation, checkpoint, and publish the gallery and export/share update to GitLab
+- [x] Run complete validation, checkpoint, and publish the gallery and export/share update to GitLab
