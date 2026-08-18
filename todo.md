@@ -283,4 +283,4 @@
 - [x] Measure Telegram credential-check latency for Direct, HTTP, and SOCKS5 routes and display it beside the live route status
 - [x] Add latency regression coverage, validate the Android release, checkpoint, and publish the route-latency enhancement
 - [x] Update the README for shared owner conversations, secure Telegram proxy routes, live route status, and measured latency
-- [ ] Validate README links and documentation regressions, checkpoint, and publish the README refresh
+- [x] Validate README links and documentation regressions, checkpoint, and publish the README refresh
