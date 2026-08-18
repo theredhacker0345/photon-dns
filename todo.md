@@ -241,3 +241,7 @@
 - [x] Add an Android-only Agent Console viewer for recent code-execution history with refresh, empty, and unavailable states
 - [x] Ensure the viewer redacts source, credentials, output bodies, and raw exception text while retaining actionable status metadata
 - [x] Add audit-viewer privacy regressions, validate the Android release, checkpoint, and publish to GitLab
+- [x] Audit the current Home dashboard hierarchy, loading states, and one-handed interaction flow
+- [x] Refine the Home dashboard visual hierarchy and host-status presentation without changing runtime safety semantics
+- [x] Improve metric, readiness, and primary-action affordances for fast owner scanning
+- [x] Add UI contract regression coverage, validate the Home UX update, checkpoint, and publish to GitLab
