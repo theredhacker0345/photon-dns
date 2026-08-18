@@ -229,8 +229,8 @@
 - [x] Implement sealed JavaScript job contracts, source-hash approval, revocation, timeout, memory, output, and workspace policy enforcement
 - [x] Add off-by-default Settings and Agent Console owner controls for proposing, approving, revoking, and inspecting code jobs
 - [x] Prove no terminal, filesystem, network, module, plugin, local MCP, or Android API escapes with deterministic and native regression tests
-- [ ] Validate release packaging, checkpoint, and publish the completed QuickJS sandbox implementation to GitLab
-- [ ] Validate, checkpoint, and publish the defensive QuickJS sandbox review to GitLab
+- [x] Validate release packaging, checkpoint, and publish the completed QuickJS sandbox implementation to GitLab
+- [x] Validate, checkpoint, and publish the defensive QuickJS sandbox review to GitLab
 - [x] Perform a defensive review of the QuickJS isolated process, JNI evaluator, Binder envelope, approval store, and owner controls
 - [x] Add regression coverage for verified escape-prevention and resource-abuse boundaries without adding shell or Python execution
 - [x] Document confirmed protections, residual risks, and physical-device checks in a defensive sandbox audit
