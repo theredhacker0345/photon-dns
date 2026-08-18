@@ -8,7 +8,7 @@
 
 ## Preliminary conclusion
 
-**GPLv3-only is now the declared license for Pocket Agent Host's app-owned
+**GPLv3-only is now the declared license for Pocket Relay's app-owned
 code, subject to the continuing conditions below.** The audited set contains GPLv3-compatible
 permissive licenses, LGPL-3.0-only, MPL-2.0, CC-BY-4.0, and one dual
 `(BSD-3-Clause OR GPL-2.0)` package. The owner would need to choose that
@@ -17,7 +17,7 @@ complete the notice and source-distribution work below before making the
 change.[1]
 
 The continuing condition is important because the Git history has both `Manus` and
-`Pocket Agent Host Maintainer` authors. Anyone changing the project license
+`Pocket Relay Maintainer` authors. Anyone changing the project license
 must have the authority to relicense all **app-owned** contributions, or obtain
 the contributors' permission. Third-party dependencies are not themselves
 relicensed; their original licenses and notices remain in force.

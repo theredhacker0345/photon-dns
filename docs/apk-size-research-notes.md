@@ -2,7 +2,7 @@
 
 ## Measured baseline
 
-The retained Pocket Agent Host release APK measured 119 MiB on disk and 137.34 MiB uncompressed. The largest entries were `assets/chaquopy/requirements-common.imy` at 32.05 MiB, `classes.dex`/`classes2.dex`/`classes3.dex`/`classes4.dex` totaling 26.15 MiB uncompressed, `assets/chaquopy/stdlib-common.imy` at 4.60 MiB, and native libraries including React Native, CPython, Chaquopy crypto, and Hermes. The APK also contained React Native native libraries for `x86`, `x86_64`, and `armeabi-v7a` despite the intended arm64-v8a release target.
+The retained Pocket Relay release APK measured 119 MiB on disk and 137.34 MiB uncompressed. The largest entries were `assets/chaquopy/requirements-common.imy` at 32.05 MiB, `classes.dex`/`classes2.dex`/`classes3.dex`/`classes4.dex` totaling 26.15 MiB uncompressed, `assets/chaquopy/stdlib-common.imy` at 4.60 MiB, and native libraries including React Native, CPython, Chaquopy crypto, and Hermes. The APK also contained React Native native libraries for `x86`, `x86_64`, and `armeabi-v7a` despite the intended arm64-v8a release target.
 
 ## Research findings
 
@@ -12,7 +12,7 @@ The retained Pocket Agent Host release APK measured 119 MiB on disk and 137.34 M
 
 3. Chaquopy issue #448 records that normal Android resource shrinking and minification do not materially reduce embedded Python package payloads; the maintainer's guidance is to remove unnecessary ABIs and use smaller purpose-built packages where possible. Source: https://github.com/chaquo/chaquopy/issues/448
 
-4. The Chaquopy documentation exposes `pip` requirements as the main Python payload control. The current Pocket Agent Host worker is intentionally Telegram-only, so unused upstream extras and packages should be removed only after import/runtime validation. Source: https://chaquo.com/chaquopy/doc/current/android.html
+4. The Chaquopy documentation exposes `pip` requirements as the main Python payload control. The current Pocket Relay worker is intentionally Telegram-only, so unused upstream extras and packages should be removed only after import/runtime validation. Source: https://chaquo.com/chaquopy/doc/current/android.html
 
 ## Optimization hypotheses
 

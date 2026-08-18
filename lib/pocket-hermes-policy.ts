@@ -9,7 +9,7 @@ export function isValidTelegramChatId(value: string): boolean {
 
 export function normalizeHostName(value: string): string {
   const normalized = value.trim();
-  return normalized || "Pocket Agent Host";
+  return normalized || "Pocket Relay";
 }
 
 export function canPreparePrivateHost(input: HostReadinessInput): boolean {

@@ -40,9 +40,9 @@ export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolic
   useEffect(() => {
     if (permission !== "granted") return;
     const issue = readiness.isCharging === false && readiness.batteryPercent !== null && readiness.batteryPercent < policy.lowBatteryPercent
-      ? { key: "low-battery", title: "Pocket Agent Host needs power", body: `Battery is at ${readiness.batteryPercent}%. Plug in this host phone to keep the agent available.` }
+      ? { key: "low-battery", title: "Pocket Relay needs power", body: `Battery is at ${readiness.batteryPercent}%. Plug in this host phone to keep the agent available.` }
       : readiness.storageReady === false
-        ? { key: "low-storage", title: "Pocket Agent Host needs storage", body: "Free space is below the host reserve. Clear space before running the embedded runtime." }
+        ? { key: "low-storage", title: "Pocket Relay needs storage", body: "Free space is below the host reserve. Clear space before running the embedded runtime." }
         : null;
     if (!issue || sentAlerts.current.has(issue.key)) return;
     sentAlerts.current.add(issue.key);

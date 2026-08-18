@@ -1,4 +1,4 @@
-import type { ModelProviderId } from "./host-contracts";
+import { isAllowedModelEndpoint, requiresModelApiKey, type ModelProviderId } from "./host-contracts";
 
 export type ModelCatalogEntry = {
   id: string;
@@ -17,6 +17,7 @@ export type ProviderPreset = {
   defaultEndpoint: string;
   docsUrl: string;
   catalogProtocol: "openai-compatible";
+  requiresApiKey: boolean;
 };
 
 export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
@@ -27,6 +28,7 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     defaultEndpoint: "https://api.openai.com/v1",
     docsUrl: "https://platform.openai.com/docs/api-reference/models/list",
     catalogProtocol: "openai-compatible",
+    requiresApiKey: true,
   },
   {
     id: "openrouter",
@@ -35,6 +37,7 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     defaultEndpoint: "https://openrouter.ai/api/v1",
     docsUrl: "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
     catalogProtocol: "openai-compatible",
+    requiresApiKey: true,
   },
   {
     id: "groq",
@@ -43,6 +46,7 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     defaultEndpoint: "https://api.groq.com/openai/v1",
     docsUrl: "https://console.groq.com/docs/models",
     catalogProtocol: "openai-compatible",
+    requiresApiKey: true,
   },
   {
     id: "mistral",
@@ -51,6 +55,7 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     defaultEndpoint: "https://api.mistral.ai/v1",
     docsUrl: "https://docs.mistral.ai/api/",
     catalogProtocol: "openai-compatible",
+    requiresApiKey: true,
   },
   {
     id: "kilo",
@@ -59,6 +64,25 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     defaultEndpoint: "https://api.kilo.ai/api/gateway",
     docsUrl: "https://kilo.ai/docs/gateway/models-and-providers",
     catalogProtocol: "openai-compatible",
+    requiresApiKey: true,
+  },
+  {
+    id: "ollama",
+    label: "Ollama on your LAN",
+    description: "A private-network Ollama server using its OpenAI-compatible API",
+    defaultEndpoint: "",
+    docsUrl: "https://docs.ollama.com/api/openai-compatibility",
+    catalogProtocol: "openai-compatible",
+    requiresApiKey: false,
+  },
+  {
+    id: "lmstudio",
+    label: "LM Studio on your LAN",
+    description: "A private-network LM Studio server using its OpenAI-compatible API",
+    defaultEndpoint: "",
+    docsUrl: "https://lmstudio.ai/docs/app/api/endpoints/openai",
+    catalogProtocol: "openai-compatible",
+    requiresApiKey: false,
   },
   {
     id: "custom",
@@ -67,6 +91,7 @@ export const MODEL_PROVIDER_PRESETS: readonly ProviderPreset[] = [
     defaultEndpoint: "",
     docsUrl: "https://github.com/openai/openai-openapi",
     catalogProtocol: "openai-compatible",
+    requiresApiKey: true,
   },
 ];
 
@@ -84,10 +109,11 @@ export function getModelListUrl(endpoint: string) {
 }
 
 export function buildProviderHeaders(apiKey: string) {
-  return {
+  const headers: Record<string, string> = {
     Accept: "application/json",
-    Authorization: `Bearer ${apiKey}`,
   };
+  if (apiKey.trim()) headers.Authorization = `Bearer ${apiKey.trim()}`;
+  return headers;
 }
 
 function asNonEmptyString(value: unknown) {
@@ -121,7 +147,7 @@ export function normalizeOpenAiCompatibleModels(payload: unknown, provider: Mode
     .slice(0, 200);
 }
 
-export type ProviderAuthStatus = "authenticated" | "unauthorized" | "unavailable" | "not_configured" | "not_checked";
+export type ProviderAuthStatus = "authenticated" | "not_required" | "unauthorized" | "unavailable" | "not_configured" | "not_checked";
 
 export type ProviderConnectionStatus = {
   authStatus: ProviderAuthStatus;
@@ -145,10 +171,13 @@ export async function fetchProviderModels(input: {
 }): Promise<ModelDiscoveryResult> {
   const fetchedAt = new Date().toISOString();
   const endpoint = resolveProviderEndpoint(input.provider, input.endpoint);
-  if (!endpoint || !/^https:\/\//i.test(endpoint)) {
-    return { ok: false, message: "Use an HTTPS provider endpoint before fetching models.", models: [], fetchedAt: null, connection: { authStatus: "not_configured", latencyMs: null, checkedAt: null } };
+  if (!isAllowedModelEndpoint(endpoint, input.provider)) {
+    const message = requiresModelApiKey(input.provider)
+      ? "Use an HTTPS provider endpoint before fetching models."
+      : "Use a numeric private-LAN HTTP address or HTTPS endpoint for this local provider.";
+    return { ok: false, message, models: [], fetchedAt: null, connection: { authStatus: "not_configured", latencyMs: null, checkedAt: null } };
   }
-  if (!input.apiKey.trim()) {
+  if (requiresModelApiKey(input.provider) && !input.apiKey.trim()) {
     return { ok: false, message: "Save a provider API token before fetching models.", models: [], fetchedAt: null, connection: { authStatus: "not_configured", latencyMs: null, checkedAt: null } };
   }
   const startedAt = Date.now();
@@ -172,9 +201,9 @@ export async function fetchProviderModels(input: {
     }
     const models = normalizeOpenAiCompatibleModels(payload, input.provider, fetchedAt);
     if (!models.length) {
-      return { ok: false, message: "The provider responded, but no compatible models were found.", models: [], fetchedAt: null, connection: { authStatus: "authenticated", latencyMs, checkedAt } };
+      return { ok: false, message: "The provider responded, but no compatible models were found.", models: [], fetchedAt: null, connection: { authStatus: requiresModelApiKey(input.provider) || input.apiKey.trim() ? "authenticated" : "not_required", latencyMs, checkedAt } };
     }
-    return { ok: true, message: `Found ${models.length} models from the provider.`, models, fetchedAt, connection: { authStatus: "authenticated", latencyMs, checkedAt } };
+    return { ok: true, message: `Found ${models.length} models from the provider.`, models, fetchedAt, connection: { authStatus: requiresModelApiKey(input.provider) || input.apiKey.trim() ? "authenticated" : "not_required", latencyMs, checkedAt } };
   } catch (error) {
     const message = error instanceof Error && error.name === "AbortError"
       ? "The provider model request timed out after 15 seconds."

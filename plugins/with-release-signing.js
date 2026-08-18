@@ -8,7 +8,7 @@ const { withAppBuildGradle } = require("@expo/config-plugins");
 module.exports = function withReleaseSigning(config) {
   return withAppBuildGradle(config, (configMod) => {
     if (configMod.modResults.language !== "groovy") {
-      throw new Error("Pocket Agent Host release-signing plugin requires a Groovy app/build.gradle");
+      throw new Error("Pocket Relay release-signing plugin requires a Groovy app/build.gradle");
     }
     const marker = "// @generated-by-pocket-hermes-release-signing";
     const contents = configMod.modResults.contents;
@@ -42,7 +42,7 @@ module.exports = function withReleaseSigning(config) {
             if (releaseStore) {
                 signingConfig signingConfigs.release
             } else {
-                logger.lifecycle("Pocket Agent Host: assembling an unsigned release artifact for F-Droid signing.")
+                logger.lifecycle("Pocket Relay: assembling an unsigned release artifact for F-Droid signing.")
             }`;
     if (!debugRelease.test(updated)) {
       throw new Error("Could not find Android debug release signing fallback in app/build.gradle");

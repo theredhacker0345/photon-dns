@@ -1,18 +1,18 @@
-# Pocket Agent Host
+# Pocket Relay
 
-![Pocket Agent Host icon](docs/assets/pocket-agent-host-icon.png)
+![Pocket Relay icon](docs/assets/pocket-relay-icon.png)
 
-> **Turn a dedicated Android phone into a private, owner-operated AI agent host.** Pocket Agent Host embeds a CPython/Hermes runtime in an Android application, keeps the control plane on the device, and accepts remote instructions only through an owner-locked Telegram gateway.
+> **Turn a dedicated Android phone into a private, owner-operated AI relay.** Pocket Relay embeds a CPython/Hermes runtime in an Android application, keeps the control plane on the device, and accepts remote instructions only through an owner-locked Telegram gateway.
 
 | Project | Current position |
 |---|---|
-| **Source** | [GitLab repository](https://gitlab.com/theredhacker0345/pocket-agent-host) |
+| **Source** | [GitLab repository](https://gitlab.com/theredhacker0345/pocket-relay) |
 | **License** | [GPL-3.0-only](LICENSE) |
 | **Platform** | Android, optimized for a dedicated ARM64 phone |
-| **Runtime** | Android foreground service · embedded CPython 3.11 · Hermes Agent |
+| **Runtime** | Android foreground service · embedded CPython 3.11 · [Hermes Agent 0.20.1, pinned source](docs/hermes-runtime-pinning.md) |
 | **Release state** | F-Droid-oriented source and metadata are prepared; F-Droid publication and a fresh physical-device acceptance build remain outstanding. |
 
-Pocket Agent Host is for people who want to dedicate an old Android phone to a long-running, personal agent without asking end users to install Termux, expose a terminal, run a separate Linux distribution, or trust a Pocket Agent Host cloud relay. It is **not** a public multi-user service, a device-rooting tool, a general-purpose Android terminal, or a replacement for Android’s own security and memory controls.
+Pocket Relay is for people who want to dedicate an old Android phone to a long-running, personal agent without asking end users to install Termux, expose a terminal, run a separate Linux distribution, or trust a Pocket Relay cloud relay. It is **not** a public multi-user service, a device-rooting tool, a general-purpose Android terminal, or a replacement for Android’s own security and memory controls.
 
 ## Contents
 
@@ -27,9 +27,9 @@ The app is a focused mobile control plane for an Android-hosted agent. Its opera
 | Capability | What the host provides |
 |---|---|
 | **Private Telegram control** | A private-owner gateway for submitting work and receiving responses. Messages from unverified chats and groups are rejected by policy. |
-| **Provider-aware model setup** | Presets for OpenAI, OpenRouter, Groq, Mistral AI, Kilo Code, and custom HTTPS OpenAI-compatible services. Owners can test credentials, inspect request latency, refresh `/models`, search the catalog, and save favorites. |
+| **Provider-aware model setup** | Hosted presets for OpenAI, OpenRouter, Groq, Mistral AI, Kilo Code, and custom HTTPS OpenAI-compatible services; plus explicit same-network Ollama and LM Studio presets. Owners can test a connection, inspect request latency, refresh `/models`, search the catalog, and save favorites. |
 | **Agent Console** | Durable task submission, bounded local task history, active-session context-window metadata, and a safe manual **Compress context** action. Conversation text does not cross the Python/Kotlin/JavaScript control-plane bridge. |
-| **Remote MCP connectors** | Owner-selected HTTPS Streamable HTTP MCP servers, discovered tool manifests, fingerprints, short-lived per-tool grants, and live policy updates. Local, stdio, private-network, redirect, and unapproved-tool routes are blocked. |
+| **Remote MCP connectors** | Only owner-selected remote HTTPS Streamable HTTP MCP servers with optional bearer authentication are supported. Local, stdio, private-network, redirect, and unapproved-tool routes are blocked; the app never runs arbitrary connector code. |
 | **24/7 host supervision** | An Android foreground service, persistent notification, charging and storage readiness checks, bounded recovery, optional boot recovery, and local schedules. Android requires special handling for foreground work because background execution is constrained by the platform.[1] |
 | **Resource observability** | Native CPU, process-RAM, storage, charging, and capacity readings; a volatile dashboard history chart; configurable warning and critical percentages; and hardware-aware recommended limits. |
 | **FOSS release evidence** | GPL-3.0-only app code, third-party notices, JavaScript and Python SBOM generation, a license audit, reproducibility tooling, Fastlane material, and an F-Droid recipe skeleton. |
@@ -42,10 +42,14 @@ The setup flow is deliberately short and fail-closed. It guides the owner throug
 |---|---|---|
 | **1. Identify the host** | Name the dedicated phone and review its charging and storage readiness. | The app surfaces whether the phone is suitable for persistent operation before start. |
 | **2. Lock the gateway** | Add the Telegram bot token and the private owner chat ID, then run the gateway test. | Unrecognized and group conversations are not treated as owners. |
-| **3. Select a model** | Choose a provider, test the endpoint, refresh the model catalog, and choose a model. | Tokens use protected storage; custom endpoints must be explicit HTTPS OpenAI-compatible URLs. |
+| **3. Select a model** | Choose a provider, test the endpoint, refresh the model catalog, and choose a model. | Hosted and custom services require an explicit HTTPS OpenAI-compatible URL and protected token. Ollama and LM Studio may use HTTP only at a numeric private-LAN address; their bearer token is optional. |
 | **4. Set the policy** | Choose resource limits, notification behavior, and startup preferences. | Values are normalized and handed to the native supervisor only after validation. |
 
-The app is **online-only by design**. Telegram traffic reaches Telegram, and prompts or responses reach the provider selected by the owner. Pocket Agent Host does not provide a model relay or a hosted synchronization service. Read the [privacy notes](docs/privacy.md) before configuring a provider or connector.
+## Why Pocket Relay is connected-operation only
+
+Pocket Relay is **online-only by design** because its owner gateway relies on Telegram and its hosted model presets rely on the selected provider’s network API. The project does not present a degraded queue as an offline agent, mirror prompts to an app-operated cloud relay, or pretend that a disconnected phone can receive owner commands. This keeps the ownership and data-flow model honest: when the phone has no trusted network route, the remote gateway and hosted inference are unavailable.
+
+The optional Ollama and LM Studio presets preserve a privacy-first alternative, but not a false offline-first promise. They connect directly from the phone to an owner-controlled model server on the same trusted LAN; HTTP is accepted only for numeric private-LAN addresses, and bearer authentication remains optional. Telegram still requires Internet reachability for remote control. Read the [privacy notes](docs/privacy.md) and [local-provider compatibility notes](docs/local-provider-compatibility-research.md) before configuring a provider or connector.
 
 ## UI gallery
 
@@ -53,11 +57,11 @@ The screenshots below show the current web control-plane preview. The preview la
 
 | Host dashboard | Agent Console |
 |---|---|
-| ![Pocket Agent Host dashboard: setup state, private workspace and owner-only gateway cards](docs/screenshots/home.png) | ![Pocket Agent Host Agent Console](docs/screenshots/agent-console.png) |
+| ![Pocket Relay dashboard: setup state, private workspace and owner-only gateway cards](docs/screenshots/home.png) | ![Pocket Relay Agent Console](docs/screenshots/agent-console.png) |
 
 | Automations | Host settings |
 |---|---|
-| ![Pocket Agent Host automation scheduler](docs/screenshots/automations.png) | ![Pocket Agent Host settings and provider configuration](docs/screenshots/settings.png) |
+| ![Pocket Relay automation scheduler](docs/screenshots/automations.png) | ![Pocket Relay settings and provider configuration](docs/screenshots/settings.png) |
 
 The launcher image above is also shipped through the Android, splash, favicon, and adaptive-icon paths: [`assets/images/icon.png`](assets/images/icon.png).
 
@@ -69,7 +73,7 @@ The important design decision is not merely that the runtime is on a phone; it i
 |---|---|
 | Run its embedded worker and private workspace inside the app’s Android boundary. | Expose an interactive shell, a visible Termux workflow, arbitrary package installation, root access, or access to other apps’ files. |
 | Store Telegram, provider, and MCP credentials through Android protected storage backed by Android Keystore mechanisms.[2] | Put secrets in normal UI state, ordinary logs, telemetry, task history, or diagnostic exports. |
-| Keep telemetry, schedules, bounded history, and host events locally. | Include analytics SDKs, advertising SDKs, accounts, or a Pocket Agent Host-operated cloud relay. |
+| Keep telemetry, schedules, bounded history, and host events locally. | Include analytics SDKs, advertising SDKs, accounts, or a Pocket Relay-operated cloud relay. |
 | Require explicit owner grants before an MCP tool can run. | Launch local MCP processes, accept stdio connectors, follow redirects to private destinations, or treat discovery as permission. |
 | Display numeric context-window metadata and request session-preserving compression. | Render a conversation transcript through the control-plane bridge. |
 
@@ -77,7 +81,7 @@ Credential removal is an operational action, not a cosmetic one: it stops the ho
 
 ## Resource guardrails
 
-The owner can set bounded CPU, process-RAM, and private-workspace storage limits in Settings. These are **host-process guardrails**: they supervise Pocket Agent Host and its app-private runtime directory. They do not create device-wide cgroups, alter unrelated Android processes, or bypass Android memory management.
+The owner can set bounded CPU, process-RAM, and private-workspace storage limits in Settings. These are **host-process guardrails**: they supervise Pocket Relay and its app-private runtime directory. They do not create device-wide cgroups, alter unrelated Android processes, or bypass Android memory management.
 
 | Control | Behavior |
 |---|---|
@@ -92,7 +96,7 @@ Missing native values are never guessed. If the app cannot obtain a reading, it 
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Pocket Agent Host UI                                                  │
+│ Pocket Relay UI                                                       │
 │ Setup · Dashboard · Agent Console · Automations · Settings            │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ typed Expo module bridge
@@ -109,15 +113,15 @@ Missing native values are never guessed. If the app cannot obtain a reading, it 
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-The worker incorporates the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project while Pocket Agent Host remains an independently maintained GPL-3.0-only Android application. Refer to the [implementation traceability matrix](docs/implementation-traceability-matrix.md) for the source-level map from requirements to implementation and tests.
+The worker incorporates the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) project while Pocket Relay remains an independently maintained GPL-3.0-only Android application. Its embedded source is fixed at a reviewed Hermes Agent 0.20.1 commit and can only change through the documented [controlled upgrade process](docs/hermes-runtime-pinning.md). Refer to the [implementation traceability matrix](docs/implementation-traceability-matrix.md) for the source-level map from requirements to implementation and tests.
 
 ## Development
 
 The repository uses Expo SDK 54, React Native 0.81, Expo Router 6, TypeScript, NativeWind, a local Android Expo module, and Chaquopy 17. A browser preview is useful for the control-plane UI; it is not an Android-host substitute.
 
 ```bash
-git clone https://gitlab.com/theredhacker0345/pocket-agent-host.git
-cd pocket-agent-host
+git clone https://gitlab.com/theredhacker0345/pocket-relay.git
+cd pocket-relay
 corepack enable
 pnpm install
 pnpm dev
@@ -138,7 +142,7 @@ A native host build requires the documented Android SDK, NDK, Java, CPython 3.11
 
 ## Release and F-Droid
 
-Pocket Agent Host is prepared for an **F-Droid maintainer handoff**, not represented as already published. F-Droid builds require public source, an immutable release tag, metadata pointing to that source, and an independent reproducible build process.[3] The repository includes the recipe skeleton at [`metadata/com.app.pockethermes.yml`](metadata/com.app.pockethermes.yml), but maintainers must complete its public repository and tag fields before submission.
+Pocket Relay is prepared for an **F-Droid maintainer handoff**, not represented as already published. F-Droid builds require public source, an immutable release tag, metadata pointing to that source, and an independent reproducible build process.[3] The repository includes the recipe skeleton at [`metadata/com.app.pockethermes.yml`](metadata/com.app.pockethermes.yml), but maintainers must complete its public repository and tag fields before submission.
 
 | Release evidence | Current boundary |
 |---|---|
@@ -159,6 +163,8 @@ For the exact evidence boundary, artifact context, and handoff sequence, read [r
 | What sandbox the embedded agent receives and which tools it can use | [Agent sandbox and tool surface](docs/agent-sandbox-and-tools.md) |
 | How the native worker and supervisor divide responsibility | [Native runtime contract](docs/native-runtime-contract.md) |
 | Model discovery behavior and supported endpoint shape | [Provider model discovery research](docs/provider-model-discovery-research.md) |
+| Hermes source provenance, pin, and upgrade controls | [Hermes runtime pinning](docs/hermes-runtime-pinning.md) |
+| Local Ollama and LM Studio endpoint compatibility | [Local-provider compatibility research](docs/local-provider-compatibility-research.md) |
 | Themes and the minimal control-plane design | [Theme system](docs/theme-system.md) · [Minimal UI design](docs/minimal-ui-design.md) |
 | Build requirements, license checks, and artifact evidence | [Reproducible release policy](docs/reproducible-release-policy.md) · [License verification](docs/license-verification.md) · [Release evidence](docs/release-evidence.md) |
 | Why this README is structured this way | [README benchmark notes](docs/readme-benchmark.md) |
@@ -171,7 +177,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a merge request. C
 
 ## License and attribution
 
-Pocket Agent Host application code is released under the [GNU General Public License, version 3 only](LICENSE). It uses the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) runtime from Nous Research, but is not an official Nous Research product. Applicable upstream copyright and license notices remain part of every compliant distribution.
+Pocket Relay application code is released under the [GNU General Public License, version 3 only](LICENSE). It uses the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) runtime from Nous Research, but is not an official Nous Research product. Applicable upstream copyright and license notices remain part of every compliant distribution.
 
 ## References
 

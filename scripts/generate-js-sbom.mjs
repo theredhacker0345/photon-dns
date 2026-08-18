@@ -83,7 +83,7 @@ const bom = {
     timestamp: new Date().toISOString(),
     component: {
       type: "application",
-      name: "Pocket Agent Host mobile JavaScript runtime",
+      name: "Pocket Relay mobile JavaScript runtime",
       version: rootPackage.version,
       licenses: [{ license: { id: "MIT" } }],
     },

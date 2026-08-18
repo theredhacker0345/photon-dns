@@ -1,1 +1,1 @@
-Pocket Agent Host
+Pocket Relay

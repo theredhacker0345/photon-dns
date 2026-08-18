@@ -1,4 +1,4 @@
-# Pocket Agent Host Validation Notes
+# Pocket Relay Validation Notes
 
 ## Control-plane preview
 

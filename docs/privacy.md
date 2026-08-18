@@ -1,6 +1,6 @@
-# Pocket Agent Host Privacy Notice
+# Pocket Relay Privacy Notice
 
-Pocket Agent Host is designed as a local Android host. It does not include an app analytics SDK, advertising SDK, account system, or Pocket Agent Host-operated cloud relay. The app stores host configuration, bounded task/schedule history, and local diagnostics in application-private storage. Bot tokens and model credentials are handled through protected storage and are intentionally excluded from Home telemetry and diagnostic responses.
+Pocket Relay is designed as a local Android host. It does not include an app analytics SDK, advertising SDK, account system, or Pocket Relay-operated cloud relay. The app stores host configuration, bounded task/schedule history, and local diagnostics in application-private storage. Bot tokens and model credentials are handled through protected storage and are intentionally excluded from Home telemetry and diagnostic responses.
 
 ## Data flows
 
@@ -11,7 +11,7 @@ Pocket Agent Host is designed as a local Android host. It does not include an ap
 | Provider model catalog response | Selected provider’s HTTPS `/models` endpoint | Show current models for selection | Yes, on explicit refresh from Host Setup or Settings; only normalized model metadata is stored locally. |
 | MCP tool manifest | Owner-selected HTTPS MCP endpoint | Discover available tools before an explicit owner grant | Yes, when the owner tests or refreshes a connector; normalized tool metadata and a manifest fingerprint remain locally. |
 | Approved MCP tool arguments and results | Owner-selected HTTPS MCP endpoint | Perform a named tool call requested through the private task boundary | Yes, only while a matching enabled connector and unexpired owner grant exist. The external server's privacy policy applies. |
-| Host readiness, CPU/RAM, battery, storage, task and schedule state | Pocket Agent Host private app storage and foreground service | Local control plane, safety gates, and local notifications | No, unless included by the owner in an instruction to an external service. |
+| Host readiness, CPU/RAM, battery, storage, task and schedule state | Pocket Relay private app storage and foreground service | Local control plane, safety gates, and local notifications | No, unless included by the owner in an instruction to an external service. |
 | Bot token, model credential, and MCP bearer credential | Protected storage and native runtime handoff | Authenticate the configured external services | Only when used to authenticate the selected Telegram, model, or approved MCP service; never written into catalog records, events, telemetry, or diagnostics. |
 
 ## Owner controls

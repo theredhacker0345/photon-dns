@@ -6,7 +6,7 @@
 
 ## Executive decision
 
-Pocket Agent Host should **not** add an Android shell, Termux, `subprocess`, a general Python REPL, Docker-like environment, or arbitrary package installation. Those choices would conflict with the app’s explicit non-goal of avoiding a general-purpose remote shell and would make permission, persistence, and F-Droid review substantially harder.
+Pocket Relay should **not** add an Android shell, Termux, `subprocess`, a general Python REPL, Docker-like environment, or arbitrary package installation. Those choices would conflict with the app’s explicit non-goal of avoiding a general-purpose remote shell and would make permission, persistence, and F-Droid review substantially harder.
 
 Instead, the first release should provide a deliberately small **JavaScript data-transformation sandbox**. The model may propose code, but it cannot execute that code directly. The owner reviews and approves an immutable source hash for a single run or a scheduled job. A custom native QuickJS embedding then evaluates the approved source in a separate Android service declared with `android:isolatedProcess="true"`, `android:exported="false"`, and no permissions. Android documents that an isolated-process service has no permissions of its own and can communicate only through the service API. [1]
 
@@ -38,7 +38,7 @@ The sandbox protects the Android host, its credentials, and the owner from **mod
 
 Android already isolates application data by default, but the current Python host still shares the application UID and carries network and protected-storage responsibilities. It is therefore an unsuitable place to evaluate untrusted programs. Android’s isolated-process service mechanism instead creates a service process with no permissions. [1] Android security guidance also recommends minimizing permissions, using internal storage for private data, treating external storage as untrusted, and avoiding unverified dynamic executable loading. [2]
 
-QuickJS is appropriate for the **narrow first tier** because it is compact, has no external dependency in its core engine, and its embedding API exposes a memory limit and an interrupt handler. [3] However, its command-line standard library explicitly includes filesystem, process, environment, and network-adjacent operations. Therefore, Pocket Agent Host must **not** invoke the `qjs` command-line interpreter or initialize the `std`/`os` modules. A safe embedding uses only the engine core and deliberately registers the minimal pure-data globals described below.
+QuickJS is appropriate for the **narrow first tier** because it is compact, has no external dependency in its core engine, and its embedding API exposes a memory limit and an interrupt handler. [3] However, its command-line standard library explicitly includes filesystem, process, environment, and network-adjacent operations. Therefore, Pocket Relay must **not** invoke the `qjs` command-line interpreter or initialize the `std`/`os` modules. A safe embedding uses only the engine core and deliberately registers the minimal pure-data globals described below.
 
 | Option | Decision | Reason |
 |---|---|---|

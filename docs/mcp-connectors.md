@@ -2,9 +2,9 @@
 
 ## Scope
 
-Pocket Agent Host provides an **owner-managed remote MCP connector foundation**. It is an MCP *client*: the embedded Android worker can connect directly to a server selected by the device owner, discover its tool manifest, and invoke a previously approved tool through the existing durable task and Telegram boundaries.
+Pocket Relay provides an **owner-managed remote MCP connector foundation**. It is an MCP *client*: the embedded Android worker can connect directly to a server selected by the device owner, discover its tool manifest, and invoke a previously approved tool through the existing durable task and Telegram boundaries.
 
-The implementation is intentionally narrow. It supports remote **HTTPS Streamable HTTP** endpoints and bearer-style credentials stored through the Android protected-secret path. It does **not** run local MCP processes, `stdio` transports, a terminal, arbitrary binaries, Docker, package installation, or an app-operated cloud relay.
+The implementation is intentionally narrow. **Only remote HTTPS MCP servers with optional bearer authentication are supported. This is intentional: Pocket Relay does not run arbitrary code from connectors.** It does **not** run local MCP processes, `stdio` transports, a terminal, arbitrary binaries, Docker, package installation, or an app-operated cloud relay.
 
 | Capability | V1 behavior | Security boundary |
 |---|---|---|

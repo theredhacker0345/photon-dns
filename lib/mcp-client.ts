@@ -79,7 +79,7 @@ export async function discoverRemoteMcpTools(input: {
       params: {
         protocolVersion: "2025-03-26",
         capabilities: {},
-        clientInfo: { name: "Pocket Agent Host", version: "1.0" },
+        clientInfo: { name: "Pocket Relay", version: "1.0" },
       },
     }, headers);
     if (!initialized.response.ok || initialized.payload?.error) {

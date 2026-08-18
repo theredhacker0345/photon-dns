@@ -18,7 +18,7 @@ for path in files:
         continue
     
     new_content = content
-    new_content = new_content.replace("Pocket Agent Host", "Pocket Agent Host")
+    new_content = new_content.replace("Pocket Relay", "Pocket Relay")
     new_content = new_content.replace("pocket-hermes", "pocket-agent-host")
     new_content = new_content.replace("https://gitlab.com/theredhacker0345/pocket-agent-host", "https://gitlab.com/theredhacker0345/pocket-agent-host")
     

@@ -58,7 +58,7 @@ export default function HostScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.topline}>
           <View style={styles.brandCopy}>
-            <Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET AGENT HOST</Text>
+            <Text style={[styles.wordmark, { color: colors.foreground }]}>POCKET RELAY</Text>
             <View style={styles.brandMeta}>
               <View style={[styles.brandDot, { backgroundColor: phase === "unconfigured" || phase === "stopped" ? colors.warning : colors.success }]} />
               <Text style={[styles.caption, { color: colors.muted }]}>PRIVATE ANDROID HOST</Text>

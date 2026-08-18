@@ -1,7 +1,7 @@
 /**
  * Public, secret-free contracts for remote Model Context Protocol servers.
  *
- * Pocket Agent Host deliberately supports only remote HTTPS transports. Local
+ * Pocket Relay deliberately supports only remote HTTPS transports. Local
  * stdio servers are not appropriate for a mobile foreground host because they
  * require unmanaged child processes and broaden the device attack surface.
  */

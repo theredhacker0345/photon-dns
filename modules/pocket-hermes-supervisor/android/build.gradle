@@ -78,7 +78,7 @@ android {
   }
 }
 
-// Pocket Agent Host packages one private CPython interpreter and only the ARM64
+// Pocket Relay packages one private CPython interpreter and only the ARM64
 // worker profile. No Python interpreter, shell, package installer, or runtime
 // downloader is exposed through the Android UI.
 chaquopy {

@@ -1,4 +1,4 @@
-# Pocket Agent Host embedded worker lock input.
+# Pocket Relay embedded worker lock input.
 #
 # This file is consumed only by Chaquopy at APK build time. Runtime package
 # installation is intentionally unavailable. The Hermes source commit below

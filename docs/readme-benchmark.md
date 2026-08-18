@@ -1,8 +1,8 @@
 # README Benchmark Notes
 
-**Purpose.** These notes preserve the external documentation research used for the Pocket Agent Host README refresh. The project README itself should remain a concise user and contributor entry point; source-specific details belong in the linked project documents.
+**Purpose.** These notes preserve the external documentation research used for the Pocket Relay README refresh. The project README itself should remain a concise user and contributor entry point; source-specific details belong in the linked project documents.
 
-| Reference | Useful pattern | Application to Pocket Agent Host |
+| Reference | Useful pattern | Application to Pocket Relay |
 |---|---|---|
 | [Android Architecture Samples](https://github.com/android/architecture-samples) | Opens with purpose, identifies intended audience, explicitly states scope limits, then gives a short setup path and license. | State the dedicated-phone host purpose, name the exact boundary (no public terminal or general shell), and separate first-use setup from contributor build instructions. |
 | [GitHub ReadME Project: First OSS Contribution](https://github.com/readme/guides/first-oss-contribution) | Treats `README.md` as the landing page and links readers to contribution, community, and license material. | Link to `CONTRIBUTING.md`, the copyright policy, threat model, privacy material, SBOM, and F-Droid handoff guidance rather than duplicating their full contents. |

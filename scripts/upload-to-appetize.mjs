@@ -1,5 +1,5 @@
 /**
- * Pocket Agent Host - Appetize.io Cloud Testing Helper
+ * Pocket Relay - Appetize.io Cloud Testing Helper
  * Uploads an APK to Appetize.io and returns the live web player URL.
  */
 

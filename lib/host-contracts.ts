@@ -1,5 +1,5 @@
 /**
- * Cross-layer contract for the Pocket Agent Host host.
+ * Cross-layer contract for the Pocket Relay host.
  *
  * This file is deliberately secret-free. Telegram and model credentials belong
  * exclusively in Android Keystore-backed storage once handed to the native
@@ -36,7 +36,7 @@ export const defaultHostRuntimePolicy: HostRuntimePolicy = {
   criticalThresholdPercent: 95,
 };
 
-export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "kilo" | "custom";
+export type ModelProviderId = "openai" | "openrouter" | "groq" | "mistral" | "kilo" | "ollama" | "lmstudio" | "custom";
 
 export type PublicModelConfiguration = {
   provider: ModelProviderId;
@@ -101,13 +101,43 @@ export type HostDiagnostic = {
 
 const httpsUrl = /^https:\/\//i;
 
-/** A model endpoint must be explicit HTTPS and must not contain user credentials. */
-export function isAllowedModelEndpoint(endpoint: string) {
+export function isLocalNetworkProvider(provider: ModelProviderId) {
+  return provider === "ollama" || provider === "lmstudio";
+}
+
+export function requiresModelApiKey(provider: ModelProviderId) {
+  return !isLocalNetworkProvider(provider);
+}
+
+function isPrivateNetworkAddress(hostname: string) {
+  const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const octets = ipv4.slice(1).map(Number);
+    if (octets.some((octet) => octet > 255)) return false;
+    return octets[0] === 10
+      || octets[0] === 127
+      || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31)
+      || (octets[0] === 192 && octets[1] === 168)
+      || (octets[0] === 169 && octets[1] === 254);
+  }
+  const normalized = hostname.toLowerCase();
+  return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:");
+}
+
+/**
+ * Hosted providers require explicit credential-free HTTPS URLs. Ollama and LM
+ * Studio may instead use HTTP only when the owner enters a numeric private-LAN
+ * address; DNS names are intentionally rejected to avoid silently widening an
+ * insecure local-provider route beyond the owner-controlled network.
+ */
+export function isAllowedModelEndpoint(endpoint: string, provider: ModelProviderId = "custom") {
   const candidate = endpoint.trim();
-  if (!candidate || !httpsUrl.test(candidate)) return false;
+  if (!candidate) return false;
   try {
     const parsed = new URL(candidate);
-    return parsed.protocol === "https:" && !parsed.username && !parsed.password && Boolean(parsed.hostname);
+    if (parsed.username || parsed.password || !parsed.hostname) return false;
+    if (parsed.protocol === "https:") return true;
+    return parsed.protocol === "http:" && isLocalNetworkProvider(provider) && isPrivateNetworkAddress(parsed.hostname);
   } catch {
     return false;
   }
@@ -144,9 +174,9 @@ export function canStartWorker(config: PublicHostConfiguration) {
   return Boolean(config.model.provider)
     && config.telegramConfigured
     && Boolean(config.ownerChatId.trim())
-    && config.model.hasApiKey
+    && (!requiresModelApiKey(config.model.provider) || config.model.hasApiKey)
     && Boolean(config.model.model.trim())
-    && isAllowedModelEndpoint(config.model.endpoint)
+    && isAllowedModelEndpoint(config.model.endpoint, config.model.provider)
     && isSafeRuntimePolicy(config.policy);
 }
 

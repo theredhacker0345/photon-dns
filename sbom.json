@@ -1,22 +1,22 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:c1f58e9a-2653-417d-8a64-a9a7b4324a5b",
+  "serialNumber": "urn:uuid:aa1d33c4-299b-4299-ad20-92a934b67c62",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-17T17:07:01.794Z",
+    "timestamp": "2026-08-18T09:02:22.763Z",
     "tools": {
       "components": [
         {
           "type": "application",
-          "name": "Pocket Agent Host SBOM generator",
+          "name": "Pocket Relay SBOM generator",
           "version": "1.0.0"
         }
       ]
     },
     "component": {
       "type": "application",
-      "name": "Pocket Agent Host embedded Hermes worker",
+      "name": "Pocket Relay embedded Hermes worker",
       "version": "0.20.1",
       "licenses": [
         {
@@ -711,7 +711,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "c633b72dd2d25df04edd3b73b33315c6e2bd843693ef7c63a36c0928bfbb4a93"
+          "content": "ccfbd0c876ece6bc612c37cddbca4b9502d795816a86caa15e6172771d1d1239"
         }
       ],
       "properties": [

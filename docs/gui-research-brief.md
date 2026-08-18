@@ -1,13 +1,13 @@
-# Pocket Agent Host GUI Research Brief
+# Pocket Relay GUI Research Brief
 
 **Author:** Manus AI  
-**Scope:** A single focused GitHub/skill/tool research pass for a stronger Pocket Agent Host mobile GUI.
+**Scope:** A single focused GitHub/skill/tool research pass for a stronger Pocket Relay mobile GUI.
 
 ## Recommendation
 
-The strongest immediate move is to **adopt Expo’s official MIT-licensed skill pack as the primary design and implementation reference**, while retaining Pocket Agent Host’ existing lightweight custom component layer. It gives the project direct guidance for native-feeling UI, design systems, Expo Router, native components, and the custom native-module work that Pocket Agent Host will require for its embedded Hermes runtime. [1]
+The strongest immediate move is to **adopt Expo’s official MIT-licensed skill pack as the primary design and implementation reference**, while retaining Pocket Relay’ existing lightweight custom component layer. It gives the project direct guidance for native-feeling UI, design systems, Expo Router, native components, and the custom native-module work that Pocket Relay will require for its embedded Hermes runtime. [1]
 
-| Rank | Resource | License / maturity | Best use in Pocket Agent Host | Decision |
+| Rank | Resource | License / maturity | Best use in Pocket Relay | Decision |
 |---:|---|---|---|---|
 | 1 | [expo/skills][1] + `expo-native-ui` | MIT; official Expo project, 2,413 stars | Native Android controls, semantic tokens, sheets, motion, secure-storage UX, and the later native-module bridge. [1] [2] | **Adopt as a reference pack.** No runtime dependency required. |
 | 2 | [UI/UX Pro Max][3] | MIT; 116,995 stars and 214 commits | Structured design-system and accessibility review for the host dashboard and setup flow. [3] [4] | **Use as an advisory design tool.** Do not add it to the mobile bundle. |
@@ -19,7 +19,7 @@ The strongest immediate move is to **adopt Expo’s official MIT-licensed skill 
 
 The next targeted enhancement should be a **native-feeling “Host setup sheet”**. It should convert the current Control form into a progressive four-step sheet: device protection, Telegram owner allowlist, model connection, and runtime policy. The flow should use one primary action per step, visible completion status, explanatory security copy, haptic confirmation, and a final owner-only readiness summary. This reuses the project’s current primitives and avoids a large UI-library dependency.
 
-> The research supports a pattern-first approach: Pocket Agent Host is already visually coherent, so importing a broad design system would add compatibility and maintenance cost without solving a concrete interface problem.
+> The research supports a pattern-first approach: Pocket Relay is already visually coherent, so importing a broad design system would add compatibility and maintenance cost without solving a concrete interface problem.
 
 ## Tooling conclusion
 

@@ -1,13 +1,13 @@
 # Contributors
 
-Pocket Agent Host credits people and organizations who make **app-owned**
+Pocket Relay credits people and organizations who make **app-owned**
 contributions under the project copyright policy. Third-party packages and
 their authors are credited separately in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 and the generated SBOMs.
 
 | Contributor | Role | Copyright status |
 |---|---|---|
-| Pocket Agent Host Maintainer | Initial project steward | Copyright holder for the initial app-owned source, as represented by the repository owner. |
+| Pocket Relay Maintainer | Initial project steward | Copyright holder for the initial app-owned source, as represented by the repository owner. |
 
 ## Adding contributors
 

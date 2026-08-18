@@ -10,7 +10,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { ThemeOptions } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import { useSupervisorTelemetry } from "@/hooks/use-supervisor-telemetry";
-import { defaultHostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
+import { defaultHostRuntimePolicy, requiresModelApiKey, type ModelProviderId } from "@/lib/host-contracts";
 import type { McpAuthMode } from "@/lib/mcp-contracts";
 import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
@@ -52,6 +52,7 @@ export default function SettingsScreen() {
   const [mcpResult, setMcpResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [addingProvider, setAddingProvider] = useState(false);
   const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
+  const selectedProviderRequiresApiKey = requiresModelApiKey(modelProvider);
   const editingResourcePolicy = {
     ...config.policy,
     lowBatteryPercent: Number(lowBatteryPercent),
@@ -68,7 +69,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     const stale = !modelCatalogFetchedAt || Date.now() - new Date(modelCatalogFetchedAt).getTime() > 6 * 60 * 60 * 1000;
     const hasCurrentProvider = modelCatalog.some((model) => model.provider === config.modelProvider);
-    if (!config.hasModelApiKey || (!stale && hasCurrentProvider)) return;
+    if ((requiresModelApiKey(config.modelProvider) && !config.hasModelApiKey) || (!stale && hasCurrentProvider)) return;
     setDiscoveringModels(true);
     void discoverModels({ provider: config.modelProvider, endpoint: config.modelEndpoint }).finally(() => setDiscoveringModels(false));
   }, [config.hasModelApiKey, config.modelProvider, config.modelEndpoint, modelCatalogFetchedAt, modelCatalog, discoverModels]);
@@ -118,7 +119,7 @@ export default function SettingsScreen() {
       setToken("");
       setModelApiKey("");
       setAddingProvider(false);
-      if (endpoint && (modelApiKey.trim() || config.hasModelApiKey)) {
+      if (endpoint && (modelApiKey.trim() || config.hasModelApiKey || !requiresModelApiKey(modelProvider))) {
         setDiscoveringModels(true);
         void discoverModels({ provider: modelProvider, endpoint }).finally(() => setDiscoveringModels(false));
       }
@@ -198,7 +199,7 @@ export default function SettingsScreen() {
 
   const applyRecommendedLimits = () => {
     if (!recommendedLimits) {
-      Alert.alert("Android capacity required", "Install Pocket Agent Host on the dedicated Android phone and wait for a native capacity sample before applying recommendations.");
+      Alert.alert("Android capacity required", "Install Pocket Relay on the dedicated Android phone and wait for a native capacity sample before applying recommendations.");
       return;
     }
     setMaximumCpuPercent(String(recommendedLimits.maximumCpuPercent));
@@ -289,7 +290,7 @@ export default function SettingsScreen() {
                     </View>
                     <View style={styles.providerConnectionCopy}>
                       <Text numberOfLines={1} style={[styles.providerConnectionTitle, { color: colors.foreground }]}>{connection.label || providerLabel}</Text>
-                      <Text numberOfLines={1} style={[styles.providerConnectionDetail, { color: colors.muted }]}>{providerLabel} · {connection.hasApiKey ? "token protected" : "token needed"}</Text>
+                      <Text numberOfLines={1} style={[styles.providerConnectionDetail, { color: colors.muted }]}>{providerLabel} · {connection.hasApiKey ? "token protected" : requiresModelApiKey(connection.provider) ? "token needed" : "no token required"}</Text>
                       <Text numberOfLines={1} style={[styles.providerConnectionEndpoint, { color: colors.muted }]}>{connection.endpoint}</Text>
                     </View>
                     {active ? <Text style={[styles.providerActiveLabel, { color: colors.primary }]}>ACTIVE</Text> : null}
@@ -307,15 +308,15 @@ export default function SettingsScreen() {
         <SectionHeading eyebrow="IDENTITY" title="This phone" />
         <PressableCard style={[styles.formCard, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}22` }]}>
           <Label text="Host name" color={colors.muted} />
-          <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Agent Host" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+          <TextInput value={hostName} onChangeText={setHostName} placeholder="Pocket Relay" placeholderTextColor={colors.muted} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           {addingProvider || !activeProviderConnection ? <>
             <Label text="AI model provider" color={colors.muted} />
             <ModelProviderPicker selected={modelProvider} onChange={selectProvider} colors={colors} />
-            <Label text="Model endpoint · HTTPS" color={colors.muted} />
-            <TextInput value={modelEndpoint} onChangeText={(value) => { setModelEndpoint(value); setProviderTestResult(null); }} placeholder="https://your-provider.example/v1" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-            <Label text="Provider API token" color={colors.muted} />
-            <TextInput value={modelApiKey} onChangeText={(value) => { setModelApiKey(value); setProviderTestResult(null); }} placeholder={config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-            <Text style={[styles.helper, { color: colors.muted }]}>The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records.</Text>
+            <Label text={selectedProviderRequiresApiKey ? "Model endpoint · HTTPS" : "Model endpoint · private LAN"} color={colors.muted} />
+            <TextInput value={modelEndpoint} onChangeText={(value) => { setModelEndpoint(value); setProviderTestResult(null); }} placeholder={selectedProviderRequiresApiKey ? "https://your-provider.example/v1" : "http://192.168.1.20:11434/v1"} placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="url" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+            <Label text={selectedProviderRequiresApiKey ? "Provider API token" : "Provider API token · optional"} color={colors.muted} />
+            <TextInput value={modelApiKey} onChangeText={(value) => { setModelApiKey(value); setProviderTestResult(null); }} placeholder={selectedProviderRequiresApiKey ? (config.hasModelApiKey ? "Leave blank to keep saved token" : "Paste provider API token") : "Leave blank unless your LAN server uses bearer auth"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+            <Text style={[styles.helper, { color: colors.muted }]}>{selectedProviderRequiresApiKey ? "The token is used only for the selected provider’s HTTPS model-list and inference requests. It is protected on Android and excluded from logs, history, and model records." : "Ollama and LM Studio may use HTTP only at a numeric private-LAN address on the same trusted network. A bearer token is optional and stays protected on Android."}</Text>
             <SecondaryButton label={testingProvider ? `Testing ${getProviderPreset(modelProvider).label}…` : `Test ${getProviderPreset(modelProvider).label} connection`} icon="network-check" onPress={() => void testConnection()} loading={testingProvider} disabled={testingProvider} />
             {providerTestResult ? <View style={[styles.connectionResult, { backgroundColor: `${providerTestResult.ok ? colors.success : colors.error}12`, borderColor: `${providerTestResult.ok ? colors.success : colors.error}3A` }]}><MaterialIcons name={providerTestResult.ok ? "check-circle" : "error-outline"} size={18} color={providerTestResult.ok ? colors.success : colors.error} /><Text style={[styles.connectionResultText, { color: providerTestResult.ok ? colors.success : colors.error }]}>{providerTestResult.message}</Text></View> : null}
             <ModelCatalog provider={modelProvider} models={modelCatalog} fetchedAt={modelCatalogFetchedAt} selectedModel={modelName} loading={discoveringModels} connection={providerConnection} onRefresh={() => void refreshModels()} onSelect={selectModel} colors={colors} />
@@ -326,7 +327,7 @@ export default function SettingsScreen() {
             <View style={styles.activeProviderSummaryHeader}><MaterialIcons name="check-circle" size={18} color={colors.success} /><Text style={[styles.activeProviderSummaryTitle, { color: colors.foreground }]}>Active provider</Text></View>
             <Text style={[styles.activeProviderSummaryValue, { color: colors.foreground }]}>{getProviderPreset(activeProviderConnection.provider).label}</Text>
             <Text numberOfLines={1} style={[styles.activeProviderSummaryDetail, { color: colors.muted }]}>{activeProviderConnection.endpoint}</Text>
-            <Text style={[styles.activeProviderSummaryDetail, { color: colors.muted }]}>{config.modelName || "No model selected"} · {activeProviderConnection.hasApiKey ? "API token protected" : "API token needed"}</Text>
+            <Text style={[styles.activeProviderSummaryDetail, { color: colors.muted }]}>{config.modelName || "No model selected"} · {activeProviderConnection.hasApiKey ? "API token protected" : requiresModelApiKey(activeProviderConnection.provider) ? "API token needed" : "No token required"}</Text>
             <Text style={[styles.helper, { color: colors.muted }]}>Use Saved providers above to switch connections or add another. API tokens are never displayed here.</Text>
           </View>}
         </PressableCard>
@@ -338,7 +339,7 @@ export default function SettingsScreen() {
           <TextInput value={token} onChangeText={setToken} placeholder={config.hasTelegramToken ? "Leave blank to keep saved token" : "Paste token from BotFather"} placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
           <Label text="Private owner Telegram user ID" color={colors.muted} />
           <TextInput value={allowedChatId} onChangeText={setAllowedChatId} placeholder="e.g. 123456789" placeholderTextColor={colors.muted} keyboardType="number-pad" style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
-          <Text style={[styles.helper, { color: colors.muted }]}>Pocket Agent Host accepts one private owner identity only. Group IDs are intentionally rejected because a group can contain other users.</Text>
+          <Text style={[styles.helper, { color: colors.muted }]}>Pocket Relay accepts one private owner identity only. Group IDs are intentionally rejected because a group can contain other users.</Text>
           {Platform.OS === "web" ? <View style={[styles.webNotice, { backgroundColor: `${colors.warning}16` }]}><MaterialIcons name="warning-amber" size={17} color={colors.warning} /><Text style={[styles.webNoticeText, { color: colors.warning }]}>Web preview uses temporary browser storage. Use Android for Keystore protection.</Text></View> : null}
         </PressableCard>
 
@@ -351,7 +352,7 @@ export default function SettingsScreen() {
 
         <PressableCard style={styles.resourceCard}>
           <View style={styles.securityHeader}><View style={[styles.lockIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name="tune" size={18} color={colors.primary} /></View><Text style={[styles.securityTitle, { color: colors.foreground }]}>Host resource guardrails</Text></View>
-          <Text style={[styles.helper, { color: colors.muted }]}>These limits supervise only Pocket Agent Host’s private process and workspace. They do not expose a terminal, install packages, or give the model access to the rest of your phone.</Text>
+          <Text style={[styles.helper, { color: colors.muted }]}>These limits supervise only Pocket Relay’s private process and workspace. They do not expose a terminal, install packages, or give the model access to the rest of your phone.</Text>
           <View style={[styles.recommendationCard, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35` }]}>
             <View style={styles.recommendationCopy}><Text style={[styles.recommendationTitle, { color: colors.foreground }]}>Recommended for this phone</Text><Text style={[styles.recommendationDetail, { color: colors.muted }]}>{recommendedLimits ? `${recommendedLimits.deviceSummary}. Conservative limits leave room for Android.` : "Available after the installed Android host reports this phone’s capacity."}</Text></View>
             <Pressable accessibilityRole="button" accessibilityLabel="Apply recommended resource limits" onPress={applyRecommendedLimits} style={({ pressed }) => [styles.recommendationButton, { borderColor: colors.primary, backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="auto-fix-high" size={16} color={colors.primary} /><Text style={[styles.recommendationButtonText, { color: colors.primary }]}>Apply</Text></Pressable>
@@ -406,7 +407,7 @@ export default function SettingsScreen() {
         <SectionHeading eyebrow="LOCAL DATA" title="Privacy controls" />
         <SecondaryButton label="Clear local activity" icon="delete-outline" onPress={clear} danger />
         <SecondaryButton label="Remove protected credentials" icon="key-off" onPress={removeCredentials} danger />
-        <Text style={[styles.footer, { color: colors.muted }]}>Pocket Agent Host is designed as a FOSS, app-private host. Secrets are excluded from activity history and diagnostics.</Text>
+        <Text style={[styles.footer, { color: colors.muted }]}>Pocket Relay is designed as a FOSS, app-private host. Secrets are excluded from activity history and diagnostics.</Text>
       </ScrollView>
     </ScreenContainer>
   );

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getThemePalette, isThemeId, resolveThemeScheme, ThemeOptions } from "../lib/_core/theme";
 
-describe("Pocket Agent Host theme palettes", () => {
+describe("Pocket Relay theme palettes", () => {
   it("exposes the five supported appearance choices", () => {
     expect(ThemeOptions.map((theme) => theme.id)).toEqual(["system", "cloud", "midnight", "terminal", "oled"]);
   });

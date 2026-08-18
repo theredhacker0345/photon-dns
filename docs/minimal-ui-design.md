@@ -1,6 +1,6 @@
 # Minimal Interface Refinement
 
-Pocket Agent Host should read as a **private host control plane**, not a dashboard full of decorative widgets. The interface keeps the most consequential decision and the current host state visible first, while advanced detail remains available only where it is actionable.
+Pocket Relay should read as a **private host control plane**, not a dashboard full of decorative widgets. The interface keeps the most consequential decision and the current host state visible first, while advanced detail remains available only where it is actionable.
 
 ## Visual System
 

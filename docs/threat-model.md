@@ -1,8 +1,8 @@
-# Pocket Agent Host Threat Model
+# Pocket Relay Threat Model
 
 ## Purpose and scope
 
-Pocket Agent Host converts an owner-managed Android device into a private, long-running Hermes host. This document distinguishes **enforced controls** from operating assumptions so that the product never represents an unverified safeguard as a guarantee. The scope is the shipped Android app, its embedded worker, its owner-only Telegram gateway, and its configured model endpoint.
+Pocket Relay converts an owner-managed Android device into a private, long-running Hermes host. This document distinguishes **enforced controls** from operating assumptions so that the product never represents an unverified safeguard as a guarantee. The scope is the shipped Android app, its embedded worker, its owner-only Telegram gateway, and its configured model endpoint.
 
 ## Assets, trust boundaries, and actors
 
@@ -37,7 +37,7 @@ Pocket Agent Host converts an owner-managed Android device into a private, long-
 
 ## Non-goals and explicit limits
 
-Pocket Agent Host is not a general-purpose remote shell, a mobile-device-management system, a container runtime, or a guarantee that Android will keep a process alive under every OEM power policy. Its owner resource settings supervise the single app process and app-private runtime directory; they are not a root-level device governor, a CPU cgroup, or a hard Android memory allocator. It deliberately exposes no terminal interface, browser automation, arbitrary command execution, local/`stdio` MCP server transport, or public inbound HTTP server. The optional isolated JavaScript card is restricted to individually owner-approved, capability-free in-memory transformations; it is not a terminal, Node.js runtime, package manager, filesystem, or network client. The app does not provide end-to-end encryption beyond the configured external services; Telegram, the chosen model provider, and owner-selected MCP servers each have their own data-handling model.
+Pocket Relay is not a general-purpose remote shell, a mobile-device-management system, a container runtime, or a guarantee that Android will keep a process alive under every OEM power policy. Its owner resource settings supervise the single app process and app-private runtime directory; they are not a root-level device governor, a CPU cgroup, or a hard Android memory allocator. It deliberately exposes no terminal interface, browser automation, arbitrary command execution, local/`stdio` MCP server transport, or public inbound HTTP server. The optional isolated JavaScript card is restricted to individually owner-approved, capability-free in-memory transformations; it is not a terminal, Node.js runtime, package manager, filesystem, or network client. The app does not provide end-to-end encryption beyond the configured external services; Telegram, the chosen model provider, and owner-selected MCP servers each have their own data-handling model.
 
 ## Security release gate
 

@@ -1,4 +1,4 @@
-Pocket Agent Host is a FOSS (Free and Open Source Software) Android application that transforms an idle spare phone into a 24/7 self-hosted AI agent host. Designed around a private embedded CPython and Hermes Agent runtime, Pocket Agent Host runs entirely as a native Android foreground service without requiring or displaying any external terminal user interface like Termux.
+Pocket Relay is a FOSS (Free and Open Source Software) Android application that transforms an idle spare phone into a 24/7 self-hosted AI agent host. Designed around a private embedded CPython and Hermes Agent runtime, Pocket Relay runs entirely as a native Android foreground service without requiring or displaying any external terminal user interface like Termux.
 
 Key Features:
 - **Private Embedded Runtime**: Bundles a constrained, owner-locked Hermes Agent worker executing within an embedded CPython environment.

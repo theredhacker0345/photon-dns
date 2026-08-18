@@ -115,6 +115,7 @@ export type NativeCodeJobRequest = { source: string; timeoutMs?: string; memoryB
 export type NativeSupervisorStartConfig = {
   telegramToken: string;
   ownerChatId: string;
+  modelProvider?: string;
   modelEndpoint?: string;
   modelApiKey?: string;
   modelName?: string;
@@ -143,7 +144,7 @@ type SupervisorModule = {
   setScheduleEnabled(scheduleId: string, enabled: boolean): Promise<NativeSupervisorSchedule>;
   deleteSchedule(scheduleId: string): Promise<{ status: "deleted" }>;
   listScheduleRuns(): Promise<NativeSupervisorScheduleRun[]>;
-  preflightModel(config: Pick<NativeSupervisorStartConfig, "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight>;
+  preflightModel(config: Pick<NativeSupervisorStartConfig, "modelProvider" | "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight>;
   startSupervisor(config: NativeSupervisorStartConfig): Promise<{ status: "starting" }>;
   updateMcpRuntimeConfig(mcpConfigJson?: string): Promise<{ status: "updated" }>;
   stopSupervisor(): Promise<{ status: "stopped" }>;

@@ -2,7 +2,7 @@
 
 ## Direct answer
 
-Pocket Agent Host provides the embedded model with an **Android app-private runtime boundary**, not a general-purpose container or virtual machine. The agent runs inside the application’s Android UID through the embedded CPython runtime. Its persistent workspace is the app-private `HERMES_HOME` directory; it is not shared storage, a user-visible terminal, or an arbitrary code-execution environment.
+Pocket Relay provides the embedded model with an **Android app-private runtime boundary**, not a general-purpose container or virtual machine. The agent runs inside the application’s Android UID through the embedded CPython runtime. Its persistent workspace is the app-private `HERMES_HOME` directory; it is not shared storage, a user-visible terminal, or an arbitrary code-execution environment.
 
 | Boundary | What the embedded agent receives | What it does not receive |
 |---|---|---|
@@ -15,7 +15,7 @@ Pocket Agent Host provides the embedded model with an **Android app-private runt
 
 ## Model-facing tools
 
-The upstream Hermes package includes code for numerous desktop-oriented tools, but Pocket Agent Host now gives every embedded `AIAgent` session an explicit **empty upstream toolset**. Consequently, normal prompts and durable tasks cannot cause the model to invoke any of the packaged terminal, browser, file, web, plugin, local-MCP, or code-execution tools.
+The upstream Hermes package includes code for numerous desktop-oriented tools, but Pocket Relay now gives every embedded `AIAgent` session an explicit **empty upstream toolset**. Consequently, normal prompts and durable tasks cannot cause the model to invoke any of the packaged terminal, browser, file, web, plugin, local-MCP, or code-execution tools.
 
 | Tool category | Available to the model through the standard Hermes tool registry? | Notes |
 |---|---:|---|

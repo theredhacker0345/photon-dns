@@ -1,4 +1,4 @@
-# Pocket Agent Host Release Evidence Record
+# Pocket Relay Release Evidence Record
 
 **Record date:** 2026-08-17  
 **Scope:** Local sandbox release-candidate evidence after the complete
@@ -29,7 +29,7 @@ submission and current-device acceptance testing.
 
 ## F-Droid readiness boundary
 
-Pocket Agent Host has a source-controlled unsigned-release configuration. In the
+Pocket Relay has a source-controlled unsigned-release configuration. In the
 absence of a maintainer key, Gradle produces an unsigned release; when an
 explicit maintainer release key is supplied, the release build uses that key
 only and never inherits Android's debug key. F-Droid metadata and maintainer

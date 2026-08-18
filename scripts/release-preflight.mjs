@@ -75,7 +75,7 @@ if (tagIndex >= 0) {
 }
 
 if (!process.exitCode) {
-  console.log("Local Pocket Agent Host release preflight passed.");
+  console.log("Local Pocket Relay release preflight passed.");
   if (tagIndex < 0) {
     console.log("For a publication handoff, run this command again with --tag <immutable-public-release-tag>.");
   }

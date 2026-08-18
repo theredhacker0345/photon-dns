@@ -1,4 +1,4 @@
-"""Private Android entry point for Pocket Agent Host' Telegram gateway profile.
+"""Private Android entry point for Pocket Relay' Telegram gateway profile.
 
 The module is intentionally narrow. It does not create a Python REPL, execute
 shell commands, install packages, open a browser, or enable Hermes' optional
@@ -121,9 +121,9 @@ def _normalize_maximum_workspace_bytes(value: Any) -> int:
     try:
         normalized = int(value)
     except (TypeError, ValueError) as error:
-        raise ValueError("Pocket Agent Host rejected an invalid private workspace quota.") from error
+        raise ValueError("Pocket Relay rejected an invalid private workspace quota.") from error
     if normalized < _MIN_WORKSPACE_BYTES or normalized > _MAX_WORKSPACE_BYTES:
-        raise ValueError("Pocket Agent Host workspace quota is outside the supported 64 MB to 8 GB range.")
+        raise ValueError("Pocket Relay workspace quota is outside the supported 64 MB to 8 GB range.")
     return normalized
 
 
@@ -169,7 +169,7 @@ def _read_tasks() -> list[dict[str, Any]]:
 def _write_tasks(tasks: list[dict[str, Any]]) -> None:
     path = _task_store_path()
     if path is None:
-        raise RuntimeError("Pocket Agent Host task storage is unavailable until the host starts.")
+        raise RuntimeError("Pocket Relay task storage is unavailable until the host starts.")
     retained = tasks[-_MAX_TASKS:]
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(retained, separators=(",", ":")), encoding="utf-8")
@@ -188,7 +188,7 @@ def _read_json_list(path: Path | None) -> list[dict[str, Any]]:
 
 def _write_json_list(path: Path | None, values: list[dict[str, Any]], maximum: int) -> None:
     if path is None:
-        raise RuntimeError("Pocket Agent Host schedule storage is unavailable until the Android host initializes.")
+        raise RuntimeError("Pocket Relay schedule storage is unavailable until the Android host initializes.")
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(values[-maximum:], separators=(",", ":")), encoding="utf-8")
     temporary.replace(path)
@@ -243,7 +243,7 @@ def validate_cron_expression(expression: str) -> str:
     normalized = str(expression).strip()
     fields = normalized.split()
     if len(fields) != 5:
-        raise ValueError("Pocket Agent Host requires a five-field cron expression: minute hour day month weekday.")
+        raise ValueError("Pocket Relay requires a five-field cron expression: minute hour day month weekday.")
     for field, minimum, maximum in zip(fields, (0, 0, 1, 1, 0), (59, 23, 31, 12, 6)):
         _cron_values(field, minimum, maximum)
     return " ".join(fields)
@@ -397,12 +397,12 @@ async def _drain_task_queue() -> None:
                     chat_id=owner_chat_id if is_schedule else f"pocket-hermes:{owner_chat_id}",
                     chat_type="dm",
                     user_id=owner_chat_id,
-                    user_name="Pocket Agent Host owner",
+                    user_name="Pocket Relay owner",
                 )
                 event = MessageEvent(
                     text=str(next_task["body"]),
                     user_id=owner_chat_id,
-                    user_name="Pocket Agent Host owner",
+                    user_name="Pocket Relay owner",
                     source=source,
                     internal=True,
                 )
@@ -462,13 +462,34 @@ async def _scheduler_loop() -> None:
         await asyncio.sleep(15)
 
 
-def _validate_model_configuration(model_endpoint: str | None, model_api_key: str | None, model_name: str | None) -> str:
-    if not model_endpoint or not model_api_key or not model_name:
-        raise ValueError("Pocket Agent Host requires an endpoint, model name, and model credential.")
+def _is_private_network_model_endpoint(parsed_endpoint: Any) -> bool:
+    """Allow cleartext only to a numeric owner-controlled LAN address."""
+    if parsed_endpoint.scheme != "http" or not parsed_endpoint.hostname:
+        return False
+    try:
+        address = ipaddress.ip_address(parsed_endpoint.hostname)
+        return address.is_private or address.is_loopback or address.is_link_local
+    except ValueError:
+        return False
+
+
+def _validate_model_configuration(
+    model_provider: str | None,
+    model_endpoint: str | None,
+    model_api_key: str | None,
+    model_name: str | None,
+) -> str:
+    local_provider = model_provider in {"ollama", "lmstudio"}
+    if not model_endpoint or not model_name or (not local_provider and not model_api_key):
+        raise ValueError("Pocket Relay requires an endpoint, model name, and any required model credential.")
     parsed_endpoint = urlparse(model_endpoint)
-    if parsed_endpoint.scheme != "https" or not parsed_endpoint.hostname or parsed_endpoint.username or parsed_endpoint.password:
-        raise ValueError("Pocket Agent Host requires a credential-free HTTPS model endpoint.")
-    return model_endpoint.rstrip("/")
+    if not parsed_endpoint.hostname or parsed_endpoint.username or parsed_endpoint.password:
+        raise ValueError("Pocket Relay rejected a malformed model endpoint.")
+    if parsed_endpoint.scheme == "https":
+        return model_endpoint.rstrip("/")
+    if local_provider and _is_private_network_model_endpoint(parsed_endpoint):
+        return model_endpoint.rstrip("/")
+    raise ValueError("Pocket Relay requires HTTPS, except for explicit numeric private-LAN Ollama or LM Studio endpoints.")
 
 
 def _is_allowed_remote_mcp_endpoint(endpoint: str) -> bool:
@@ -493,13 +514,13 @@ def _normalize_remote_mcp_configuration(raw: str | None) -> list[dict[str, Any]]
     if not raw:
         return []
     if len(raw) > 262_144:
-        raise ValueError("Pocket Agent Host rejected oversized remote MCP configuration.")
+        raise ValueError("Pocket Relay rejected oversized remote MCP configuration.")
     try:
         payload = json.loads(raw)
     except (TypeError, ValueError) as error:
-        raise ValueError("Pocket Agent Host rejected invalid remote MCP configuration.") from error
+        raise ValueError("Pocket Relay rejected invalid remote MCP configuration.") from error
     if not isinstance(payload, dict) or payload.get("version") != 1 or not isinstance(payload.get("servers"), list):
-        raise ValueError("Pocket Agent Host rejected unsupported remote MCP configuration.")
+        raise ValueError("Pocket Relay rejected unsupported remote MCP configuration.")
 
     normalized: list[dict[str, Any]] = []
     for item in payload["servers"][:6]:
@@ -538,7 +559,7 @@ def update_remote_mcp_config(mcp_config_json: str | None) -> str:
             _state["remote_mcp_servers"] = remote_mcp_servers
         return json.dumps({"ok": True, "serverCount": len(remote_mcp_servers)}, separators=(",", ":"))
     except ValueError:
-        return json.dumps({"ok": False, "reason": "Pocket Agent Host rejected the remote MCP policy update."}, separators=(",", ":"))
+        return json.dumps({"ok": False, "reason": "Pocket Relay rejected the remote MCP policy update."}, separators=(",", ":"))
 
 
 def _parse_mcp_json_response(raw: str) -> dict[str, Any] | None:
@@ -590,7 +611,7 @@ def invoke_remote_mcp_tool(server_id: str, tool_name: str, arguments_json: str) 
             if not isinstance(credential, str) or not credential:
                 return json.dumps({"ok": False, "reason": "The connector credential is unavailable."}, separators=(",", ":"))
             headers["Authorization"] = f"Bearer {credential}"
-        status, initialized, session_id = _mcp_rpc_request(server["endpoint"], {"id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "Pocket Agent Host", "version": "1.0"}}}, headers)
+        status, initialized, session_id = _mcp_rpc_request(server["endpoint"], {"id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "Pocket Relay", "version": "1.0"}}}, headers)
         if status < 200 or status >= 300 or (initialized and initialized.get("error")):
             return json.dumps({"ok": False, "reason": "The remote MCP server rejected initialization."}, separators=(",", ":"))
         call_headers = {**headers, **({"mcp-session-id": session_id} if session_id else {})}
@@ -615,15 +636,16 @@ def _configure_process(
     model_endpoint: str | None,
     model_api_key: str | None,
     model_name: str | None,
+    model_provider: str | None,
     mcp_config_json: str | None = None,
     maximum_workspace_bytes: int = 512 * 1024 * 1024,
 ) -> None:
     """Configure only process-local, non-persisted values for the worker."""
     if not _TOKEN_RE.fullmatch(telegram_token):
-        raise ValueError("Pocket Agent Host rejected an invalid Telegram bot token.")
+        raise ValueError("Pocket Relay rejected an invalid Telegram bot token.")
     if not _CHAT_ID_RE.fullmatch(owner_chat_id):
-        raise ValueError("Pocket Agent Host rejected a non-private owner identity.")
-    model_endpoint = _validate_model_configuration(model_endpoint, model_api_key, model_name)
+        raise ValueError("Pocket Relay rejected a non-private owner identity.")
+    model_endpoint = _validate_model_configuration(model_provider, model_endpoint, model_api_key, model_name)
     remote_mcp_servers = _normalize_remote_mcp_configuration(mcp_config_json)
     workspace_quota = _normalize_maximum_workspace_bytes(maximum_workspace_bytes)
 
@@ -659,7 +681,10 @@ def _configure_process(
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 
     os.environ["OPENAI_BASE_URL"] = model_endpoint
-    os.environ["OPENAI_API_KEY"] = model_api_key
+    # The OpenAI-compatible client requires a non-empty value even when a local
+    # server deliberately has no authentication. This placeholder is process
+    # local and is never stored, logged, or sent as an owner credential.
+    os.environ["OPENAI_API_KEY"] = model_api_key or "not-required"
     os.environ["OPENAI_MODEL"] = model_name
     with _state_lock:
         _state["hermes_home"] = str(home)
@@ -668,15 +693,19 @@ def _configure_process(
         _state["maximum_workspace_bytes"] = workspace_quota
 
 
-def preflight_model(model_endpoint: str, model_api_key: str, model_name: str) -> str:
+def preflight_model(model_provider: str, model_endpoint: str, model_api_key: str, model_name: str) -> str:
     """Perform a bounded, secret-free OpenAI-compatible model discovery check."""
     try:
-        endpoint = _validate_model_configuration(model_endpoint, model_api_key, model_name)
+        endpoint = _validate_model_configuration(model_provider, model_endpoint, model_api_key, model_name)
         models_url = endpoint if endpoint.endswith("/models") else f"{endpoint}/models"
-        request = Request(models_url, headers={"Authorization": f"Bearer {model_api_key}", "Accept": "application/json"})
+        headers = {"Accept": "application/json"}
+        if model_api_key:
+            headers["Authorization"] = f"Bearer {model_api_key}"
+        request = Request(models_url, headers=headers)
         with urlopen(request, timeout=12) as response:
             if 200 <= response.status < 300:
-                return json.dumps({"ok": True, "reason": "model endpoint accepted credentials"}, separators=(",", ":"))
+                reason = "local model endpoint responded" if model_provider in {"ollama", "lmstudio"} else "model endpoint accepted credentials"
+                return json.dumps({"ok": True, "reason": reason}, separators=(",", ":"))
         return json.dumps({"ok": False, "reason": "model endpoint rejected the request"}, separators=(",", ":"))
     except HTTPError as error:
         reason = "model credentials were rejected" if error.code in {401, 403} else f"model endpoint returned HTTP {error.code}"
@@ -774,6 +803,7 @@ def start(
     model_endpoint: str | None = None,
     model_api_key: str | None = None,
     model_name: str | None = None,
+    model_provider: str | None = None,
     mcp_config_json: str | None = None,
     maximum_workspace_bytes: int = 512 * 1024 * 1024,
 ) -> dict[str, str | int | None]:
@@ -789,6 +819,7 @@ def start(
             model_endpoint,
             model_api_key,
             model_name,
+            model_provider,
             mcp_config_json,
             maximum_workspace_bytes,
         )
@@ -865,7 +896,7 @@ def _owner_console_source(owner_chat_id: str) -> Any:
         chat_id=f"pocket-hermes:{owner_chat_id}",
         chat_type="dm",
         user_id=owner_chat_id,
-        user_name="Pocket Agent Host owner",
+        user_name="Pocket Relay owner",
     )
 
 
@@ -970,7 +1001,7 @@ async def _compress_owner_context_async(runner: Any, owner_chat_id: str) -> dict
     event = MessageEvent(
         text="/compress",
         user_id=owner_chat_id,
-        user_name="Pocket Agent Host owner",
+        user_name="Pocket Relay owner",
         source=source,
         internal=True,
     )
@@ -1025,7 +1056,7 @@ def enqueue_task(task_id: str, body: str) -> str:
     normalized_id = str(task_id).strip()
     normalized_body = str(body).strip()
     if not normalized_id or len(normalized_id) > 96 or not normalized_body or len(normalized_body) > _MAX_TASK_TEXT:
-        raise ValueError("Pocket Agent Host rejected an invalid task.")
+        raise ValueError("Pocket Relay rejected an invalid task.")
     with _state_lock:
         running = _state.get("status") == "running" and _state.get("runner") is not None
     if not running:
@@ -1057,7 +1088,7 @@ def cancel_task(task_id: str) -> str:
             task["reason"] = "cancelled by owner"
             _write_tasks(tasks)
             return json.dumps(_public_task(task), separators=(",", ":"))
-    raise ValueError("Only queued Pocket Agent Host tasks can be cancelled.")
+    raise ValueError("Only queued Pocket Relay tasks can be cancelled.")
 
 
 def upsert_schedule(schedule_id: str, title: str, expression: str, body: str, enabled: bool) -> str:
@@ -1067,7 +1098,7 @@ def upsert_schedule(schedule_id: str, title: str, expression: str, body: str, en
     normalized_body = str(body).strip()
     normalized_expression = validate_cron_expression(expression)
     if not normalized_id or len(normalized_id) > 96 or not normalized_title or len(normalized_title) > _MAX_SCHEDULE_TITLE or not normalized_body or len(normalized_body) > _MAX_TASK_TEXT:
-        raise ValueError("Pocket Agent Host rejected an invalid schedule.")
+        raise ValueError("Pocket Relay rejected an invalid schedule.")
     workspace_block = _workspace_limit_reason(
         len((normalized_title + normalized_expression + normalized_body).encode("utf-8")) + 4 * 1024,
     )
@@ -1077,7 +1108,7 @@ def upsert_schedule(schedule_id: str, title: str, expression: str, body: str, en
     schedule = next((item for item in schedules if item.get("id") == normalized_id), None)
     if schedule is None:
         if len(schedules) >= _MAX_SCHEDULES:
-            raise ValueError("Pocket Agent Host supports at most 16 on-device schedules.")
+            raise ValueError("Pocket Relay supports at most 16 on-device schedules.")
         schedule = {"id": normalized_id, "lastRunAt": None, "lastRunStatus": None, "nextRetryAt": None}
         schedules.append(schedule)
     schedule.update({"title": normalized_title, "expression": normalized_expression, "body": normalized_body, "enabled": bool(enabled)})
@@ -1093,7 +1124,7 @@ def set_schedule_enabled(schedule_id: str, enabled: bool) -> str:
     schedules = _read_schedules()
     schedule = next((item for item in schedules if item.get("id") == str(schedule_id).strip()), None)
     if schedule is None:
-        raise ValueError("Pocket Agent Host schedule was not found.")
+        raise ValueError("Pocket Relay schedule was not found.")
     schedule["enabled"] = bool(enabled)
     _write_schedules(schedules)
     return json.dumps(_public_schedule(schedule), separators=(",", ":"))
@@ -1104,7 +1135,7 @@ def delete_schedule(schedule_id: str) -> None:
     schedules = _read_schedules()
     retained = [item for item in schedules if item.get("id") != normalized_id]
     if len(retained) == len(schedules):
-        raise ValueError("Pocket Agent Host schedule was not found.")
+        raise ValueError("Pocket Relay schedule was not found.")
     _write_schedules(retained)
 
 

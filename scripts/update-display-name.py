@@ -19,7 +19,7 @@ for path in files:
     
     new_content = content
     # Update user-facing title and repository URLs
-    new_content = new_content.replace("Pocket Agent Host", "Pocket Agent Host")
+    new_content = new_content.replace("Pocket Relay", "Pocket Relay")
     new_content = new_content.replace("https://gitlab.com/theredhacker0345/pocket-agent-host", "https://gitlab.com/theredhacker0345/pocket-agent-host")
     
     if new_content != content:

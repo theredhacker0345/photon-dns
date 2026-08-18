@@ -3,10 +3,10 @@
   "specVersion": "1.6",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-17T17:06:59.393Z",
+    "timestamp": "2026-08-18T09:02:20.294Z",
     "component": {
       "type": "application",
-      "name": "Pocket Agent Host mobile JavaScript runtime",
+      "name": "Pocket Relay mobile JavaScript runtime",
       "version": "1.0.0",
       "licenses": [
         {

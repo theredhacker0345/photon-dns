@@ -1,6 +1,6 @@
-# Contributing to Pocket Agent Host
+# Contributing to Pocket Relay
 
-Thank you for contributing to Pocket Agent Host. The project is an Android
+Thank you for contributing to Pocket Relay. The project is an Android
 control plane for a private, owner-operated AI host. Contributions must keep
 the owner-only boundary, private storage model, no-telemetry commitment, and
 FOSS distribution requirements intact.

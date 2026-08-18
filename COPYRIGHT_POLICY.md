@@ -6,10 +6,10 @@
 
 ## Project license and ownership
 
-Pocket Agent Host’s **app-owned source code** is licensed under the GNU General
+Pocket Relay’s **app-owned source code** is licensed under the GNU General
 Public License, version 3 only (`GPL-3.0-only`). The canonical license text is
 in [LICENSE](LICENSE). The initial app-owned source is copyright © 2026 Pocket
-Agent Host contributors.
+Relay contributors.
 
 Third-party code is not relicensed by this policy. Its original terms, source
 provenance, and notices remain applicable. Maintainers must preserve those

@@ -153,7 +153,7 @@ export async function listNativeScheduleRuns(): Promise<NativeSupervisorSchedule
   }
 }
 
-export async function preflightNativeModel(config: Pick<NativeSupervisorStartConfig, "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight | null> {
+export async function preflightNativeModel(config: Pick<NativeSupervisorStartConfig, "modelProvider" | "modelEndpoint" | "modelApiKey" | "modelName">): Promise<NativeModelPreflight | null> {
   if (Platform.OS === "web") return null;
   try {
     return await PocketHermesSupervisorModule.preflightModel(config);

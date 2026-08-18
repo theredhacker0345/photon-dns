@@ -30,7 +30,7 @@ static int interrupt_for_deadline(JSRuntime *runtime, void *opaque) {
 /* No module can be loaded: QuickJS core has no host APIs, and imports fail closed. */
 static JSModuleDef *reject_module_loader(JSContext *ctx, const char *module_name, void *opaque) {
   (void)opaque;
-  JS_ThrowReferenceError(ctx, "modules are disabled in Pocket Agent Host code execution (%s)", module_name);
+  JS_ThrowReferenceError(ctx, "modules are disabled in Pocket Relay code execution (%s)", module_name);
   return NULL;
 }
 

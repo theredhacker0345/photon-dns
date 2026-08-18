@@ -2,9 +2,9 @@
 
 ## Selected foundation
 
-Pocket Agent Host will target **Python 3.11 on `arm64-v8a`** for the first embedded Hermes worker. Hermes Agent 0.20.1 supports Python `>=3.11,<3.14`, and the project’s existing Android/Termux constraints confirm that Android-specific dependency handling is needed. [1] [2]
+Pocket Relay will target **Python 3.11 on `arm64-v8a`** for the first embedded Hermes worker. Hermes Agent 0.20.1 supports Python `>=3.11,<3.14`, and the project’s existing Android/Termux constraints confirm that Android-specific dependency handling is needed. [1] [2]
 
-The Android build integration candidate is **Chaquopy 17.0.0**, an MIT-licensed Python SDK for Android. It supports Python 3.10–3.14, Android Gradle Plugin 7.3–9.2, and API level 24+, matching Pocket Agent Host’ existing Android minimum. It can run Python in an Android library module and packages an interpreter, source code, and third-party requirements through Gradle. [3] [4] [5]
+The Android build integration candidate is **Chaquopy 17.0.0**, an MIT-licensed Python SDK for Android. It supports Python 3.10–3.14, Android Gradle Plugin 7.3–9.2, and API level 24+, matching Pocket Relay’ existing Android minimum. It can run Python in an Android library module and packages an interpreter, source code, and third-party requirements through Gradle. [3] [4] [5]
 
 | Decision | Selection | Reason |
 |---|---|---|
@@ -16,7 +16,7 @@ The Android build integration candidate is **Chaquopy 17.0.0**, an MIT-licensed 
 
 ## Important implementation restriction
 
-Android’s official Python guidance states that Python must run in embedded mode: `libpython`, the standard library, and app code are packaged privately inside the Android application. It also recommends building Android wheels with `cibuildwheel` where needed. [5] The Pocket Agent Host runtime must therefore ship a version-pinned bundle rather than exposing an interactive Python installation or a general-purpose shell.
+Android’s official Python guidance states that Python must run in embedded mode: `libpython`, the standard library, and app code are packaged privately inside the Android application. It also recommends building Android wheels with `cibuildwheel` where needed. [5] The Pocket Relay runtime must therefore ship a version-pinned bundle rather than exposing an interactive Python installation or a general-purpose shell.
 
 The upstream Hermes core includes native-extension dependencies such as `pydantic-core`, `cryptography`, `psutil`, and Pillow. Those wheels must be resolved for CPython 3.11 / Android ARM64 before an APK can honestly be called runnable. The upcoming SBOM generator treats missing hashes, missing licenses, or unsupported Android wheels as build-stopping errors rather than silently falling back to a desktop wheel.
 

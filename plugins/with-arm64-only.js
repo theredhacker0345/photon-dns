@@ -1,7 +1,7 @@
 const { withAppBuildGradle } = require("@expo/config-plugins");
 
 /**
- * Pocket Agent Host is deliberately distributed for physical ARM64 Android phones.
+ * Pocket Relay is deliberately distributed for physical ARM64 Android phones.
  * Expo's buildArchs property narrows React Native's native build, but third-party
  * AARs can still contribute other ABI libraries unless the application module also
  * declares an explicit NDK ABI filter. The default remains ARM64 for F-Droid and
@@ -11,7 +11,7 @@ const { withAppBuildGradle } = require("@expo/config-plugins");
 module.exports = function withArm64Only(config) {
   return withAppBuildGradle(config, (configMod) => {
     if (configMod.modResults.language !== "groovy") {
-      throw new Error("Pocket Agent Host arm64-only plugin requires a Groovy app/build.gradle");
+      throw new Error("Pocket Relay arm64-only plugin requires a Groovy app/build.gradle");
     }
 
     const contents = configMod.modResults.contents;

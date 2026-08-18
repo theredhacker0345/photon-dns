@@ -36,7 +36,7 @@ SDK_HOST_TEMPLATE = """<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pocket Agent Host Appetize CLI smoke test</title>
+    <title>Pocket Relay Appetize CLI smoke test</title>
     <style>
       body { margin: 0; background: #111827; }
       iframe { border: 0; width: 430px; height: 900px; }
@@ -71,7 +71,7 @@ SDK_HOST_TEMPLATE = """<!doctype html>
           });
           const ui = await session.getUI();
           const uiText = JSON.stringify(ui);
-          const smokePass = /Pocket Agent Host|Get started|Setup|Home/.test(uiText);
+          const smokePass = /Pocket Relay|Get started|Setup|Home/.test(uiText);
           await session.end();
           return { status: smokePass ? "passed" : "unexpected-ui", events, ui, uiTextLength: uiText.length };
         };

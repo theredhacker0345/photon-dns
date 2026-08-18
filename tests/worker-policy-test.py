@@ -1,4 +1,4 @@
-"""Deterministic policy test for the embedded Pocket Agent Host worker.
+"""Deterministic policy test for the embedded Pocket Relay worker.
 
 This exercises only the local configuration boundary. It never calls Telegram,
 Hermes, or a model provider, and it never prints credentials.
@@ -22,6 +22,7 @@ def expect_invalid(**overrides: str | None) -> None:
         "model_endpoint": "https://models.example.test/v1",
         "model_api_key": "test-model-key",
         "model_name": "test-model",
+        "model_provider": "openai",
     }
     baseline.update(overrides)
     try:
@@ -40,6 +41,7 @@ def main() -> None:
             model_endpoint="https://models.example.test/v1",
             model_api_key="test-model-key",
             model_name="test-model",
+            model_provider="openai",
         )
         assert os.environ["TELEGRAM_ALLOWED_USERS"] == "123456789"
         assert os.environ["GATEWAY_ALLOWED_USERS"] == "123456789"
@@ -132,6 +134,16 @@ def main() -> None:
     assert not worker._is_allowed_remote_mcp_endpoint("https://[::1]/mcp")
     assert not worker._is_allowed_remote_mcp_endpoint("https://100.64.0.9/mcp")
     assert not worker._is_allowed_remote_mcp_endpoint("https://mcp.example.test:8443/mcp")
+    with tempfile.TemporaryDirectory(prefix="pocket-hermes-local-provider-test-") as home:
+        worker._configure_process(
+            telegram_token="123456:abcdefghijklmnopqrstuvwxyzABCDE",
+            owner_chat_id="123456789",
+            hermes_home=home,
+            model_endpoint="http://192.168.1.20:11434/v1",
+            model_api_key="",
+            model_name="llama3.2",
+            model_provider="ollama",
+        )
 
 
 if __name__ == "__main__":

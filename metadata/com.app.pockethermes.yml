@@ -2,16 +2,16 @@ Categories:
   - System
   - Internet
 License: GPL-3.0-only
-WebSite: https://gitlab.com/theredhacker0345/pocket-agent-host
-SourceCode: https://gitlab.com/theredhacker0345/pocket-agent-host
-IssueTracker: https://gitlab.com/theredhacker0345/pocket-agent-host/issues
+WebSite: https://gitlab.com/theredhacker0345/pocket-relay
+SourceCode: https://gitlab.com/theredhacker0345/pocket-relay
+IssueTracker: https://gitlab.com/theredhacker0345/pocket-relay/issues
 
-AutoName: Pocket Agent Host
-Summary: Turn a spare phone into a 24/7 self-hosted AI agent host
+AutoName: Pocket Relay
+Summary: Turn a spare phone into a 24/7 self-hosted AI agent relay
 Description: |-
-  Pocket Agent Host is a FOSS Android application that transforms an idle spare phone
-  into a 24/7 self-hosted AI agent host. Designed around a private embedded CPython
-  and Hermes Agent runtime, Pocket Agent Host runs entirely as a native Android
+  Pocket Relay is a FOSS Android application that transforms an idle spare phone
+  into a 24/7 self-hosted AI agent relay. Designed around a private embedded CPython
+  and Hermes Agent runtime, Pocket Relay runs entirely as a native Android
   foreground service without requiring or displaying any external terminal user
   interface like Termux.
 
@@ -31,7 +31,7 @@ Builds:
     rm:
       - node_modules
     prebuild:
-      - echo "Building Pocket Agent Host offline embedded Python wheels for ARM64"
+      - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
       - bash ../scripts/build-jiter-compat-wheel.sh
       - bash ../scripts/build-hermes-android-wheel.sh
 

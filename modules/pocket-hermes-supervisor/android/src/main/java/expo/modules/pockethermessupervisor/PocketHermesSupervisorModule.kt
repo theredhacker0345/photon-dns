@@ -16,7 +16,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("getTelemetry") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
       val memoryInfo = ActivityManager.MemoryInfo().also(activityManager::getMemoryInfo)
@@ -50,7 +50,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("getContextStatus") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val raw = workerModule(context).callAttr("context_status_json").toString()
       contextMap(JSONObject(raw))
@@ -58,7 +58,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("compressContext") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val result = JSONObject(workerModule(context).callAttr("compress_owner_context").toString())
       val contextPayload = result.optJSONObject("context") ?: JSONObject()
@@ -71,7 +71,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("enqueueTask") { task: Map<String, String> ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       if (!Python.isStarted()) Python.start(AndroidPlatform(context.applicationContext))
       val raw = Python.getInstance().getModule("pocket_hermes_worker").callAttr(
@@ -84,7 +84,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("listTasks") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       if (!Python.isStarted()) Python.start(AndroidPlatform(context.applicationContext))
       val raw = Python.getInstance().getModule("pocket_hermes_worker").callAttr("list_tasks_json").toString()
@@ -94,7 +94,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("cancelTask") { taskId: String ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       if (!Python.isStarted()) Python.start(AndroidPlatform(context.applicationContext))
       val raw = Python.getInstance().getModule("pocket_hermes_worker").callAttr("cancel_task", taskId.trim()).toString()
@@ -103,7 +103,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("upsertSchedule") { schedule: Map<String, String> ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val raw = workerModule(context).callAttr(
         "upsert_schedule",
@@ -118,7 +118,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("listSchedules") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val schedules = org.json.JSONArray(workerModule(context).callAttr("list_schedules_json").toString())
       (0 until schedules.length()).map { index -> scheduleMap(schedules.getJSONObject(index)) }
@@ -126,7 +126,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("setScheduleEnabled") { scheduleId: String, enabled: Boolean ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val raw = workerModule(context).callAttr("set_schedule_enabled", scheduleId.trim(), enabled).toString()
       scheduleMap(JSONObject(raw))
@@ -134,7 +134,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("deleteSchedule") { scheduleId: String ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       workerModule(context).callAttr("delete_schedule", scheduleId.trim())
       mapOf("status" to "deleted")
@@ -142,7 +142,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("listScheduleRuns") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val runs = org.json.JSONArray(workerModule(context).callAttr("list_schedule_runs_json").toString())
       (0 until runs.length()).map { index -> scheduleRunMap(runs.getJSONObject(index)) }
@@ -150,11 +150,12 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("preflightModel") { config: Map<String, String?> ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       if (!Python.isStarted()) Python.start(AndroidPlatform(context.applicationContext))
       val raw = Python.getInstance().getModule("pocket_hermes_worker").callAttr(
         "preflight_model",
+        config["modelProvider"]?.trim().orEmpty(),
         config["modelEndpoint"]?.trim().orEmpty(),
         config["modelApiKey"]?.trim().orEmpty(),
         config["modelName"]?.trim().orEmpty(),
@@ -165,21 +166,21 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("getCodeSandboxStatus") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       CodeSandboxPolicy.status(context)
     }
 
     AsyncFunction("setCodeSandboxEnabled") { enabled: Boolean ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       CodeSandboxPolicy.setEnabled(context, enabled)
     }
 
     AsyncFunction("listCodeAuditLog") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       CodeSandboxPolicy.listAuditLog(context)
     }
@@ -188,21 +189,21 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("approveCodeJob") { source: String ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       CodeSandboxPolicy.approve(context, source)
     }
 
     AsyncFunction("revokeCodeJob") { sourceHash: String ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       CodeSandboxPolicy.revoke(context, sourceHash)
     }
 
     AsyncFunction("runApprovedCodeJob") { request: Map<String, String> ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       CodeSandboxPolicy.execute(
         context,
@@ -215,18 +216,19 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("startSupervisor") { config: Map<String, String?> ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       val telegramToken = config["telegramToken"]?.trim().orEmpty()
       val ownerChatId = config["ownerChatId"]?.trim().orEmpty()
       if (telegramToken.isBlank() || ownerChatId.isBlank()) {
-        throw IllegalArgumentException("Pocket Agent Host requires a Telegram token and owner chat ID to start.")
+        throw IllegalArgumentException("Pocket Relay requires a Telegram token and owner chat ID to start.")
       }
       PocketHermesSupervisorService.start(
         context,
         PocketHermesWorkerConfig(
           telegramToken = telegramToken,
           ownerChatId = ownerChatId,
+          modelProvider = config["modelProvider"]?.trim()?.ifBlank { null },
           modelEndpoint = config["modelEndpoint"]?.trim()?.ifBlank { null },
           modelApiKey = config["modelApiKey"]?.trim()?.ifBlank { null },
           modelName = config["modelName"]?.trim()?.ifBlank { null },
@@ -245,7 +247,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("updateMcpRuntimeConfig") { mcpConfigJson: String? ->
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       PocketHermesSupervisorService.updateMcpRuntimeConfig(
         context,
@@ -256,7 +258,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("stopSupervisor") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       PocketHermesSupervisorService.stop(context)
       mapOf("status" to "stopped")
@@ -264,7 +266,7 @@ class PocketHermesSupervisorModule : Module() {
 
     AsyncFunction("clearConfiguration") {
       val context = requireNotNull(appContext.reactContext) {
-        "Pocket Agent Host supervisor requires an Android application context."
+        "Pocket Relay supervisor requires an Android application context."
       }
       PocketHermesSupervisorService.clearPersistedConfiguration(context)
       mapOf("status" to "cleared")

@@ -4,7 +4,7 @@ import { PropsWithChildren, createContext, useCallback, useContext, useEffect, u
 import { Platform } from "react-native";
 
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
-import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
+import { canStartWorker, defaultHostRuntimePolicy, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId } from "@/lib/host-contracts";
 import { fetchProviderModels, getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
 import { clearNativeSupervisorConfiguration, preflightNativeModel, startNativeSupervisor, stopNativeSupervisor, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
@@ -76,9 +76,9 @@ const TELEGRAM_TOKEN_KEY = "pocket-hermes.telegram-token";
 const MODEL_API_KEY = "pocket-hermes.model-api-key";
 const PROVIDER_CREDENTIAL_PREFIX = "pocket-hermes.provider-credential.";
 const MCP_CREDENTIAL_PREFIX = "pocket-hermes.mcp-credential.";
-const modelProviderIds = new Set<ModelProviderId>(["openai", "openrouter", "groq", "mistral", "kilo", "custom"]);
+const modelProviderIds = new Set<ModelProviderId>(["openai", "openrouter", "groq", "mistral", "kilo", "ollama", "lmstudio", "custom"]);
 const emptyConfig: PublicHostConfig = {
-  hostName: "Pocket Agent Host",
+  hostName: "Pocket Relay",
   allowedChatId: "",
   modelProvider: "openai",
   modelEndpoint: "https://api.openai.com/v1",
@@ -245,7 +245,12 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     const existingConnectionId = input.providerConnectionId ?? state.activeProviderConnectionId;
     const connectionId = input.createProviderConnection || !existingConnectionId ? createId("provider") : existingConnectionId;
     if (!isValidTelegramChatId(allowedChatId)) return { ok: false, message: "Use the positive numeric Telegram user ID for your private owner chat. Groups are not supported by the owner lock." };
-    if (endpoint && !isAllowedModelEndpoint(endpoint)) return { ok: false, message: "Use an HTTPS model endpoint without embedded user credentials." };
+    if (endpoint && !isAllowedModelEndpoint(endpoint, input.modelProvider)) {
+      const message = requiresModelApiKey(input.modelProvider)
+        ? "Use an HTTPS model endpoint without embedded user credentials."
+        : "Use an HTTPS endpoint or a numeric private-LAN HTTP address without embedded user credentials.";
+      return { ok: false, message };
+    }
     if (!isSafeRuntimePolicy(policy)) return { ok: false, message: "The selected host power and storage policy is outside the supported safe range." };
     if (suppliedToken) await saveSecret(TELEGRAM_TOKEN_KEY, suppliedToken);
     if (suppliedModelApiKey) await saveSecret(providerCredentialKey(connectionId), suppliedModelApiKey);
@@ -273,7 +278,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
         policy,
       },
       phase: "ready",
-      events: [{ id: createId("event"), title: "Owner gateway configuration saved", detail: "Telegram credentials are protected on this device. The token is never shown in Pocket Agent Host.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
+      events: [{ id: createId("event"), title: "Owner gateway configuration saved", detail: "Telegram credentials are protected on this device. The token is never shown in Pocket Relay.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
     }));
     return { ok: true, message: "Secure configuration saved. Add model details before starting the embedded runtime.", connectionId };
   }, [state.activeProviderConnectionId, state.config.modelName, state.config.policy]);
@@ -339,7 +344,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     const serverId = input.id ?? createId("mcp");
     const existing = state.mcpServers.find((server) => server.id === serverId);
     if (!existing && state.mcpServers.length >= MAX_REMOTE_MCP_SERVERS) {
-      return { ok: false, message: `Pocket Agent Host supports up to ${MAX_REMOTE_MCP_SERVERS} remote MCP servers. Remove one before adding another.`, tools: [], latencyMs: null, checkedAt: null };
+      return { ok: false, message: `Pocket Relay supports up to ${MAX_REMOTE_MCP_SERVERS} remote MCP servers. Remove one before adding another.`, tools: [], latencyMs: null, checkedAt: null };
     }
     const suppliedCredential = input.credential?.trim() ?? "";
     const credential = suppliedCredential || await readSecret(`${MCP_CREDENTIAL_PREFIX}${serverId}`) || "";
@@ -413,12 +418,13 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       policy: currentConfig.policy,
     });
     const policyBlock = readiness ? getRuntimePolicyBlock(currentConfig.policy, readiness) : null;
-    const supervisorStarted = telegramToken && modelApiKey && startable && !policyBlock
+    const supervisorStarted = telegramToken && startable && !policyBlock
       ? await startNativeSupervisor({
           telegramToken,
           ownerChatId: currentConfig.allowedChatId,
+          modelProvider: currentConfig.modelProvider,
           modelEndpoint: currentConfig.modelEndpoint || undefined,
-          modelApiKey,
+          modelApiKey: modelApiKey || undefined,
           modelName: currentConfig.modelName || undefined,
           restartAfterBoot: currentConfig.policy.restartAfterBoot,
           chargingAware: currentConfig.policy.chargingAware,
@@ -432,13 +438,13 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       : false;
     setState((current) => {
       if (!startable) {
-        return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked", detail: "Save a Telegram owner lock, HTTPS model endpoint, model name, model credential, and a valid host policy first.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
+        return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked", detail: "Save a Telegram owner lock, allowed model endpoint, model name, required provider credential, and a valid host policy first.", severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
       if (policyBlock) {
         return { ...current, events: [{ id: createId("event"), title: "Runtime preparation blocked by host policy", detail: policyBlock, severity: "warning" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
       if (supervisorStarted) {
-        return { ...current, phase: "running", events: [{ id: createId("event"), title: "Android supervisor started", detail: "Pocket Agent Host is sampling this phone’s live process CPU and RAM through its foreground supervisor.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
+        return { ...current, phase: "running", events: [{ id: createId("event"), title: "Android supervisor started", detail: "Pocket Relay is sampling this phone’s live process CPU and RAM through its foreground supervisor.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
       }
       return { ...current, phase: "bridge_required", events: [{ id: createId("event"), title: "Runtime preparation queued", detail: "The control plane is ready. Install a custom Android build to launch the native foreground supervisor and bundled Hermes runtime.", severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) };
     });
@@ -458,8 +464,8 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Gateway credential verified", detail: "Telegram accepted the protected bot credential. The owner chat lock will be enforced when the embedded gateway starts.", severity: "success" });
       return { ok: true, message: "Telegram accepted the bot credential. No message was sent during this check.", botName };
     } catch {
-      appendEvent({ title: "Gateway check unavailable", detail: "Pocket Agent Host could not reach Telegram. Check the phone’s network connection and try again.", severity: "warning" });
-      return { ok: false, message: "Pocket Agent Host could not reach Telegram. Check the phone’s network and try again." };
+      appendEvent({ title: "Gateway check unavailable", detail: "Pocket Relay could not reach Telegram. Check the phone’s network connection and try again.", severity: "warning" });
+      return { ok: false, message: "Pocket Relay could not reach Telegram. Check the phone’s network and try again." };
     }
   }, [appendEvent]);
 
@@ -471,7 +477,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: allowedChatId, text: "Pocket Agent Host connection check: this phone can deliver to your owner-only Telegram route." }),
+        body: JSON.stringify({ chat_id: allowedChatId, text: "Pocket Relay connection check: this phone can deliver to your owner-only Telegram route." }),
       });
       const payload = (await response.json()) as { ok?: boolean; result?: { message_id?: number; date?: number }; description?: string };
       if (!response.ok || !payload.ok || typeof payload.result?.message_id !== "number") {
@@ -482,18 +488,18 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       appendEvent({ title: "Test message delivered", detail: `Telegram confirmed receipt as message #${payload.result.message_id}.`, severity: "success" });
       return { ok: true, message: "Telegram confirmed delivery to the allowed owner chat.", messageId: payload.result.message_id, deliveredAt };
     } catch {
-      appendEvent({ title: "Test message unavailable", detail: "Pocket Agent Host could not reach Telegram. Check the phone’s network and try again.", severity: "warning" });
-      return { ok: false, message: "Pocket Agent Host could not reach Telegram. Check the phone’s network and try again." };
+      appendEvent({ title: "Test message unavailable", detail: "Pocket Relay could not reach Telegram. Check the phone’s network and try again.", severity: "warning" });
+      return { ok: false, message: "Pocket Relay could not reach Telegram. Check the phone’s network and try again." };
     }
   }, [appendEvent, state.config.allowedChatId]);
 
   const testModel = useCallback(async (): Promise<ModelTestResult> => {
     const modelApiKey = state.activeProviderConnectionId ? await readSecret(providerCredentialKey(state.activeProviderConnectionId)) : await readSecret(MODEL_API_KEY);
     const config = state.config;
-    if (!modelApiKey || !config.modelEndpoint || !config.modelName) {
-      return { ok: false, message: "Save an HTTPS endpoint, model name, and protected model credential before testing." };
+    if (!config.modelEndpoint || !config.modelName || (requiresModelApiKey(config.modelProvider) && !modelApiKey)) {
+      return { ok: false, message: "Save an allowed endpoint, model name, and any credential required by the selected provider before testing." };
     }
-    const result = await preflightNativeModel({ modelEndpoint: config.modelEndpoint, modelApiKey, modelName: config.modelName });
+    const result = await preflightNativeModel({ modelProvider: config.modelProvider, modelEndpoint: config.modelEndpoint, modelApiKey: modelApiKey || undefined, modelName: config.modelName });
     if (!result) {
       return { ok: false, message: "Model preflight requires the installed Android APK. Web preview does not run the private Python runtime." };
     }

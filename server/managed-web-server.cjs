@@ -51,7 +51,7 @@ const server = http.createServer((request, response) => {
 
   if (!match) {
     response.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
-    response.end("Pocket Agent Host client bundle is not available.");
+    response.end("Pocket Relay client bundle is not available.");
     return;
   }
 
@@ -59,5 +59,5 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`Pocket Agent Host web bundle listening on :${port}`);
+  console.log(`Pocket Relay web bundle listening on :${port}`);
 });

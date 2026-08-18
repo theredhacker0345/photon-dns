@@ -1,6 +1,6 @@
 # Mobile Performance and Frame-Rate Audit
 
-**Scope.** This audit reviews the Pocket Agent Host React Native screens, persistent state, telemetry hooks, Android supervisor, embedded worker retention bounds, and the generated ARM64 release APK. It is a static and release-build assessment; a physical Android device remains necessary to collect device-specific frame timelines, thermal behavior, and battery impact.
+**Scope.** This audit reviews the Pocket Relay React Native screens, persistent state, telemetry hooks, Android supervisor, embedded worker retention bounds, and the generated ARM64 release APK. It is a static and release-build assessment; a physical Android device remains necessary to collect device-specific frame timelines, thermal behavior, and battery impact.
 
 ## Findings and Changes
 

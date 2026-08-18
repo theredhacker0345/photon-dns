@@ -1,11 +1,11 @@
-# Pocket Agent Host: Full Functionality Audit
+# Pocket Relay: Full Functionality Audit
 
 **Audit date:** 2026-08-17  
 **Scope:** The Android release implementation, embedded CPython payload, JavaScript control plane, native bridge, foreground service, Python worker, release gates, and deterministic tests.
 
 ## Verdict
 
-Pocket Agent Host is **not a dummy interface**. The production Android build contains an ARM64 CPython 3.11 runtime, the embedded Python worker, the pinned Hermes gateway package, an Android foreground service, a Keystore-backed configuration path, and a React Native control plane. The release APK assembled successfully in this audit and includes `libpython3.11.so`, Chaquopy assets, and the application Python archive.
+Pocket Relay is **not a dummy interface**. The production Android build contains an ARM64 CPython 3.11 runtime, the embedded Python worker, the pinned Hermes gateway package, an Android foreground service, a Keystore-backed configuration path, and a React Native control plane. The release APK assembled successfully in this audit and includes `libpython3.11.so`, Chaquopy assets, and the application Python archive.
 
 The application is nevertheless **not fully proven by sandbox validation alone**. The sandbox cannot install the APK on a physical Android device, unlock its Keystore after reboot, connect to a real owner-controlled Telegram bot, or invoke a real model provider. Those external paths are implemented and packaged, but remain physical-device release checks rather than verified claims.
 

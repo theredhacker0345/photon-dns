@@ -70,7 +70,7 @@ describe("security and FOSS release gates", () => {
     expect(notice).toContain("GPL-3.0-only");
     expect(copyrightPolicy).toContain("Inbound equals outbound");
     expect(copyrightPolicy).toContain("GPL-3.0-only");
-    expect(contributors).toContain("Pocket Agent Host Maintainer");
+    expect(contributors).toContain("Pocket Relay Maintainer");
     expect(contributing).toContain("Signed-off-by:");
     expect(preflight).toContain("GPL-3.0-only");
   });

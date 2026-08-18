@@ -1,8 +1,8 @@
-# Pocket Agent Host — Mobile Interface Design
+# Pocket Relay — Mobile Interface Design
 
 ## Product premise
 
-Pocket Agent Host turns a dedicated Android phone into a visible, locally controlled host for a self-hosted Hermes Agent. The phone supplies its own CPU, RAM, and encrypted app storage; Telegram is the remote conversation surface. The Android application is the user-facing control plane, not an unconfined shell. The user installs Pocket Agent Host only: a pinned Python/Hermes runtime is privately embedded in app-owned storage, launched by a native Android foreground supervisor, and never appears as a separate Termux application or terminal.
+Pocket Relay turns a dedicated Android phone into a visible, locally controlled host for a self-hosted Hermes Agent. The phone supplies its own CPU, RAM, and encrypted app storage; Telegram is the remote conversation surface. The Android application is the user-facing control plane, not an unconfined shell. The user installs Pocket Relay only: a pinned Python/Hermes runtime is privately embedded in app-owned storage, launched by a native Android foreground supervisor, and never appears as a separate Termux application or terminal.
 
 ## Mobile design principles
 
@@ -24,8 +24,8 @@ The interface is designed for **portrait 9:16 use**, with primary controls withi
 
 | Flow | Steps |
 |---|---|
-| **Turn an old phone into a host** | Open Pocket Agent Host → review device-host promise → tap **Configure host** → enter Telegram bot token and allowed chat ID → save securely → inspect runtime checklist → activate the native service once installed. |
-| **Operate remotely through Telegram** | Create Telegram bot in Telegram → save token in Pocket Agent Host → launch native Hermes gateway on phone → message the bot from any authorized account → dashboard shows last gateway activity. |
+| **Turn an old phone into a host** | Open Pocket Relay → review device-host promise → tap **Configure host** → enter Telegram bot token and allowed chat ID → save securely → inspect runtime checklist → activate the native service once installed. |
+| **Operate remotely through Telegram** | Create Telegram bot in Telegram → save token in Pocket Relay → launch native Hermes gateway on phone → message the bot from any authorized account → dashboard shows last gateway activity. |
 | **Inspect or pause the host** | Open Dashboard → read runtime badge and recent events → tap **Pause runtime** → confirm state change locally → gateway service bridge receives the pause command in a production build. |
 | **Manage a scheduled task** | Open Automations → choose a scheduled item → toggle it off/on → inspect next-run time and Telegram delivery route. |
 | **Protect access** | Open Settings → add/replace Telegram token → restrict allowed chat ID → optionally clear all locally saved non-secret activity data. |
@@ -43,4 +43,4 @@ The interface is designed for **portrait 9:16 use**, with primary controls withi
 
 ## Architecture boundary
 
-Pocket Agent Host should remain fully open source and privacy-preserving. App preferences and activity presentation can live locally in AsyncStorage. Credentials such as the Telegram token must use the device keystore through secure storage. The app must not pretend that JavaScript background tasks alone provide an always-on agent: reliable long-running execution on Android needs native foreground-service support plus a private embedded CPython/Hermes runtime. The embedded package will be a curated, version-pinned agent profile—not a general-purpose Linux distribution or an unrestricted hidden shell.
+Pocket Relay should remain fully open source and privacy-preserving. App preferences and activity presentation can live locally in AsyncStorage. Credentials such as the Telegram token must use the device keystore through secure storage. The app must not pretend that JavaScript background tasks alone provide an always-on agent: reliable long-running execution on Android needs native foreground-service support plus a private embedded CPython/Hermes runtime. The embedded package will be a curated, version-pinned agent profile—not a general-purpose Linux distribution or an unrestricted hidden shell.

@@ -1,6 +1,6 @@
-# Pocket Agent Host Theme System
+# Pocket Relay Theme System
 
-Pocket Agent Host intentionally offers five concise visual themes rather than a large skin gallery. The selector lives at the top of **Settings** so host operators can change appearance without interrupting configuration or runtime controls.
+Pocket Relay intentionally offers five concise visual themes rather than a large skin gallery. The selector lives at the top of **Settings** so host operators can change appearance without interrupting configuration or runtime controls.
 
 | Theme | Use case | Appearance behavior |
 | --- | --- | --- |

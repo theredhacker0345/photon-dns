@@ -1,6 +1,6 @@
 import type { NativeCodeAuditEntry, NativeCodeJobApproval, NativeCodeJobProposal, NativeCodeJobRequest, NativeCodeJobResult, NativeCodeSandboxStatus, NativeModelPreflight, NativeSupervisorDiagnostic, NativeSupervisorHealth, NativeSupervisorSchedule, NativeSupervisorScheduleInput, NativeSupervisorScheduleRun, NativeSupervisorStartConfig, NativeSupervisorTask, NativeSupervisorTelemetry } from "./PocketHermesSupervisorModule";
 
-const unavailable = new Error("The Pocket Agent Host Android supervisor is unavailable in web preview.");
+const unavailable = new Error("The Pocket Relay Android supervisor is unavailable in web preview.");
 
 const PocketHermesSupervisorModule = {
   async getTelemetry(): Promise<NativeSupervisorTelemetry> {

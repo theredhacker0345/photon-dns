@@ -11,10 +11,12 @@ const models = [
 ];
 
 describe("provider model discovery", () => {
-  it("exposes neutral provider presets with HTTPS endpoints", () => {
+  it("exposes hosted and explicit private-LAN provider presets", () => {
     expect(getProviderPreset("openai").defaultEndpoint).toBe("https://api.openai.com/v1");
     expect(getProviderPreset("openrouter").defaultEndpoint).toBe("https://openrouter.ai/api/v1");
     expect(getProviderPreset("kilo")).toMatchObject({ label: "Kilo Code", defaultEndpoint: "https://api.kilo.ai/api/gateway", docsUrl: "https://kilo.ai/docs/gateway/models-and-providers" });
+    expect(getProviderPreset("ollama")).toMatchObject({ label: "Ollama on your LAN", defaultEndpoint: "" });
+    expect(getProviderPreset("lmstudio")).toMatchObject({ label: "LM Studio on your LAN", defaultEndpoint: "" });
     expect(getProviderPreset("custom").defaultEndpoint).toBe("");
   });
 
@@ -32,6 +34,16 @@ describe("provider model discovery", () => {
 
   it("uses bearer authentication without embedding tokens in catalog records", () => {
     expect(buildProviderHeaders("secret-token")).toEqual({ Accept: "application/json", Authorization: "Bearer secret-token" });
+    expect(buildProviderHeaders("")).toEqual({ Accept: "application/json" });
+  });
+
+  it("discovers an unauthenticated Ollama-compatible private-LAN catalog without adding an authorization header", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: [{ id: "llama3.2" }] }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchProviderModels({ provider: "ollama", endpoint: "http://192.168.1.20:11434/v1", apiKey: "" });
+    expect(result).toMatchObject({ ok: true, connection: { authStatus: "not_required" } });
+    expect(fetchMock).toHaveBeenCalledWith("http://192.168.1.20:11434/v1/models", expect.objectContaining({ headers: { Accept: "application/json" } }));
+    vi.unstubAllGlobals();
   });
 
   it("normalizes compatible provider models and ignores malformed records", () => {

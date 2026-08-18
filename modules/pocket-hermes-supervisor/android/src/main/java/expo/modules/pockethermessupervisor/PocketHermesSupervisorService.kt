@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit
 data class PocketHermesWorkerConfig(
   val telegramToken: String,
   val ownerChatId: String,
+  val modelProvider: String?,
   val modelEndpoint: String?,
   val modelApiKey: String?,
   val modelName: String?,
@@ -128,15 +129,15 @@ class PocketHermesSupervisorService : Service() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val hostChannel = NotificationChannel(
         CHANNEL_ID,
-        "Pocket Agent Host host",
+        "Pocket Relay host",
         NotificationManager.IMPORTANCE_LOW,
       ).apply {
-        description = "Visible while Pocket Agent Host supervises the private agent host."
+        description = "Visible while Pocket Relay supervises the private agent host."
         setShowBadge(false)
       }
       val policyChannel = NotificationChannel(
         POLICY_ALERT_CHANNEL_ID,
-        "Pocket Agent Host safety alerts",
+        "Pocket Relay safety alerts",
         NotificationManager.IMPORTANCE_HIGH,
       ).apply {
         description = "Host battery and storage warnings that require owner attention."
@@ -161,7 +162,7 @@ class PocketHermesSupervisorService : Service() {
     }
 
     return builder
-      .setContentTitle("Pocket Agent Host is supervising")
+      .setContentTitle("Pocket Relay is supervising")
       .setContentText("Private host supervision is active on this device.")
       .setSmallIcon(android.R.drawable.stat_notify_sync)
       .setOngoing(true)
@@ -189,7 +190,7 @@ class PocketHermesSupervisorService : Service() {
     getSystemService(NotificationManager::class.java).notify(
       POLICY_ALERT_NOTIFICATION_ID,
       builder
-        .setContentTitle("Pocket Agent Host needs attention")
+        .setContentTitle("Pocket Relay needs attention")
         .setContentText(message)
         .setSmallIcon(android.R.drawable.stat_notify_error)
         .setAutoCancel(true)
@@ -214,6 +215,7 @@ class PocketHermesSupervisorService : Service() {
             config.modelEndpoint,
             config.modelApiKey,
             config.modelName,
+            config.modelProvider,
             config.mcpConfigJson,
             config.maximumWorkspaceBytes,
           )
@@ -383,6 +385,7 @@ class PocketHermesSupervisorService : Service() {
     encryptedWorkerPreferences().edit()
       .putString(PREF_TELEGRAM_TOKEN, config.telegramToken)
       .putString(PREF_OWNER_CHAT_ID, config.ownerChatId)
+      .putString(PREF_MODEL_PROVIDER, config.modelProvider)
       .putString(PREF_MODEL_ENDPOINT, config.modelEndpoint)
       .putString(PREF_MODEL_API_KEY, config.modelApiKey)
       .putString(PREF_MODEL_NAME, config.modelName)
@@ -402,14 +405,16 @@ class PocketHermesSupervisorService : Service() {
       encryptedWorkerPreferences().run {
         val token = getString(PREF_TELEGRAM_TOKEN, null)
         val chatId = getString(PREF_OWNER_CHAT_ID, null)
+        val provider = getString(PREF_MODEL_PROVIDER, null)
         val endpoint = getString(PREF_MODEL_ENDPOINT, null)
         val apiKey = getString(PREF_MODEL_API_KEY, null)
         val modelName = getString(PREF_MODEL_NAME, null)
         val mcpConfigJson = getString(PREF_MCP_CONFIG_JSON, null)
-        if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || apiKey.isNullOrBlank() || modelName.isNullOrBlank()) null
+        if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || modelName.isNullOrBlank() || (!isLocalModelProvider(provider) && apiKey.isNullOrBlank())) null
         else PocketHermesWorkerConfig(
           token,
           chatId,
+          provider,
           endpoint,
           apiKey,
           modelName,
@@ -431,14 +436,16 @@ class PocketHermesSupervisorService : Service() {
   private fun Intent.toWorkerConfig(): PocketHermesWorkerConfig? {
     val token = getStringExtra(EXTRA_TELEGRAM_TOKEN)
     val chatId = getStringExtra(EXTRA_OWNER_CHAT_ID)
+    val provider = getStringExtra(EXTRA_MODEL_PROVIDER)
     val endpoint = getStringExtra(EXTRA_MODEL_ENDPOINT)
     val apiKey = getStringExtra(EXTRA_MODEL_API_KEY)
     val modelName = getStringExtra(EXTRA_MODEL_NAME)
     val mcpConfigJson = getStringExtra(EXTRA_MCP_CONFIG_JSON)
-    if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || apiKey.isNullOrBlank() || modelName.isNullOrBlank()) return null
+    if (token.isNullOrBlank() || chatId.isNullOrBlank() || endpoint.isNullOrBlank() || modelName.isNullOrBlank() || (!isLocalModelProvider(provider) && apiKey.isNullOrBlank())) return null
     return PocketHermesWorkerConfig(
       token,
       chatId,
+      provider,
       endpoint,
       apiKey,
       modelName,
@@ -461,6 +468,7 @@ class PocketHermesSupervisorService : Service() {
     private const val WORKER_PREFERENCES = "pocket-hermes-worker"
     private const val PREF_TELEGRAM_TOKEN = "telegram-token"
     private const val PREF_OWNER_CHAT_ID = "owner-chat-id"
+    private const val PREF_MODEL_PROVIDER = "model-provider"
     private const val PREF_MODEL_ENDPOINT = "model-endpoint"
     private const val PREF_MODEL_API_KEY = "model-api-key"
     private const val PREF_MODEL_NAME = "model-name"
@@ -474,6 +482,7 @@ class PocketHermesSupervisorService : Service() {
     private const val PREF_MAXIMUM_WORKSPACE_BYTES = "maximum-workspace-bytes"
     private const val EXTRA_TELEGRAM_TOKEN = "expo.modules.pockethermessupervisor.TELEGRAM_TOKEN"
     private const val EXTRA_OWNER_CHAT_ID = "expo.modules.pockethermessupervisor.OWNER_CHAT_ID"
+    private const val EXTRA_MODEL_PROVIDER = "expo.modules.pockethermessupervisor.MODEL_PROVIDER"
     private const val EXTRA_MODEL_ENDPOINT = "expo.modules.pockethermessupervisor.MODEL_ENDPOINT"
     private const val EXTRA_MODEL_API_KEY = "expo.modules.pockethermessupervisor.MODEL_API_KEY"
     private const val EXTRA_MODEL_NAME = "expo.modules.pockethermessupervisor.MODEL_NAME"
@@ -493,10 +502,13 @@ class PocketHermesSupervisorService : Service() {
     private const val MAX_RECOVERY_ATTEMPTS = 3
     private const val RECOVERY_COOLDOWN_MS = 60_000L
 
+    private fun isLocalModelProvider(provider: String?) = provider == "ollama" || provider == "lmstudio"
+
     fun start(context: Context, config: PocketHermesWorkerConfig) {
       val intent = Intent(context, PocketHermesSupervisorService::class.java).apply {
         putExtra(EXTRA_TELEGRAM_TOKEN, config.telegramToken)
         putExtra(EXTRA_OWNER_CHAT_ID, config.ownerChatId)
+        putExtra(EXTRA_MODEL_PROVIDER, config.modelProvider)
         putExtra(EXTRA_MODEL_ENDPOINT, config.modelEndpoint)
         putExtra(EXTRA_MODEL_API_KEY, config.modelApiKey)
         putExtra(EXTRA_MODEL_NAME, config.modelName)

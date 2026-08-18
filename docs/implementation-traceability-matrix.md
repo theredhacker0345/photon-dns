@@ -1,4 +1,4 @@
-# Pocket Agent Host Implementation Traceability Matrix
+# Pocket Relay Implementation Traceability Matrix
 
 ## Purpose and Status Vocabulary
 

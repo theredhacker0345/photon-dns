@@ -21,14 +21,14 @@ export function ProviderConnectionStatusCard({
   connection: ProviderConnectionStatus;
   colors: StatusColors;
 }) {
-  const tone = connection.authStatus === "authenticated"
+  const tone = connection.authStatus === "authenticated" || connection.authStatus === "not_required"
     ? colors.success
     : connection.authStatus === "unauthorized"
       ? colors.error
       : connection.authStatus === "unavailable"
         ? colors.warning
         : colors.muted;
-  const icon = connection.authStatus === "authenticated"
+  const icon = connection.authStatus === "authenticated" || connection.authStatus === "not_required"
     ? "verified"
     : connection.authStatus === "unauthorized"
       ? "lock-outline"
@@ -37,6 +37,8 @@ export function ProviderConnectionStatusCard({
         : "help-outline";
   const authentication = connection.authStatus === "authenticated"
     ? "Authenticated"
+    : connection.authStatus === "not_required"
+      ? "No token required"
     : connection.authStatus === "unauthorized"
       ? "Authentication failed"
       : connection.authStatus === "unavailable"

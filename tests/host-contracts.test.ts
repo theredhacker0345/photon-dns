@@ -10,12 +10,20 @@ import {
   type PublicHostConfiguration,
 } from "../lib/host-contracts";
 
-describe("Pocket Agent Host cross-layer host contract", () => {
+describe("Pocket Relay cross-layer host contract", () => {
   it("requires a credential-free HTTPS endpoint", () => {
     expect(isAllowedModelEndpoint("https://model.example/v1")).toBe(true);
     expect(isAllowedModelEndpoint("http://model.example/v1")).toBe(false);
     expect(isAllowedModelEndpoint("https://key@model.example/v1")).toBe(false);
     expect(isAllowedModelEndpoint("not-a-url")).toBe(false);
+  });
+
+  it("allows HTTP only for explicit local providers at numeric private-LAN addresses", () => {
+    expect(isAllowedModelEndpoint("http://192.168.1.20:11434/v1", "ollama")).toBe(true);
+    expect(isAllowedModelEndpoint("http://10.0.0.8:1234/v1", "lmstudio")).toBe(true);
+    expect(isAllowedModelEndpoint("http://localhost:11434/v1", "ollama")).toBe(false);
+    expect(isAllowedModelEndpoint("http://model.lan/v1", "ollama")).toBe(false);
+    expect(isAllowedModelEndpoint("http://192.168.1.20/v1", "openai")).toBe(false);
   });
 
   it("rejects unsafe runtime policy thresholds", () => {
@@ -26,7 +34,7 @@ describe("Pocket Agent Host cross-layer host contract", () => {
 
   it("does not permit a worker start until Telegram, model, and policy requirements are all satisfied", () => {
     const base: PublicHostConfiguration = {
-      hostName: "Pocket Agent Host",
+      hostName: "Pocket Relay",
       ownerChatId: "123456",
       telegramConfigured: true,
       model: { provider: "openai", endpoint: "https://model.example/v1", model: "small-host-model", hasApiKey: true },
@@ -34,6 +42,7 @@ describe("Pocket Agent Host cross-layer host contract", () => {
     };
     expect(canStartWorker(base)).toBe(true);
     expect(canStartWorker({ ...base, model: { ...base.model, hasApiKey: false } })).toBe(false);
+    expect(canStartWorker({ ...base, model: { provider: "ollama", endpoint: "http://192.168.1.20:11434/v1", model: "llama3.2", hasApiKey: false } })).toBe(true);
     expect(canStartWorker({ ...base, ownerChatId: "" })).toBe(false);
   });
 

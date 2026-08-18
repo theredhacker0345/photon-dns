@@ -1,11 +1,11 @@
 # Project TODO
 
-- [x] Define Pocket Agent Host mobile UX, state model, and runtime security boundaries.
+- [x] Define Pocket Relay mobile UX, state model, and runtime security boundaries.
 - [x] Build setup, dashboard, agent, automation, and settings screens.
 - [x] Implement local non-secret configuration persistence and secure credential handling.
 - [x] Add runtime health model, background-runtime readiness guide, and native integration contract.
 - [x] Add FOSS licensing and architecture documentation.
-- [x] Generate a unique Pocket Agent Host app icon and update Expo branding configuration.
+- [x] Generate a unique Pocket Relay app icon and update Expo branding configuration.
 - [x] Test type safety and core mobile interaction flows.
 - [x] Capture final visual validation: dashboard and settings rendered in direct browser preview; managed capture and later proxy routes were unstable under sandbox memory pressure.
 - [x] Save the initial release checkpoint (a4f3c08e).
@@ -13,21 +13,21 @@
 - [x] Define the native Android foreground-service and private embedded-Hermes integration contract for true 24/7 operation; the earlier visible-Termux proposal is superseded.
 - [x] Define Telegram authorization, secret-storage, and remote-access safeguards before adding connection flows.
 - [x] Verify the existing Hermes Agent repository’s MIT license, Android/Termux support, and stable integration points.
-- [x] Design Pocket Agent Host as a supervisor and control plane for the existing Hermes Agent runtime rather than recreating the agent core.
+- [x] Design Pocket Relay as a supervisor and control plane for the existing Hermes Agent runtime rather than recreating the agent core.
 - [x] Research and choose a no-Termux, lightweight native Android runtime architecture.
 - [x] Close as superseded: the selected architecture privately embeds the upstream Hermes Python runtime and exposes no general-purpose user shell.
 - [x] Design the Android foreground-service, boot recovery, and Telegram long-polling lifecycle for the native host.
 - [x] Verify the license of any third-party native core before reusing it; ZeroAI application code is excluded because its top-level license has a purpose restriction.
 - [x] Close ZeroClaw evaluation as not selected: the chosen path privately embeds Hermes Agent rather than substituting its agent core.
 - [x] Verify a single-APK embedded Linux-userland approach so the user never installs or opens Termux.
-- [x] Determine how to bundle and privately supervise the Hermes Python runtime, dependencies, and app-owned filesystem inside Pocket Agent Host.
+- [x] Determine how to bundle and privately supervise the Hermes Python runtime, dependencies, and app-owned filesystem inside Pocket Relay.
 - [x] Verify APK/native-library/foreground-service constraints at architecture level; production packaging still requires a dedicated Android build validation.
-- [x] Audit the Pocket Agent Host mobile visual system and identify high-impact hierarchy, spacing, and interaction improvements.
+- [x] Audit the Pocket Relay mobile visual system and identify high-impact hierarchy, spacing, and interaction improvements.
 - [x] Refine the dashboard and setup experience for a more polished one-handed mobile flow.
 - [x] Refine the agent, schedules, and settings screens for stronger consistency and clearer operational state.
 - [x] Validate the refined GUI at a mobile portrait viewport; dashboard, agent, jobs, and control screens render with consistent visual hierarchy and readable tab labels.
 - [x] Save the GUI refinement checkpoint.
-- [x] Research one focused GitHub shortlist for Pocket Agent Host GUI improvements, including reusable UI patterns and Android/Expo-compatible tooling.
+- [x] Research one focused GitHub shortlist for Pocket Relay GUI improvements, including reusable UI patterns and Android/Expo-compatible tooling.
 - [x] Discover relevant `SKILL.md` resources and agent tools that can improve future GUI work.
 - [x] Evaluate repository licenses, maintenance quality, fit, and implementation effort before recommending integrations.
 - [x] Produce a ranked GUI research brief with a concrete implementation recommendation.
@@ -48,7 +48,7 @@
 - [x] Add local low-battery and low-storage host notifications with duplicate-alert suppression.
 - [x] Validate telemetry, gateway receipt, and host-alert flows with TypeScript and deterministic policy tests; managed screenshots were unavailable.
 - [x] Save the telemetry, receipt, and alert checkpoint.
-- [x] Audit Pocket Agent Host source, dependencies, icons/assets, upstream Hermes code, and planned native runtime components for FOSS licensing compliance.
+- [x] Audit Pocket Relay source, dependencies, icons/assets, upstream Hermes code, and planned native runtime components for FOSS licensing compliance.
 - [x] Document every dependency and asset that requires attribution, replacement, or license confirmation before APK distribution.
 - [x] Assess the current project’s Android-native bridge readiness and identify the exact Kotlin/JNI/embedded-Python work still required.
 - [x] Implement the next native Android bridge milestone and prepare a custom APK build strategy rather than claiming Expo preview features are native-complete.
@@ -129,7 +129,7 @@
 - [x] Add a source-controlled unsigned-release policy, release preflight, and F-Droid handoff evidence that cannot fall back to the debug signing key
 - [x] Run final sandbox test, type, SBOM, license, and APK-integrity validation gates
 - [ ] Publish an immutable public source tag and complete F-Droid build-server plus post-gap-closure physical-device validation (requires maintainer-controlled public hosting, credentials, and hardware)
-- [x] Upgrade README with current app UI screenshots and the shipped Pocket Agent Host icon
+- [x] Upgrade README with current app UI screenshots and the shipped Pocket Relay icon
 - [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update
 - [x] Delete remote GitLab tags `v1.0.0` and `v1.0.1` and any attached Release objects without deleting their commits
 - [x] Add provider selection, protected AI API token entry, live model discovery, and refreshable model catalog
@@ -137,7 +137,7 @@
 - [x] Add model catalog search and filter bar
 - [x] Push the completed provider diagnostics and model-search update to GitLab and verify the remote commit
 - [x] Treat GitLab push and remote verification as required completion criteria for each future source change
-- [x] Assess GPLv3 relicensing compatibility across Pocket Agent Host code, bundled dependencies, notices, and distribution obligations before changing any license
+- [x] Assess GPLv3 relicensing compatibility across Pocket Relay code, bundled dependencies, notices, and distribution obligations before changing any license
 - [x] Replace the project MIT license with GPLv3 and update all license-facing metadata and notices
 - [x] Add CONTRIBUTORS and a copyright/contribution policy for future code submissions
 - [x] Regenerate compliance evidence and validate relicensing changes before GitLab publication
@@ -161,7 +161,7 @@
 - [x] Verify responsive mobile layouts and validate the minimal GUI refinement
 - [x] Restore managed web build script after checkpoint publication failure
 - [x] Recover the existing GitLab authentication path and verify publication of the minimal UI checkpoint
-- [x] Define and document the focused Pocket Agent Host theme palette choices
+- [x] Define and document the focused Pocket Relay theme palette choices
 - [x] Add a persistent theme selector to Settings and apply it across all screens
 - [x] Correct the static export cache failure and validate the themes update
 - [x] Add persistent OLED Black low-power theme option to the runtime palette and Settings selector
@@ -200,7 +200,7 @@
 - [x] Add deterministic history and threshold-policy regression coverage
 - [x] Validate, checkpoint, and publish the resource-history and threshold update to GitLab
 - [x] Research established FOSS repository README structures and onboarding conventions
-- [x] Audit current Pocket Agent Host documentation, screenshots, and release guidance for README accuracy
+- [x] Audit current Pocket Relay documentation, screenshots, and release guidance for README accuracy
 - [x] Rewrite README with a polished project overview, setup path, architecture, security model, and contribution guide
 - [x] Verify README links, assets, commands, licensing language, and claims against the source tree
 - [x] Validate, checkpoint, and publish the README refresh to GitLab
@@ -266,3 +266,9 @@
 - [x] Simplify the Home dashboard to prioritize host state, one next action, essential resource pulse, and safety alerts
 - [x] Refine the Agent Console chat layout, empty state, conversation rendering, and controls for focused one-handed use
 - [x] Add regression coverage, validate the release, checkpoint, and publish the UX and multi-provider update
+- [x] Audit current branding, upstream Hermes pinning, model endpoint validation, and public documentation references
+- [x] Rebrand the product and GitLab repository to a memorable neutral name across source-controlled metadata and documentation
+- [x] Add explicit pinned-Hermes provenance, integrity verification, and a documented upgrade process
+- [x] Add safe same-network Ollama and LM Studio model-provider presets without weakening remote HTTPS defaults
+- [x] Explain the online-only operating model and explicit remote HTTPS-only MCP limitation in the documentation
+- [ ] Add regression coverage, validate the release, checkpoint, and publish the branding, local-provider, and supply-chain update

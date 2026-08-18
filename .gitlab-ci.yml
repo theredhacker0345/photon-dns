@@ -1,4 +1,4 @@
-# Pocket Agent Host - GitLab CI/CD Pipeline
+# Pocket Relay - GitLab CI/CD Pipeline
 # Manual-only ARM64 release APK build workflow (does not run on every push).
 
 stages:
@@ -19,7 +19,7 @@ build-release-apk:
       - node_modules/
       - ~/.pnpm-store
   script:
-    - echo "Starting manual Pocket Agent Host ARM64 release APK build..."
+    - echo "Starting manual Pocket Relay ARM64 release APK build..."
     - node -v
     - pnpm -v
     - pnpm install --frozen-lockfile

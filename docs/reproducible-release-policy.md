@@ -1,6 +1,6 @@
 # Reproducible release policy
 
-Pocket Agent Host produces an **unsigned** `release` APK by default. This is
+Pocket Relay produces an **unsigned** `release` APK by default. This is
 intentional: F-Droid signs artifacts built from its own source recipe. The
 Gradle build may use a maintainer release key only when all four
 `POCKET_HERMES_RELEASE_*` signing variables (or matching Gradle properties)
