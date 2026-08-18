@@ -28,13 +28,14 @@ export type SkillManifest = {
 };
 
 export type SkillProvenance = {
-  kind: "github" | "ai";
+  kind: "github" | "ai" | "first_party";
   originalUrl?: string;
   repository?: string;
   commitSha?: string;
   manifestUrl?: string;
   sourceUrl?: string;
   request?: string;
+  catalogId?: string;
 };
 
 export type SkillDraft = {
@@ -55,6 +56,8 @@ export type InstalledSkill = {
 };
 
 export type SkillPackage = { manifest: SkillManifest; source: string };
+/** Portable, credential-free format used only for exporting a reviewed package to an owner-selected share target. */
+export type PortableSkillExport = { format: "pocket-relay-skill-export/v1"; manifest: SkillManifest; source: string };
 export type SkillValidation<T> = { ok: true; value: T } | { ok: false; message: string };
 
 export const MAX_INSTALLED_SKILLS = 20;
@@ -201,6 +204,13 @@ export async function validateSkillPackage(value: { manifest: unknown; source: u
   const actualHash = await hashSkillSource(source.value);
   if (actualHash !== manifest.value.sourceSha256) return { ok: false, message: "The main.js SHA-256 hash does not match the reviewed skill manifest." };
   return { ok: true, value: { manifest: manifest.value, source: source.value } };
+}
+
+export async function validatePortableSkillExport(value: unknown): Promise<SkillValidation<SkillPackage>> {
+  if (!isRecord(value) || value.format !== "pocket-relay-skill-export/v1") {
+    return { ok: false, message: "This file does not declare the supported pocket-relay-skill-export/v1 format." };
+  }
+  return validateSkillPackage({ manifest: value.manifest, source: value.source });
 }
 
 export function validateJsonAgainstSchema(value: unknown, schema: PocketJsonSchema, depth = 0): string | null {

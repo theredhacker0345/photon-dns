@@ -12,8 +12,9 @@ import { discoverRemoteMcpTools, type McpDiscoveryResult } from "@/lib/mcp-clien
 import { MAX_REMOTE_MCP_SERVERS, normalizeRemoteMcpEndpoint, validateRemoteMcpDraft, type McpAuthMode, type McpToolApproval, type McpToolManifestItem, type RemoteMcpServer } from "@/lib/mcp-contracts";
 import { importSkillFromGitHub } from "@/lib/github-skill-import";
 import { buildSkillDraftPrompt, parseAiSkillDraftResponse } from "@/lib/skill-ai-draft";
-import { MAX_INSTALLED_SKILLS, MAX_SKILL_DRAFTS, type InstalledSkill, type SkillDraft, type SkillProvenance, isSafeSkillIdentifier, normalizeSkillManifest, parseSkillInput, validateJsonAgainstSchema } from "@/lib/skill-contracts";
-import { discardStagedSkillPackage, installStagedSkillPackage, readInstalledSkillPackage, readStagedSkillPackage, removeInstalledSkillPackage, stageSkillPackage } from "@/lib/skill-storage";
+import { getFirstPartySkill } from "@/lib/first-party-skills";
+import { MAX_INSTALLED_SKILLS, MAX_SKILL_DRAFTS, type InstalledSkill, type SkillDraft, type SkillProvenance, isSafeSkillIdentifier, normalizeSkillManifest, parseSkillInput, validateJsonAgainstSchema, validateSkillPackage } from "@/lib/skill-contracts";
+import { discardStagedSkillPackage, exportInstalledSkillPackage, installStagedSkillPackage, installVerifiedSkillPackage, readInstalledSkillPackage, readStagedSkillPackage, removeInstalledSkillPackage, stageSkillPackage } from "@/lib/skill-storage";
 
 export type HostPhase = "unconfigured" | "ready" | "running" | "bridge_required" | "stopped";
 export type HostEvent = { id: string; title: string; detail: string; severity: "info" | "success" | "warning"; createdAt: string };
@@ -75,6 +76,7 @@ type PocketHermesContextValue = PersistedState & {
   approveMcpTool: (serverId: string, toolName: string) => void;
   revokeMcpToolApproval: (serverId: string, toolName: string) => void;
   importSkill: (githubUrl: string) => Promise<{ ok: boolean; message: string; draftId?: string }>;
+  installFirstPartySkill: (catalogId: string) => Promise<{ ok: boolean; message: string; skillId?: string }>;
   requestAiSkillDraft: (request: string) => Promise<{ ok: boolean; message: string }>;
   refreshAiSkillDraftRequests: () => Promise<void>;
   getSkillDraftSource: (draftId: string) => Promise<string | null>;
@@ -82,6 +84,7 @@ type PocketHermesContextValue = PersistedState & {
   discardSkillDraft: (draftId: string) => Promise<void>;
   setSkillEnabled: (skillId: string, enabled: boolean) => Promise<void>;
   runSkill: (skillId: string, inputJson: string) => Promise<{ ok: boolean; message: string; output?: string }>;
+  shareSkill: (skillId: string) => Promise<{ ok: boolean; message: string }>;
   removeSkill: (skillId: string) => Promise<void>;
   toggleFavoriteModel: (modelId: string) => void;
   isFavoriteModel: (modelId: string) => boolean;
@@ -143,7 +146,7 @@ function normalizeSavedProviderConnections(value: unknown): SavedProviderConnect
 function normalizeSkillProvenance(value: unknown): SkillProvenance | null {
   if (!value || typeof value !== "object") return null;
   const item = value as Record<string, unknown>;
-  if (item.kind !== "github" && item.kind !== "ai") return null;
+  if (item.kind !== "github" && item.kind !== "ai" && item.kind !== "first_party") return null;
   const text = (key: string, maximum: number) => typeof item[key] === "string" ? item[key].trim().slice(0, maximum) : undefined;
   return {
     kind: item.kind,
@@ -153,6 +156,7 @@ function normalizeSkillProvenance(value: unknown): SkillProvenance | null {
     manifestUrl: text("manifestUrl", 600),
     sourceUrl: text("sourceUrl", 600),
     request: text("request", 600),
+    catalogId: text("catalogId", 80),
   };
 }
 
@@ -521,6 +525,25 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }
   }, [state.skillDrafts.length]);
 
+  const installFirstPartySkill = useCallback(async (catalogId: string) => {
+    if (Platform.OS !== "android") return { ok: false, message: "Sample skills are installed only by the Android Pocket Relay host." };
+    const sample = getFirstPartySkill(catalogId);
+    if (!sample) return { ok: false, message: "This sample skill is no longer available." };
+    if (state.installedSkills.length >= MAX_INSTALLED_SKILLS) return { ok: false, message: `Pocket Relay supports up to ${MAX_INSTALLED_SKILLS} installed skills. Remove one before installing another.` };
+    if (state.installedSkills.some((item) => item.manifest.sourceSha256 === sample.skillPackage.manifest.sourceSha256)) return { ok: false, message: "This exact sample skill is already installed." };
+    const verified = await validateSkillPackage(sample.skillPackage);
+    if (!verified.ok) return { ok: false, message: "The bundled sample failed its source-hash verification and was blocked." };
+    const skillId = createId("skill");
+    try {
+      await installVerifiedSkillPackage(skillId, verified.value);
+      const installed: InstalledSkill = { id: skillId, manifest: verified.value.manifest, provenance: { kind: "first_party", catalogId: sample.id }, installedAt: new Date().toISOString(), enabled: false, lastRunAt: null, lastRunStatus: null };
+      setState((current) => ({ ...current, installedSkills: [installed, ...current.installedSkills].slice(0, MAX_INSTALLED_SKILLS), events: [{ id: createId("event"), title: "Sample skill installed inactive", detail: `${installed.manifest.name} was source-hash verified and stored privately. Enable and approve it before execution.`, severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+      return { ok: true, message: "Sample installed as inactive. It cannot run until you enable and approve it.", skillId };
+    } catch {
+      return { ok: false, message: "The verified sample could not be installed privately." };
+    }
+  }, [state.installedSkills]);
+
   const requestAiSkillDraft = useCallback(async (request: string) => {
     const cleanRequest = request.trim();
     if (Platform.OS !== "android") return { ok: false, message: "AI skill drafting is available only through the installed Android host." };
@@ -633,6 +656,22 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       return ok ? { ok: true, message: "Skill completed in the isolated QuickJS process.", output: result.output } : { ok: false, message };
     } catch {
       return { ok: false, message: "The app-private skill package could not be verified for execution." };
+    }
+  }, [state.installedSkills]);
+
+  const shareSkill = useCallback(async (skillId: string) => {
+    const skill = state.installedSkills.find((item) => item.id === skillId);
+    if (!skill) return { ok: false, message: "This installed skill is no longer available." };
+    if (Platform.OS !== "android") return { ok: false, message: "Portable skill files can be shared only from the Android Pocket Relay host." };
+    try {
+      const Sharing = await import("expo-sharing");
+      if (!(await Sharing.isAvailableAsync())) return { ok: false, message: "The Android system share sheet is not available on this device." };
+      const exported = await exportInstalledSkillPackage(skillId);
+      await Sharing.shareAsync(exported.uri, { dialogTitle: `Share ${skill.manifest.name}`, mimeType: "application/vnd.pocket-relay.skill+json" });
+      setState((current) => ({ ...current, events: [{ id: createId("event"), title: "Skill export shared", detail: `${skill.manifest.name} was exported as a credential-free portable package. Recipients must still review and approve it.`, severity: "info" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60) }));
+      return { ok: true, message: "Portable package opened in the Android share sheet. It contains only the manifest and QuickJS source, never tokens, approvals, logs, or host settings." };
+    } catch {
+      return { ok: false, message: "Pocket Relay could not create or share the portable skill package." };
     }
   }, [state.installedSkills]);
 
@@ -860,7 +899,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, [state.providerConnections]);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

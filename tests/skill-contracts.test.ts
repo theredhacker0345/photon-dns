@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 
+import { FIRST_PARTY_SKILLS } from "../lib/first-party-skills";
 import { normalizeSkillManifest, parseSkillInput, validateJsonAgainstSchema } from "../lib/skill-contracts";
 import type { SkillManifest } from "../lib/skill-contracts";
 
@@ -30,5 +32,16 @@ describe("Pocket Relay skills contract", () => {
     expect(validateJsonAgainstSchema({ count: 2 }, manifest.outputSchema)).toBeNull();
     expect(validateJsonAgainstSchema({ count: 2.5 }, manifest.outputSchema)).toContain("integer");
     expect(validateJsonAgainstSchema({ count: 2, extra: true }, manifest.outputSchema)).toContain("Unexpected field");
+  });
+
+  it("ships only small capability-free first-party samples whose manifests bind to their exact source", () => {
+    expect(FIRST_PARTY_SKILLS).toHaveLength(3);
+    for (const sample of FIRST_PARTY_SKILLS) {
+      expect(sample.id).toMatch(/^[a-z0-9-]+$/);
+      expect(normalizeSkillManifest(sample.skillPackage.manifest).ok).toBe(true);
+      expect(sample.skillPackage.manifest.permissions).toEqual([]);
+      expect(sample.skillPackage.source).toContain("function run(input)");
+      expect(createHash("sha256").update(sample.skillPackage.source, "utf8").digest("hex")).toBe(sample.skillPackage.manifest.sourceSha256);
+    }
   });
 });

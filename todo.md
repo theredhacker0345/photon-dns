@@ -301,3 +301,9 @@
 - [x] Add compact Skills management, review, execution, revocation, and deletion flows from Automations
 - [x] Add security regressions and documentation for skills imports, approval, and removal
 - [x] Run complete release validation, checkpoint, and publish the approved skills feature to GitLab
+- [x] Define and validate a small first-party sample-skill catalog for safe owner installation
+- [x] Add owner-controlled export of locally created QuickJS skills as portable reviewed packages
+- [x] Add native system-share support for exported skill packages
+- [x] Add sample gallery discovery, review, installation, export, and share controls to Skills
+- [x] Add regression coverage and documentation for gallery and export/share boundaries
+- [ ] Run complete validation, checkpoint, and publish the gallery and export/share update to GitLab

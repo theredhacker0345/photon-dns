@@ -1,11 +1,12 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
-import { type SkillManifest, type SkillPackage, isSafeSkillIdentifier, validateSkillPackage } from "@/lib/skill-contracts";
+import { type PortableSkillExport, type SkillManifest, type SkillPackage, isSafeSkillIdentifier, validateSkillPackage } from "@/lib/skill-contracts";
 
 const ROOT = `${FileSystem.documentDirectory ?? ""}pocket-relay/skills/`;
 const STAGED_ROOT = `${ROOT}staged/`;
 const INSTALLED_ROOT = `${ROOT}installed/`;
+const EXPORT_ROOT = `${FileSystem.cacheDirectory ?? ""}pocket-relay/skill-exports/`;
 
 function requireNativeStorage() {
   if (Platform.OS === "web" || !FileSystem.documentDirectory) throw new Error("Skill packages are stored only in the Android app-private filesystem.");
@@ -68,6 +69,12 @@ export async function installStagedSkillPackage(draftId: string, skillId: string
   return skillPackage;
 }
 
+/** Writes a verified bundled package into the same app-private installed layout as a reviewed staged package. */
+export async function installVerifiedSkillPackage(skillId: string, skillPackage: SkillPackage) {
+  requireNativeStorage();
+  await writePackage(packageDirectory(INSTALLED_ROOT, skillId), skillPackage);
+}
+
 export async function readInstalledSkillPackage(skillId: string) {
   requireNativeStorage();
   return readPackage(packageDirectory(INSTALLED_ROOT, skillId));
@@ -81,6 +88,19 @@ export async function readInstalledSkillSource(skillId: string) {
 export async function removeInstalledSkillPackage(skillId: string) {
   requireNativeStorage();
   await FileSystem.deleteAsync(packageDirectory(INSTALLED_ROOT, skillId), { idempotent: true });
+}
+
+/** Creates a disposable, credential-free self-contained package for the Android system share sheet. */
+export async function exportInstalledSkillPackage(skillId: string) {
+  requireNativeStorage();
+  if (!FileSystem.cacheDirectory) throw new Error("Temporary export storage is unavailable.");
+  const skillPackage = await readInstalledSkillPackage(skillId);
+  const bundle: PortableSkillExport = { format: "pocket-relay-skill-export/v1", manifest: skillPackage.manifest, source: skillPackage.source };
+  const filename = `${skillId}.pocket-relay-skill.json`;
+  await ensureDirectory(EXPORT_ROOT);
+  const uri = `${EXPORT_ROOT}${filename}`;
+  await FileSystem.writeAsStringAsync(uri, JSON.stringify(bundle, null, 2), { encoding: FileSystem.EncodingType.UTF8 });
+  return { uri, filename };
 }
 
 export function skillManifestLabel(manifest: SkillManifest) {
