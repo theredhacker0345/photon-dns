@@ -1,4 +1,4 @@
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon as MaterialIcons } from "@/components/ui/app-icon";
 import { router } from "expo-router";
 import { useState, type ComponentProps } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
