@@ -47,6 +47,7 @@ def main() -> None:
         assert os.environ["TELEGRAM_ALLOW_ALL_USERS"] == "false"
         assert os.environ["TELEGRAM_GROUP_ALLOWED_USERS"] == ""
         assert os.environ["TELEGRAM_GROUP_ALLOWED_CHATS"] == ""
+        assert worker._embedded_gateway_toolsets() == []
         assert worker._workspace_limit_reason() is None
         try:
             worker._normalize_maximum_workspace_bytes(63 * 1024 * 1024)

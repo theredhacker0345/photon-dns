@@ -213,3 +213,9 @@
 - [x] Deliver native ongoing-notification warnings for configured low-battery and free-storage conditions
 - [x] Expose validated low-battery and free-storage reserve controls in Settings and correct private-owner chat guidance
 - [x] Add regression coverage and an honest physical-device acceptance checklist for the repaired host behavior
+- [x] Trace the embedded agent’s Android workspace, Python runtime, network, and tool boundaries
+- [x] Document the verified sandbox model and the exact tools available to the agent without overstating capabilities
+- [x] Identify and repair any concrete capability-surface gap found in the sandbox or tool audit
+- [ ] Add regression coverage, validate, checkpoint, and publish the sandbox and tool-surface update to GitLab
+- [x] Enforce an empty upstream toolset for every embedded agent session so bundled terminal, browser, file, plugin, and local MCP code cannot be exposed
+- [x] Document the app-private workspace boundary and the only owner-invocable tool surface: approved remote MCP commands

@@ -156,6 +156,7 @@ For the exact evidence boundary, artifact context, and handoff sequence, read [r
 | Threats, trust boundaries, and residual risks | [Threat model](docs/threat-model.md) |
 | Credentials, network data flow, and retention | [Privacy notes](docs/privacy.md) |
 | MCP endpoint, manifest, and approval restrictions | [Remote MCP connectors](docs/mcp-connectors.md) |
+| What sandbox the embedded agent receives and which tools it can use | [Agent sandbox and tool surface](docs/agent-sandbox-and-tools.md) |
 | How the native worker and supervisor divide responsibility | [Native runtime contract](docs/native-runtime-contract.md) |
 | Model discovery behavior and supported endpoint shape | [Provider model discovery research](docs/provider-model-discovery-research.md) |
 | Themes and the minimal control-plane design | [Theme system](docs/theme-system.md) · [Minimal UI design](docs/minimal-ui-design.md) |

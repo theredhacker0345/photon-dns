@@ -103,6 +103,9 @@ describe("native Android host declaration contract", () => {
     expect(worker).toContain("def update_remote_mcp_config(");
     expect(worker).toContain("_NoMcpRedirects");
     expect(worker).toContain('os.environ["HERMES_DISABLE_MCP"] = "1"');
+    expect(worker).toContain("def _embedded_gateway_toolsets() -> list[str]:");
+    expect(worker).toContain("instance._resolve_enabled_toolsets_for_source = resolve_embedded_toolsets");
+    expect(worker).toContain("return _embedded_gateway_toolsets()");
     expect(worker).toContain("The owner approval for this MCP tool has expired or is missing.");
     expect(worker).toContain("def enqueue_task(");
     expect(worker).toContain("async def _drain_task_queue()");

@@ -55,6 +55,19 @@ _MAX_WORKSPACE_BYTES = 8 * 1024 * 1024 * 1024
 _MCP_COMMAND_RE = re.compile(r"^/mcp\s+([A-Za-z0-9_.-]{1,128})\s+([A-Za-z0-9_.-]{1,128})\s+(\{.*\})\s*$", re.DOTALL)
 
 
+def _embedded_gateway_toolsets() -> list[str]:
+    """Return the complete upstream agent-tool allowlist for Android sessions.
+
+    An Android host is not a general-purpose agent workstation. The Hermes
+    package may contain terminal, browser, file, web, plugin, and MCP modules,
+    but the embedded gateway receives no callable upstream tool schemas. The
+    worker's separately intercepted ``/mcp`` command is the only approved tool
+    path, and it is independently constrained by the selected remote manifest
+    and a short-lived owner grant.
+    """
+    return []
+
+
 class _NoMcpRedirects(HTTPRedirectHandler):
     """Reject redirect responses so a public endpoint cannot pivot into a private host."""
 
@@ -683,6 +696,17 @@ def _run_gateway() -> None:
 
         def capture_runner(instance: Any, *args: Any, **kwargs: Any) -> None:
             original_init(instance, *args, **kwargs)
+
+            # Upstream Hermes discovers a broad, desktop-oriented registry by
+            # default. Clamp its per-session resolver rather than relying on
+            # optional environment flags, so normal Telegram messages and
+            # durable tasks always construct AIAgent with ``enabled_toolsets=[]``.
+            # The explicit remote-MCP branch below remains separate from the
+            # model-facing registry and validates every owner request itself.
+            def resolve_embedded_toolsets(_user_config: dict[str, Any], _source: Any, _platform_key: str) -> list[str]:
+                return _embedded_gateway_toolsets()
+
+            instance._resolve_enabled_toolsets_for_source = resolve_embedded_toolsets
             original_handle_message = instance._handle_message
 
             async def handle_owner_mcp_command(event: Any) -> Any:
