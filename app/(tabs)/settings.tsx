@@ -20,6 +20,7 @@ import { useThemeContext } from "@/lib/theme-provider";
 
 const HIRING_WHATSAPP_URL = "https://wa.me/923352706540?text=Hello%20Ubaid%2C%20I%27m%20interested%20in%20hiring%20you%20for%20a%20project.%20I%27d%20like%20to%20discuss%20the%20scope%2C%20timeline%2C%20and%20budget.";
 const PROJECT_ISSUE_TRACKER_URL = "https://gitlab.com/theredhacker0345/pocket-relay/-/issues/new";
+const PROJECT_CHANGELOG_URL = "https://gitlab.com/theredhacker0345/pocket-relay/-/blob/main/CHANGELOG.md";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -509,6 +510,9 @@ export default function SettingsScreen() {
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Report a Pocket Relay issue" accessibilityHint="Opens the project issue form in your browser" onPress={() => void openHireContact(PROJECT_ISSUE_TRACKER_URL, "Issue tracker")} style={({ pressed }) => [styles.issueLink, pressed && styles.themeOptionPressed]}>
               <MaterialIcons name="bug-report" size={16} color={colors.muted} /><Text style={[styles.issueLinkText, { color: colors.muted }]}>Something not working? Report an issue</Text><MaterialIcons name="open-in-new" size={14} color={colors.muted} />
+            </Pressable>
+            <Pressable accessibilityRole="link" accessibilityLabel="View Pocket Relay changelog" accessibilityHint="Opens the public update history in your browser" onPress={() => void openHireContact(PROJECT_CHANGELOG_URL, "Changelog")} style={({ pressed }) => [styles.issueLink, pressed && styles.themeOptionPressed]}>
+              <MaterialIcons name="history" size={16} color={colors.muted} /><Text style={[styles.issueLinkText, { color: colors.muted }]}>What’s new? View the changelog</Text><MaterialIcons name="open-in-new" size={14} color={colors.muted} />
             </Pressable>
           </View> : null}
         </PressableCard>

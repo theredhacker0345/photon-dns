@@ -315,3 +315,8 @@
 - [x] Run complete validation, checkpoint, and publish the premium UI/UX refinement to GitLab
 - [x] Redesign the creator attribution and contact card with clearer hierarchy, concise copy, and accessible action grouping
 - [x] Validate, checkpoint, and publish the creator-card refinement to GitLab
+- [x] Add a Settings changelog link with a stable public update-history destination
+- [x] Complete a release-readiness review covering security boundaries, feature completeness, UI/UX, and F-Droid delivery evidence
+- [x] Research Neuron Encrypt for licensing, cryptographic design, dependencies, and Android/Expo integration suitability
+- [x] Design an optional encrypted-backup architecture that preserves Pocket Relay’s private, owner-approved security model
+- [x] Validate, checkpoint, and publish the completed changelog and readiness-review work to GitLab
