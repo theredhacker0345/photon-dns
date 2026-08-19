@@ -364,7 +364,7 @@
 - [x] Complete source-level verification of owner-facing flows, native Android integration points, credential boundaries, FOSS dependencies, and reproducible release checks; retain physical-device and reproducibility failures as explicit blockers
 - [x] Audit F-Droid metadata, build configuration, licensing, permissions, privacy disclosures, and submission materials against current requirements
 - [x] Document release verification evidence, classify blockers, and address all fixable blockers before publication
-- [ ] Complete final validation, checkpoint, and publish the test-notification and release-readiness work to GitLab
+- [x] Complete final validation, checkpoint, and publish the test-notification and release-readiness work to GitLab
 - [x] Correct F-Droid metadata and Fastlane license claims to reflect the public GitLab source and GPL-3.0-only project license
 - [x] Remove unnecessary media, overlay, and legacy-storage declarations from the Android release manifest
 - [x] Rebuild and inspect the release manifest to verify the minimized permission and component surface
