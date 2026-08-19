@@ -381,4 +381,4 @@
 - [x] Vendor the pinned Pydantic Core 2.46.4 source with license, provenance, and integrity verification
 - [x] Make the Jiter and Pydantic Core wheel prerequisites deterministic and offline-only for clean Android release builds
 - [x] Inventory and establish a source-based offline strategy for the remaining Chaquopy Python dependency closure
-- [ ] Checkpoint and publish the validated 1.0.0 vendored-source and deterministic-release engineering update to GitLab
+- [x] Checkpoint and publish the validated 1.0.0 vendored-source and deterministic-release engineering update to GitLab
