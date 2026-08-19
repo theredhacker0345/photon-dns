@@ -355,3 +355,19 @@
 - [x] Enforce the master preference for Pocket Relay host alerts and scheduled backup reminders, including safe cancellation when disabled
 - [x] Add an accessible Settings toggle with Android notification-permission and active/inactive status feedback
 - [x] Add regression coverage, complete validation, checkpoint, and publish the master notification control to GitLab
+
+# Test Notification and F-Droid Release Verification
+
+- [x] Define an owner-triggered, device-local test notification that respects the master notification preference and never sends data remotely
+- [x] Add an accessible Settings test-notification button with permission, disabled-state, delivery-attempt, and error feedback
+- [x] Add deterministic coverage for the test-notification policy and Settings lifecycle
+- [x] Complete source-level verification of owner-facing flows, native Android integration points, credential boundaries, FOSS dependencies, and reproducible release checks; retain physical-device and reproducibility failures as explicit blockers
+- [x] Audit F-Droid metadata, build configuration, licensing, permissions, privacy disclosures, and submission materials against current requirements
+- [x] Document release verification evidence, classify blockers, and address all fixable blockers before publication
+- [ ] Complete final validation, checkpoint, and publish the test-notification and release-readiness work to GitLab
+- [x] Correct F-Droid metadata and Fastlane license claims to reflect the public GitLab source and GPL-3.0-only project license
+- [x] Remove unnecessary media, overlay, and legacy-storage declarations from the Android release manifest
+- [x] Rebuild and inspect the release manifest to verify the minimized permission and component surface
+- [ ] Vendor the pinned Hermes Agent source and remove its F-Droid build-time network clone
+- [x] Remove unused transitive storage and biometric permissions from the merged Android release manifest
+- [ ] Diagnose and normalize Chaquopy/R8 release artifacts so clean ARM64 builds are byte-for-byte reproducible

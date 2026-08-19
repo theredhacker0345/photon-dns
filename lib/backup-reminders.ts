@@ -1,10 +1,11 @@
-import { Platform } from "react-native";
+import { PermissionsAndroid, Platform } from "react-native";
 import {
   defaultBackupReminderConfiguration,
   describeBackupReminderInterval,
   type BackupReminderConfiguration,
   type BackupReminderIntervalDays,
 } from "./backup-reminder-contracts";
+import { disableNativeBackupReminder, scheduleNativeBackupReminder, sendNativeTestNotification } from "./native-supervisor";
 
 export {
   BACKUP_REMINDER_INTERVALS,
@@ -22,32 +23,23 @@ export type BackupReminderResult = {
   configuration: BackupReminderConfiguration;
 };
 
-const BACKUP_REMINDER_CHANNEL = "pocket-relay-backup-reminders";
+export type NotificationTestResult = {
+  ok: boolean;
+  message: string;
+};
 
-async function loadNotifications() {
-  return import("expo-notifications");
-}
-
-async function prepareBackupReminderNotifications() {
-  const Notifications = await loadNotifications();
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true }),
-  });
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync(BACKUP_REMINDER_CHANNEL, {
-      name: "Encrypted backup reminders",
-      description: "Optional reminders to create a Pocket Relay encrypted backup.",
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 120],
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
-    });
-  }
-  return Notifications;
+/** Android 13+ requires an owner-approved runtime notification permission. */
+async function requestAndroidNotificationPermission(): Promise<boolean> {
+  if (Platform.OS !== "android") return false;
+  if (Number(Platform.Version) < 33) return true;
+  const currentlyGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+  if (currentlyGranted) return true;
+  return (await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) === PermissionsAndroid.RESULTS.GRANTED;
 }
 
 /**
- * Creates a local, repeatable device notification. It does not use a push token,
- * contact a server, include backup contents, or reveal any credential state.
+ * Creates a repeatable, device-local Android reminder through the private native
+ * bridge. It uses neither a push token nor a server and includes no backup data.
  */
 export async function scheduleBackupReminder(
   current: BackupReminderConfiguration,
@@ -57,22 +49,13 @@ export async function scheduleBackupReminder(
     return { ok: false, message: "Backup reminders are available in the installed Android app.", configuration: current };
   }
   try {
-    const Notifications = await prepareBackupReminderNotifications();
-    const existing = await Notifications.getPermissionsAsync();
-    const permission = existing.status === "granted" ? existing : await Notifications.requestPermissionsAsync();
-    if (permission.status !== "granted") {
+    if (!await requestAndroidNotificationPermission()) {
       return { ok: false, message: "Android notification permission is required before Pocket Relay can schedule a private backup reminder.", configuration: current };
     }
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Create a Pocket Relay backup",
-        body: "Open Settings to create a new password-protected backup. Your backup password is never stored.",
-        data: { route: "backup-reminder" },
-        ...(Platform.OS === "android" ? { android: { channelId: BACKUP_REMINDER_CHANNEL } } : {}),
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: intervalDays * 24 * 60 * 60, repeats: true },
-    });
-    if (current.notificationId) await Notifications.cancelScheduledNotificationAsync(current.notificationId).catch(() => undefined);
+    const notificationId = await scheduleNativeBackupReminder(intervalDays);
+    if (!notificationId) {
+      return { ok: false, message: "Pocket Relay could not schedule the local backup reminder on this device.", configuration: current };
+    }
     const configuration: BackupReminderConfiguration = { enabled: true, intervalDays, notificationId };
     return { ok: true, message: `${describeBackupReminderInterval(intervalDays)} backup reminder enabled on this device.`, configuration };
   } catch {
@@ -85,12 +68,33 @@ export async function disableBackupReminder(current: BackupReminderConfiguration
     return { ok: true, message: "Backup reminders are disabled.", configuration: defaultBackupReminderConfiguration };
   }
   try {
-    if (current.notificationId) {
-      const Notifications = await loadNotifications();
-      await Notifications.cancelScheduledNotificationAsync(current.notificationId).catch(() => undefined);
-    }
+    if (!await disableNativeBackupReminder()) throw new Error("Native reminder cancellation failed.");
     return { ok: true, message: "Backup reminder disabled on this device.", configuration: defaultBackupReminderConfiguration };
   } catch {
     return { ok: false, message: "Pocket Relay could not cancel the local backup reminder.", configuration: current };
+  }
+}
+
+/**
+ * Sends one private, device-local Android notification. This does not use a
+ * push token, contact a server, or include configuration or credential data.
+ */
+export async function sendTestNotification(deviceNotificationsEnabled: boolean): Promise<NotificationTestResult> {
+  if (Platform.OS !== "android") {
+    return { ok: false, message: "Test notifications are available in the installed Android app." };
+  }
+  if (!deviceNotificationsEnabled) {
+    return { ok: false, message: "Turn on Device notifications before sending a local test notification." };
+  }
+  try {
+    if (!await requestAndroidNotificationPermission()) {
+      return { ok: false, message: "Android notification permission is required before Pocket Relay can send a local test notification." };
+    }
+    if (!await sendNativeTestNotification()) {
+      return { ok: false, message: "Pocket Relay could not send the local test notification on this device." };
+    }
+    return { ok: true, message: "A private Pocket Relay test notification was sent to this device." };
+  } catch {
+    return { ok: false, message: "Pocket Relay could not send the local test notification on this device." };
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "pocket-hermes",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "license": "GPL-3.0-only",
   "main": "expo-router/entry",
@@ -37,7 +37,6 @@
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.23",
     "expo-haptics": "~15.0.8",
-    "expo-notifications": "~0.32.15",
     "expo-router": "~6.0.19",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",

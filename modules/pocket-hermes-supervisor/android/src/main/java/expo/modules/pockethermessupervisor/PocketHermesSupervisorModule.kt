@@ -68,6 +68,45 @@ class PocketHermesSupervisorModule : Module() {
       }
     }
 
+    AsyncFunction("setDeviceNotificationsEnabled") { enabled: Boolean ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      PocketRelayLocalNotifications.setDeviceNotificationsEnabled(context, enabled)
+      mapOf("enabled" to enabled)
+    }
+
+    AsyncFunction("scheduleBackupReminder") { intervalDays: Int ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      mapOf("notificationId" to PocketRelayLocalNotifications.scheduleBackupReminder(context, intervalDays))
+    }
+
+    AsyncFunction("disableBackupReminder") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      PocketRelayLocalNotifications.cancelBackupReminder(context)
+      mapOf("status" to "disabled")
+    }
+
+    AsyncFunction("sendTestNotification") {
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      PocketRelayLocalNotifications.sendTestNotification(context)
+      mapOf("status" to "sent")
+    }
+
+    AsyncFunction("sendHostSafetyAlert") { title: String, body: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      PocketRelayLocalNotifications.sendSafetyAlert(context, title.trim(), body.trim())
+      mapOf("status" to "sent")
+    }
+
     AsyncFunction("getTelemetry") {
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Relay supervisor requires an Android application context."

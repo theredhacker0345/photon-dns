@@ -5,7 +5,8 @@ Key Features:
 - **Telegram Remote Control**: Securely communicates via Telegram long-polling restricted strictly to an authorized owner chat ID, keeping your agent private and protected.
 - **24/7 Foreground Service**: Operates persistently in the background with `START_STICKY`, designed for old phones connected to a charger.
 - **Real-Time Telemetry**: Monitors device CPU load, RAM usage, storage readiness, and battery charging state directly from the native Android runtime.
-- **FOSS and Transparent**: 100% open-source (MIT license) with reproducible wheel build scripts, CycloneDX SBOM generation, and strict dependency auditing.
+- **Local Notifications, Not Push Tracking**: Backup reminders, safety alerts, and notification tests are delivered by Android locally. Pocket Relay does not use Firebase, Google Play Services, analytics, crash reporting, or a push token.
+- **FOSS and Transparent**: Pocket Relay is GPL-3.0-only. The release tree includes dependency and license evidence, an F-Droid recipe, and a documented unsigned-release policy.
 - **Polished Mobile Control Plane**: Built with Expo and React Native, featuring a clean portrait control panel for managing agent status, automations, and secure settings.
 
-Turn your old phone into your personal always-on AI sandbox today!
+Model-provider and Telegram connections are configured by the owner and require the internet; Pocket Relay does not pretend to be an offline-first agent. Turn an old phone into your personal, owner-controlled AI relay today.

@@ -151,4 +151,28 @@ describe("Pocket Relay encrypted backup contract", () => {
     expect(settings).toContain("Turn on Device notifications before scheduling reminders");
     expect(dashboard).toContain("Notifications paused");
   });
+
+  it("keeps the owner-triggered test notification Android-local, master-gated, and permission-first", () => {
+    const reminders = readFileSync(resolve(process.cwd(), "lib/backup-reminders.ts"), "utf8");
+    const store = readFileSync(resolve(process.cwd(), "lib/pocket-hermes-store.tsx"), "utf8");
+    const settings = readFileSync(resolve(process.cwd(), "app/(tabs)/settings.tsx"), "utf8");
+    const nativeNotifications = readFileSync(resolve(process.cwd(), "modules/pocket-hermes-supervisor/android/src/main/java/expo/modules/pockethermessupervisor/PocketRelayLocalNotifications.kt"), "utf8");
+
+    expect(reminders).toContain("export async function sendTestNotification(deviceNotificationsEnabled: boolean)");
+    expect(reminders).toContain('Platform.OS !== "android"');
+    expect(reminders).toContain("if (!deviceNotificationsEnabled)");
+    expect(reminders).toContain("requestAndroidNotificationPermission");
+    expect(reminders).toContain("PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)");
+    expect(reminders).toContain("sendNativeTestNotification()");
+    expect(reminders).not.toContain("expo-notifications");
+    expect(nativeNotifications).toContain('"Pocket Relay notification test"');
+    expect(nativeNotifications).toContain("Manifest.permission.POST_NOTIFICATIONS");
+    expect(nativeNotifications).toContain("AlarmManager.RTC_WAKEUP");
+    expect(nativeNotifications).not.toContain("com.google.firebase");
+    expect(store).toContain("sendLocalTestNotification(state.deviceNotificationsEnabled)");
+    expect(store).toContain("setNativeDeviceNotificationsEnabled(false)");
+    expect(settings).toContain("Send test notification");
+    expect(settings).toContain("disabled={!deviceNotificationsEnabled || updatingDeviceNotifications}");
+    expect(settings).toContain("Send a device-local notification test");
+  });
 });

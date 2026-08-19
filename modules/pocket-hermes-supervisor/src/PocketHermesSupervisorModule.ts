@@ -156,6 +156,16 @@ type SupervisorModule = {
   stageEncryptedBackupForPreview(selectedPath: string): Promise<string>;
   /** Decrypts an app-cache file into memory for owner review only; it never applies the backup. */
   decryptEncryptedBackupPreview(backupPath: string, password: string): Promise<string>;
+  /** Persists the owner’s master local-notification choice for native host components. */
+  setDeviceNotificationsEnabled(enabled: boolean): Promise<{ enabled: boolean }>;
+  /** Schedules an Android-local repeating backup reminder with no remote delivery path. */
+  scheduleBackupReminder(intervalDays: number): Promise<{ notificationId: string }>;
+  /** Cancels the native repeating backup-reminder alarm and removes its private schedule state. */
+  disableBackupReminder(): Promise<{ status: "disabled" }>;
+  /** Immediately posts the owner-triggered Android-local notification test. */
+  sendTestNotification(): Promise<{ status: "sent" }>;
+  /** Posts a bounded, device-local host safety alert. */
+  sendHostSafetyAlert(title: string, body: string): Promise<{ status: "sent" }>;
   getTelemetry(): Promise<NativeSupervisorTelemetry>;
   getHealth(): Promise<NativeSupervisorHealth>;
   getDiagnostics(): Promise<NativeSupervisorDiagnostic[]>;

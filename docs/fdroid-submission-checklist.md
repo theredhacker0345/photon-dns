@@ -8,26 +8,27 @@ local development server is Metro-only; no inherited application backend is in
 the Android runtime graph.
 
 > **Publication status.** This project is prepared for a maintainer handoff,
-> not yet submitted to F-Droid. A public source repository and immutable
-> public tag do not exist in this sandbox, so neither the `Repo`/`RepoType`
-> metadata fields nor an F-Droid build-server result can honestly be claimed.
+> not yet submitted to F-Droid. The public GitLab source and `Repo`/`RepoType`
+> metadata are verified, but the candidate `v1.0.2` tag has not been published
+> and no F-Droid build-server result exists.
 
 | Requirement | Local evidence | Status | Remaining owner-controlled action |
 |---|---|---|---|
 | Open-source license | `LICENSE`, Python and JavaScript SBOMs, `license-audit.json` | Passed locally | Publish the exact source alongside the tag. |
 | Dependency closure | `pnpm run sbom:js`, `pnpm run sbom:python`, `pnpm run audit:licenses` | Passed locally with no manual-review or blocked license items | Repeat from the tagged checkout. |
 | Unsigned F-Droid artifact | `android/app/build.gradle` emits an unsigned release when no release key is supplied | Configured and source-tested | Build it on F-Droid's build server. |
-| Reproducible release target | `scripts/release-preflight.mjs --tag <tag>` checks an immutable local tag and release evidence | Tooling complete | Push a public HTTPS Git repository and tag. |
-| F-Droid metadata | `metadata/com.app.pockethermes.yml` and Fastlane content are present | Skeleton only | Fill real public `SourceCode`, `IssueTracker`, `RepoType`, `Repo`, and tag before linting. |
+| Reproducible release target | `scripts/release-preflight.mjs --tag <tag>` checks an immutable local tag and release evidence | Blocked | Two clean local APK builds differ in Chaquopy archive metadata and R8-generated output; normalize the build before publishing a reproducibility claim. |
+| F-Droid metadata | `metadata/com.app.pockethermes.yml` and Fastlane content are present | Partially prepared | The public GitLab fields and 1.0.2 candidate are aligned; vendor the pinned Hermes source or use an approved source-library path, then publish the final tag before linting. |
 | Current-device proof | The preserved ARM64 APK is available for baseline inspection | Historical artifact only | Build and test a **post-gap-closure** release APK on a physical device before publication. |
 
 ## Maintainer handoff sequence
 
-First, publish the complete source tree to a public HTTPS Git repository and
-create an immutable release tag for the reviewed source. Update the metadata
-to point to that repository and tag. F-Droid requires a public, unauthenticated
-HTTPS repository for a Git `Repo` and identifies individual builds by their
-`commit` field.[1]
+First, remove the build-time Hermes source clone and normalize the observed
+Chaquopy/R8 reproducibility differences. Then publish the reviewed source to
+the already configured public HTTPS Git repository and create the immutable release tag,
+`v1.0.2`. F-Droid requires a public, unauthenticated HTTPS
+repository for a Git `Repo` and identifies individual builds by their `commit`
+field.[1]
 
 Second, in a clean checkout of that tag, execute the following release gates.
 They regenerate the evidence rather than trusting committed results.
@@ -38,7 +39,7 @@ pnpm check
 pnpm run sbom:js
 pnpm run sbom:python
 pnpm run audit:licenses
-pnpm run release:preflight --tag v1.0.0
+pnpm run release:preflight --tag v1.0.2
 ```
 
 Third, build an unsigned release with the documented Android toolchain and

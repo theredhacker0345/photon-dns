@@ -13,6 +13,7 @@ class PocketHermesBootReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent?) {
     val action = intent?.action
     if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+    PocketRelayLocalNotifications.restoreBackupReminder(context)
     if (!PocketHermesSupervisorService.shouldRestartAfterBoot(context)) return
     PocketHermesSupervisorService.startFromPersistedConfiguration(context)
   }

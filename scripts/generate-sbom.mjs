@@ -178,7 +178,7 @@ async function main() {
     version: 1,
     metadata: {
       timestamp: new Date().toISOString(),
-      tools: { components: [{ type: "application", name: "Pocket Relay SBOM generator", version: "1.0.0" }] },
+      tools: { components: [{ type: "application", name: "Pocket Relay SBOM generator", version: "1.0.2" }] },
       component: { type: "application", name: "Pocket Relay embedded Hermes worker", version: "0.20.1", licenses: [{ license: { id: "MIT" } }] },
     },
     components: uniquePackages,

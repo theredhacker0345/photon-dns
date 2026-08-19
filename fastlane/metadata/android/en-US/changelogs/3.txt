@@ -1,0 +1,1 @@
+Adds an owner-triggered local notification test with permission feedback. Replaces Firebase-backed notifications with Pocket Relay's Android-native local notification bridge for backup reminders and host-safety alerts. Updates F-Droid release metadata, GPL-3.0-only listing claims, and the documented release-readiness evidence.

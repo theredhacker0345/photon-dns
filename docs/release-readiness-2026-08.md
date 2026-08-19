@@ -1,22 +1,101 @@
-# Pocket Relay release-readiness review
+# Pocket Relay F-Droid Release Verification — August 2026
 
-## Assessment scope
+This verification covers the **Pocket Relay 1.0.2** source tree, Android package
+`com.app.pockethermes`, and its candidate tag `v1.0.2`. It distinguishes
+source-verified controls from device-only checks and F-Droid’s own independent
+build-server review. It is therefore an evidence record, not a claim that the
+application has already been accepted by F-Droid.
 
-This review covers the checked-in Android host, React Native control plane, security boundaries, release metadata, and deterministic validation gates as of 19 August 2026. It deliberately separates **source-level readiness** from hardware-dependent claims that cannot be proved in a sandbox.
+> **Assessment.** The public source, licensing, owner-facing control plane, and
+> Android-local notification implementation are substantially release-oriented.
+> The project is **not ready to submit to F-Droid** until the pinned Hermes
+> Agent source is made available without the recipe's build-time network clone,
+> a clean F-Droid build-server build succeeds, and the real release is tested on
+> an ARM64 Android device with owner-supplied Telegram and model credentials.
 
-| Area | Source-level status | Release caveat |
+## Scope and evidence
+
+F-Droid requires publicly available current source, an open-source license, and
+a FLOSS dependency/toolchain. Its inclusion policy rejects Firebase, Google
+Play Services, proprietary tracking, advertising, and Crashlytics dependencies.[1] [2]
+The repository's public GitLab endpoint was checked anonymously on 19 August
+2026 and resolved `main` at `e7932621c208a29d7f0652cebe1f3514f4f34b63` before
+this candidate's changes. The committed recipe now declares that Git URL using
+`RepoType: git`; the release tag will be created from the final published
+candidate, not retroactively assigned to an older revision.
+
+| Area | Evidence reviewed | Verification result | Remaining condition |
+|---|---|---|---|
+| Source, identifiers, and license | `LICENSE`, `package.json`, `app.config.ts`, `android/app/build.gradle`, `metadata/com.app.pockethermes.yml` | **Pass in source.** GPL-3.0-only, preserved Android package ID, `1.0.2` / version code `3`, and public GitLab source fields are aligned. | Create and publish immutable `v1.0.2` after final validation. |
+| Owner-facing flows | Setup, provider connections/models, Agent Console, automations, skills, Settings, encrypted backup/restore, notifications | **Covered by source contracts and regression suite.** Device-only handoff flows remain visibly bounded and do not fabricate success. | Physical-device test with real credentials and Android permission prompts. |
+| Android notification stack | Native `PocketRelayLocalNotifications`, `PocketHermesBootReceiver`, Settings master preference, `backup-reminders.ts` | **Remediated.** Test, reminder, and safety delivery is device-local, permission-first, master-gated, and Firebase-free. | Fresh release manifest inspection after this change. |
+| Privacy and tracking | JavaScript/native imports, manifest surface, Fastlane listing | **Pass in source.** No analytics, crash-reporting, push-token, Firebase, or Google Play Services path is retained; credentials remain in protected storage and are excluded from backups. | Validate generated release manifest and dependency graph. |
+| Security boundaries | Backup contract, MCP contract, QuickJS native executor, Telegram worker policy | **Pass in source.** Credentials are excluded from portable backups; restore stays preview-first; MCP is remote HTTPS-only with expiring owner approvals; QuickJS is owner-approved, isolated, and limited to data transformation rather than shell, Python, compiler, filesystem, or network access; Telegram handling is owner-chat allowlisted and fail-closed. | Exercise failures and recovery on hardware. |
+| Build recipe and reproducibility | F-Droid metadata, release preflight, Gradle signing policy, Hermes wheel script, two clean local `assembleRelease` builds | **Blocked for submission.** The package ID, unsigned F-Droid release path, ARM64 target, and source recipe are present, but two clean builds produced different APK hashes. The difference includes Chaquopy archive metadata and R8-generated service/dex names. | Remove the wheel-build network clone, normalize the Chaquopy/R8 nondeterminism, then run `fdroid lint` and an F-Droid build-server build. |
+| Network-service disclosure | Feature design and Fastlane listing | **Requires F-Droid reviewer classification.** Telegram and owner-selected model providers are network services outside the APK; the app describes this honestly and offers no hidden telemetry. | Confirm the appropriate F-Droid anti-feature labels with the reviewer, including whether configured third-party model services require `NonFreeNet`. |
+
+## Feature verification boundary
+
+The project contains deterministic regression checks for the credential-free
+backup allow-list, preview-before-apply restore, compatibility warnings,
+reminder bounds, master local-notification gate, and the new test-notification
+permission path. Its native release gates compile Kotlin and package a release
+variant. These checks support the source-level safety claims; they cannot
+substitute for a real Android device's battery state, storage reserve,
+notification permission dialog, background process survival, or Telegram/model
+provider authentication.
+
+| Flow | Source-level verification | Hardware acceptance still required |
 |---|---|---|
-| Owner-only Telegram gateway | Implemented with a configured private owner identity, protected secrets, proxy route controls, and failure states | Verify a real bot route on the target network and proxy configuration |
-| Provider connections | Implemented with protected per-provider credentials, model discovery, and connection feedback | Test each provider account and its current model catalogue |
-| Embedded host | Native foreground-service, resource guardrails, telemetry, and battery/storage policies are implemented | Verify OEM battery-management exceptions, reboot recovery, and sustained ARM64 operation |
-| Skills, MCP, and QuickJS | Owner-reviewed skills, HTTPS-only MCP policy, source-hash approvals, and isolated data-only QuickJS execution are implemented | Exercise each owner-approved package and connector on a physical device before relying on it |
-| UI and accessibility | Semantic themes, touch targets, labels, live status, and focused UI regressions are implemented | Test system font scaling, TalkBack traversal, contrast perception, and smaller Android displays |
-| F-Droid materials | GPL-3.0 licensing, reproducible source configuration, metadata, SBOM, and Fastlane initial changelog exist | Complete F-Droid maintainer review and verify the final signed reproducible artifact |
+| Setup and private Telegram gateway | Native worker validates owner chat configuration and exposes an explicit gateway test. | Enter a real token/chat ID, test direct and proxy routes, then reboot the host phone. |
+| Provider selection and model discovery | Provider catalog, endpoint checks, protected key storage, connection tests, and model filtering are implemented. | Verify each owner-selected provider with a real account and model. |
+| Agent console and automations | Shared bounded ledger, native task/schedule contracts, and owner-only interfaces are present. | Confirm background processing and recovered schedules while the UI is closed. |
+| Skills and QuickJS | Strict manifests, review, source-hash approvals, isolated JSON-only execution, and audit metadata are implemented. | Test installation, revocation, and failure behavior on an ARM64 device. |
+| Encrypted backup and restore | Credential exclusion, password-gated native encryption, preview-first apply, and compatibility checks are covered. | Export, share, import, use an incorrect password, and restore a known-safe test backup. |
+| Device notifications | Master toggle, Android 13 permission request, native test alert, native reminder alarm, boot restoration, and safety alert bridge are implemented. | Deny/grant permission, send test alert, reboot, and wait through a configured reminder interval. |
 
-## Security conclusion
+## Android permission and component review
 
-The checked-in design remains deliberately bounded: provider and Telegram credentials are protected separately; MCP is remote HTTPS-only; imported skills require explicit owner review; and QuickJS has no shell, compiler, filesystem, or network capability. A changelog contains no sensitive runtime data. These are strong source-level controls, not a replacement for device, dependency, and release-signing verification.
+Pocket Relay's explicit app manifest now retains internet connectivity,
+foreground-service operation, notification permission, and vibration. The
+supervisor module separately declares network-state observation, wake lock,
+boot reception, data-sync foreground-service capability, its non-exported host
+service, its isolated QuickJS service, and the non-exported reminder receiver.
+The removed app declarations were media playback, audio recording/adjustment,
+overlay permission, and legacy external-storage permissions; the project does
+not use those capabilities. A fresh release build is mandatory before treating
+this as final merged-manifest evidence.
 
-## What must happen before a public production claim
+No notification or reminder payload includes a backup password, backup contents,
+provider key, Telegram token, proxy credential, or conversation record. The
+master toggle is local to the device and does not alter Telegram message
+delivery. On Android 13 and later the application requests `POST_NOTIFICATIONS`
+only when the owner turns on or tests local alerts.
 
-Perform a clean ARM64 install, confirm foreground persistence across a reboot and OEM battery optimisation, test the selected provider and Telegram route with the owner account, review Android logs for denied permissions or crashes, and complete the F-Droid build/reproducibility review. Until those physical checks pass, Pocket Relay should be described as **release-candidate source, not a fully field-validated public release**.
+## F-Droid metadata and publication checklist
+
+F-Droid's metadata reference accepts the public repository fields, individual
+build `commit`, version details, source links, anti-feature declarations, and
+Fastlane listing content used here.[3] The quick-start guide recommends a
+version tag plus Fastlane title, description, icon, screenshots, and a
+version-code changelog.[1] The source tree provides the description, icon, and
+`changelogs/3.txt`; current release screenshots should be captured from the
+real ARM64 candidate before submission rather than generated from a web preview.
+
+| Ordered submission gate | Status | Required evidence or action |
+|---|---|---|
+| 1. Finish source validation | Pending | Run test, TypeScript, lint, release preflight, Kotlin compile, and fresh release APK/manifest checks. |
+| 2. Eliminate wheel-build network clone | Blocked | Vendor the exact Hermes Agent source or use an F-Droid-approved source-library definition; update the wheel script and recipe. |
+| 3. Normalize artifact reproducibility | Blocked | Fix the Chaquopy archive and R8 naming differences observed across two clean local release APK builds; retain the before/after checksum evidence. |
+| 4. Publish immutable candidate | Pending | Commit reviewed code, push to public GitLab, then create and push `v1.0.2`. |
+| 5. Hardware acceptance | Pending | Complete `docs/physical-device-backup-acceptance-checklist.md` plus the flow matrix above on Android 7.0+ ARM64 hardware. |
+| 6. F-Droid tooling review | Pending | Run `fdroid lint com.app.pockethermes`, a clean F-Droid build-server build, and submit the resulting recipe/metadata. |
+| 7. Reviewer anti-feature decision | Pending | Disclose Telegram and owner-configured provider networking; accept F-Droid's final anti-feature labels where applicable. |
+
+## References
+
+[1] [F-Droid, *Submitting to F-Droid: Quick Start Guide*](https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/)
+
+[2] [F-Droid, *Inclusion Policy*](https://f-droid.org/en/docs/Inclusion_Policy/)
+
+[3] [F-Droid, *Build Metadata Reference*](https://f-droid.org/en/docs/Build_Metadata_Reference/)

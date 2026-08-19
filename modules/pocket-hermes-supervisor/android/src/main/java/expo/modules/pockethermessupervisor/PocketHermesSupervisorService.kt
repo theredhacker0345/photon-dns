@@ -178,6 +178,7 @@ class PocketHermesSupervisorService : Service() {
    * service therefore emits its own owner-visible warning for unattended hosts.
    */
   private fun publishPolicyWarning(message: String) {
+    if (!PocketRelayLocalNotifications.areDeviceNotificationsEnabled(this)) return
     if (message == lastPolicyWarning) return
     lastPolicyWarning = message
     val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

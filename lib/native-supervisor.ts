@@ -25,6 +25,56 @@ import { formatTelemetryBytes, normalizeSupervisorTelemetry, type SupervisorTele
 
 export type { SupervisorTelemetry } from "./supervisor-telemetry";
 
+/** Mirrors the master preference into native private storage for unattended host alerts. */
+export async function setNativeDeviceNotificationsEnabled(enabled: boolean): Promise<boolean> {
+  if (Platform.OS !== "android") return false;
+  try {
+    return (await PocketHermesSupervisorModule.setDeviceNotificationsEnabled(enabled)).enabled === enabled;
+  } catch {
+    return false;
+  }
+}
+
+/** Schedules an Android-local backup reminder and returns its stable native identifier. */
+export async function scheduleNativeBackupReminder(intervalDays: number): Promise<string | null> {
+  if (Platform.OS !== "android") return null;
+  try {
+    return (await PocketHermesSupervisorModule.scheduleBackupReminder(intervalDays)).notificationId;
+  } catch {
+    return null;
+  }
+}
+
+/** Cancels the Android-local backup reminder without contacting any remote service. */
+export async function disableNativeBackupReminder(): Promise<boolean> {
+  if (Platform.OS !== "android") return true;
+  try {
+    return (await PocketHermesSupervisorModule.disableBackupReminder()).status === "disabled";
+  } catch {
+    return false;
+  }
+}
+
+/** Posts the Android-local test notification after the JavaScript permission gate succeeds. */
+export async function sendNativeTestNotification(): Promise<boolean> {
+  if (Platform.OS !== "android") return false;
+  try {
+    return (await PocketHermesSupervisorModule.sendTestNotification()).status === "sent";
+  } catch {
+    return false;
+  }
+}
+
+/** Posts a bounded Android-local host safety alert after the owner’s preference and permission gates succeed. */
+export async function sendNativeHostSafetyAlert(title: string, body: string): Promise<boolean> {
+  if (Platform.OS !== "android") return false;
+  try {
+    return (await PocketHermesSupervisorModule.sendHostSafetyAlert(title, body)).status === "sent";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Encrypts a credential-free portable payload on Android. The result is an
  * app-cache path intended for immediate sharing, not a durable app setting.

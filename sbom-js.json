@@ -3,11 +3,11 @@
   "specVersion": "1.6",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-18T09:02:20.294Z",
+    "timestamp": "2026-08-19T10:51:11.973Z",
     "component": {
       "type": "application",
       "name": "Pocket Relay mobile JavaScript runtime",
-      "version": "1.0.0",
+      "version": "1.0.2",
       "licenses": [
         {
           "license": {
@@ -3500,35 +3500,6 @@
     },
     {
       "type": "library",
-      "name": "@ide/backoff",
-      "version": "1.0.0",
-      "purl": "pkg:npm/%40ide%2Fbackoff@1.0.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "03652ec69f0e4bfea2af2bc1a8e3c1ee46b972924942a3c0df3632cc6cb9e969"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@ide/backoff/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "@isaacs/balanced-match",
       "version": "4.0.1",
       "purl": "pkg:npm/%40isaacs%2Fbalanced-match@4.0.1",
@@ -6249,7 +6220,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/argparse/package.json"
+          "value": "./node_modules/argparse/package.json"
         }
       ]
     },
@@ -6371,35 +6342,6 @@
     },
     {
       "type": "library",
-      "name": "assert",
-      "version": "2.1.0",
-      "purl": "pkg:npm/assert@2.1.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "16486d0cbd4c207ee07484a9392fdada949e5401ccdd12437f7ca9ea4e87e26f"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/assert/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "async-limiter",
       "version": "1.0.1",
       "purl": "pkg:npm/async-limiter@1.0.1",
@@ -6424,35 +6366,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/async-limiter/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "available-typed-arrays",
-      "version": "1.0.7",
-      "purl": "pkg:npm/available-typed-arrays@1.0.7",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "ffce2bbb0b85b9a20bcc674e4c78307ead42af0299e1d28a9dfb249566e0a319"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/available-typed-arrays/package.json"
         }
       ]
     },
@@ -6835,35 +6748,6 @@
     },
     {
       "type": "library",
-      "name": "badgin",
-      "version": "1.2.3",
-      "purl": "pkg:npm/badgin@1.2.3",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "27806b701ae3183cbd91f1235b3948d3e1c6235780e76655cd575ea08d5fdc08"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/badgin/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "balanced-match",
       "version": "1.0.2",
       "purl": "pkg:npm/balanced-match@1.0.2",
@@ -7119,7 +7003,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/minimatch/node_modules/brace-expansion/package.json"
+          "value": "./node_modules/brace-expansion/package.json"
         }
       ]
     },
@@ -7323,93 +7207,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/bytes/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "call-bind",
-      "version": "1.0.8",
-      "purl": "pkg:npm/call-bind@1.0.8",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "c8bdb16ee847383a756c3c9cb98ea283e1bddb64b474630d2b693ef882f6f0ea"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/call-bind/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "call-bind-apply-helpers",
-      "version": "1.0.2",
-      "purl": "pkg:npm/call-bind-apply-helpers@1.0.2",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "59639b628c6846f674857c6a613fd47e2e4d2a24036cdf0f7a62ac634f4c8a5f"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/call-bind-apply-helpers/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "call-bound",
-      "version": "1.0.4",
-      "purl": "pkg:npm/call-bound@1.0.4",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "dcc8abb3c4ad3774234272149020cb36d7b1a3d377a419454d1e7adb368dd9c3"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/call-bound/package.json"
         }
       ]
     },
@@ -7699,7 +7496,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/jest-util/node_modules/ci-info/package.json"
+          "value": "./node_modules/ci-info/package.json"
         }
       ]
     },
@@ -8691,35 +8488,6 @@
     },
     {
       "type": "library",
-      "name": "define-data-property",
-      "version": "1.1.4",
-      "purl": "pkg:npm/define-data-property@1.1.4",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "bde7f1465b344a24da2b10d2ee99f87edf8e0ecd177c28370b60ad9595de730e"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/define-data-property/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "define-lazy-prop",
       "version": "2.0.0",
       "purl": "pkg:npm/define-lazy-prop@2.0.0",
@@ -8744,35 +8512,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/define-lazy-prop/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "define-properties",
-      "version": "1.2.1",
-      "purl": "pkg:npm/define-properties@1.2.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "b61b15058833610f17197bfb60847926703e077b180de684ccc50866906f6fb1"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/define-properties/package.json"
         }
       ]
     },
@@ -8981,35 +8720,6 @@
     },
     {
       "type": "library",
-      "name": "dunder-proto",
-      "version": "1.0.1",
-      "purl": "pkg:npm/dunder-proto@1.0.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "24df71008e4225c858f389dd2728b76cf66b752256d42a38ed7930aacae7fe2b"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/dunder-proto/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "ee-first",
       "version": "1.1.1",
       "purl": "pkg:npm/ee-first@1.1.1",
@@ -9208,93 +8918,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/error-stack-parser/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "es-define-property",
-      "version": "1.0.1",
-      "purl": "pkg:npm/es-define-property@1.0.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "3a2cb30dae30a96705dcd9aa2d5fb190cf8200f27badccfa5a81a4374e5708b4"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/es-define-property/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "es-errors",
-      "version": "1.3.0",
-      "purl": "pkg:npm/es-errors@1.3.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "1a0a0bcccc76b915cb64073317312840cf6363e9144b96f406d0059774dd5278"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/es-errors/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "es-object-atoms",
-      "version": "1.1.1",
-      "purl": "pkg:npm/es-object-atoms@1.1.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "9975f032714dd642d08c9b50129096f5daf878dbede1ca3544cdcdbf45b48eb0"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/es-object-atoms/package.json"
         }
       ]
     },
@@ -9590,35 +9213,6 @@
     },
     {
       "type": "library",
-      "name": "expo-application",
-      "version": "7.0.8",
-      "purl": "pkg:npm/expo-application@7.0.8",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "7f36edf7491bddeac7a2d103204f0dda542272dda06caf33fcbf37702a4da583"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/expo-application/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "expo-asset",
       "version": "12.0.11",
       "purl": "pkg:npm/expo-asset@12.0.11",
@@ -9730,6 +9324,64 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/expo-constants/package.json"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "expo-crypto",
+      "version": "15.0.9",
+      "purl": "pkg:npm/expo-crypto@15.0.9",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "124ed6551552d8b85e8ff1183b6db6e1b448a3fbe61b1f36bedf1ce28e613efa"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.dependency-scope",
+          "value": "production-js"
+        },
+        {
+          "name": "pocket-hermes.package-json",
+          "value": "./node_modules/expo-crypto/package.json"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "expo-document-picker",
+      "version": "14.0.8",
+      "purl": "pkg:npm/expo-document-picker@14.0.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b048f66bd629a7638ef8f747fdc29363cb07fe1aebe958a1ef595fe8c452fc2c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.dependency-scope",
+          "value": "production-js"
+        },
+        {
+          "name": "pocket-hermes.package-json",
+          "value": "./node_modules/expo-document-picker/package.json"
         }
       ]
     },
@@ -9909,35 +9561,6 @@
     },
     {
       "type": "library",
-      "name": "expo-notifications",
-      "version": "0.32.15",
-      "purl": "pkg:npm/expo-notifications@0.32.15",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "18bc6e768710cd2730e22286838b3d1a24b1e2f1cd4852f6751cefa59b15384c"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/expo-notifications/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "expo-router",
       "version": "6.0.19",
       "purl": "pkg:npm/expo-router@6.0.19",
@@ -10020,6 +9643,35 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/expo-server/package.json"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "expo-sharing",
+      "version": "14.0.8",
+      "purl": "pkg:npm/expo-sharing@14.0.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9da5ab05236fa7f0660be3ffa11ed2ec66fec79b1ea2802ff52e38a771784657"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pocket-hermes.dependency-scope",
+          "value": "production-js"
+        },
+        {
+          "name": "pocket-hermes.package-json",
+          "value": "./node_modules/expo-sharing/package.json"
         }
       ]
     },
@@ -10483,7 +10135,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/find-up/package.json"
+          "value": "./node_modules/find-up/package.json"
         }
       ]
     },
@@ -10571,35 +10223,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/fontfaceobserver/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "for-each",
-      "version": "0.3.5",
-      "purl": "pkg:npm/for-each@0.3.5",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "789a488ade1ea7535497f7c86fded54281c4e7ff861fe8e0e667772a00680711"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/for-each/package.json"
         }
       ]
     },
@@ -10721,35 +10344,6 @@
     },
     {
       "type": "library",
-      "name": "generator-function",
-      "version": "2.0.1",
-      "purl": "pkg:npm/generator-function@2.0.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "b7627a785e689ec434dc28b7e1dc2e75db98695b1361a696c519ae6875553761"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/generator-function/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "gensync",
       "version": "1.0.0-beta.2",
       "purl": "pkg:npm/gensync@1.0.0-beta.2",
@@ -10808,35 +10402,6 @@
     },
     {
       "type": "library",
-      "name": "get-intrinsic",
-      "version": "1.3.0",
-      "purl": "pkg:npm/get-intrinsic@1.3.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "45b14763baacc59b0fd7b39e3ad983d5d2aaf7f5ed682f2fce9edb469826c999"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/get-intrinsic/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "get-nonce",
       "version": "1.0.1",
       "purl": "pkg:npm/get-nonce@1.0.1",
@@ -10890,35 +10455,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/get-package-type/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "get-proto",
-      "version": "1.0.1",
-      "purl": "pkg:npm/get-proto@1.0.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "73839e012ac7134a632c9d9fc6bdb700ac9ab5553cce39eb789ba2b65663e734"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/get-proto/package.json"
         }
       ]
     },
@@ -11040,35 +10576,6 @@
     },
     {
       "type": "library",
-      "name": "gopd",
-      "version": "1.2.0",
-      "purl": "pkg:npm/gopd@1.2.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "33ace32dc861f6da9d1fd9d0a44c66e8c6ff3b13358d070683c1c2978ff5f19f"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/gopd/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "graceful-fs",
       "version": "4.2.11",
       "purl": "pkg:npm/graceful-fs@4.2.11",
@@ -11156,93 +10663,6 @@
     },
     {
       "type": "library",
-      "name": "has-property-descriptors",
-      "version": "1.0.2",
-      "purl": "pkg:npm/has-property-descriptors@1.0.2",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "59a91e2cf32e4303d248708999a9ec3afd8e3649a87ba7abcf2177dc1984e3d5"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/has-property-descriptors/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "has-symbols",
-      "version": "1.1.0",
-      "purl": "pkg:npm/has-symbols@1.1.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "5190268c0e3308d7446d1f7c036238f329f786938453e6017cb90980b3612e7a"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/has-symbols/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "has-tostringtag",
-      "version": "1.0.2",
-      "purl": "pkg:npm/has-tostringtag@1.0.2",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "30ab773c52021a6b800ea48f251abeeb1f6e378300f819204dfbb38d6e43f3ad"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/has-tostringtag/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "hasown",
       "version": "2.0.2",
       "purl": "pkg:npm/hasown@2.0.2",
@@ -11295,7 +10715,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@expo/metro-config/node_modules/hermes-estree/package.json"
+          "value": "./node_modules/hermes-estree/package.json"
         }
       ]
     },
@@ -11794,35 +11214,6 @@
     },
     {
       "type": "library",
-      "name": "is-arguments",
-      "version": "1.2.0",
-      "purl": "pkg:npm/is-arguments@1.2.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "8962afc6bca1e62fc8d6413c1c82b0e060ff51fec9cb1d00d7c6b82337666e52"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/is-arguments/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "is-arrayish",
       "version": "0.3.4",
       "purl": "pkg:npm/is-arrayish@0.3.4",
@@ -11847,35 +11238,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/is-arrayish/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "is-callable",
-      "version": "1.2.7",
-      "purl": "pkg:npm/is-callable@1.2.7",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "0d0981565f03ca488d263c94d038717ec4face8b129b8ff18e792dabae2af755"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/is-callable/package.json"
         }
       ]
     },
@@ -11968,64 +11330,6 @@
     },
     {
       "type": "library",
-      "name": "is-generator-function",
-      "version": "1.1.2",
-      "purl": "pkg:npm/is-generator-function@1.1.2",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "03f415ea6031c1c9497892bf2b85fdc8d1d45e1d12787334d0d4da74836d8f6a"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/is-generator-function/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "is-nan",
-      "version": "1.3.2",
-      "purl": "pkg:npm/is-nan@1.3.2",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "9800358c959aa505160af1ff6b56092e9398b5ad94457802cdab536fdd7ea0eb"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/is-nan/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "is-number",
       "version": "7.0.0",
       "purl": "pkg:npm/is-number@7.0.0",
@@ -12079,64 +11383,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/is-plain-obj/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "is-regex",
-      "version": "1.2.1",
-      "purl": "pkg:npm/is-regex@1.2.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "b99ff9cb5a079a1d6060bce2d31f06780d4296539a5b57106047a86561cd4db3"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/is-regex/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "is-typed-array",
-      "version": "1.1.15",
-      "purl": "pkg:npm/is-typed-array@1.1.15",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "51dcf15ccc424ce76b36bef2ef64df7a53e75294cbddf08b4f7e639133145cc5"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/is-typed-array/package.json"
         }
       ]
     },
@@ -13006,7 +12252,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/locate-path/package.json"
+          "value": "./node_modules/locate-path/package.json"
         }
       ]
     },
@@ -13273,35 +12519,6 @@
     },
     {
       "type": "library",
-      "name": "math-intrinsics",
-      "version": "1.1.0",
-      "purl": "pkg:npm/math-intrinsics@1.1.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "39d74aa5a354153130706286dd60a2d8409ce0c8f66546eff2edcac0afff17e1"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/math-intrinsics/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "memoize-one",
       "version": "5.2.1",
       "purl": "pkg:npm/memoize-one@5.2.1",
@@ -13470,7 +12687,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro/package.json"
+          "value": "./node_modules/metro/package.json"
         }
       ]
     },
@@ -13528,7 +12745,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-babel-transformer/package.json"
+          "value": "./node_modules/metro/node_modules/metro-babel-transformer/package.json"
         }
       ]
     },
@@ -13586,7 +12803,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-cache/package.json"
+          "value": "./node_modules/metro/node_modules/metro-cache/package.json"
         }
       ]
     },
@@ -13644,7 +12861,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-cache-key/package.json"
+          "value": "./node_modules/metro/node_modules/metro-cache-key/package.json"
         }
       ]
     },
@@ -13702,7 +12919,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-config/package.json"
+          "value": "./node_modules/metro-config/package.json"
         }
       ]
     },
@@ -13760,7 +12977,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-core/package.json"
+          "value": "./node_modules/metro-core/package.json"
         }
       ]
     },
@@ -13818,7 +13035,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-file-map/package.json"
+          "value": "./node_modules/metro/node_modules/metro-file-map/package.json"
         }
       ]
     },
@@ -13876,7 +13093,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-minify-terser/package.json"
+          "value": "./node_modules/metro-minify-terser/package.json"
         }
       ]
     },
@@ -13934,7 +13151,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-resolver/package.json"
+          "value": "./node_modules/metro-core/node_modules/metro-resolver/package.json"
         }
       ]
     },
@@ -13992,7 +13209,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-runtime/package.json"
+          "value": "./node_modules/metro-runtime/package.json"
         }
       ]
     },
@@ -14050,7 +13267,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-source-map/package.json"
+          "value": "./node_modules/metro-source-map/package.json"
         }
       ]
     },
@@ -14108,7 +13325,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-symbolicate/package.json"
+          "value": "./node_modules/metro-symbolicate/package.json"
         }
       ]
     },
@@ -14166,7 +13383,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-transform-plugins/package.json"
+          "value": "./node_modules/metro/node_modules/metro-transform-plugins/package.json"
         }
       ]
     },
@@ -14224,7 +13441,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-transform-worker/package.json"
+          "value": "./node_modules/metro/node_modules/metro-transform-worker/package.json"
         }
       ]
     },
@@ -15094,7 +14311,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/ob1/package.json"
+          "value": "./node_modules/ob1/package.json"
         }
       ]
     },
@@ -15124,93 +14341,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/object-assign/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "object-is",
-      "version": "1.1.6",
-      "purl": "pkg:npm/object-is@1.1.6",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "642cdbac75e401aa7ccb5c3a1ae12765dbf03ee9e844c6e2215114f8b0ad7f2f"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/object-is/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "object-keys",
-      "version": "1.1.1",
-      "purl": "pkg:npm/object-keys@1.1.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "60128330481888bf0e83a713699bee6668c5948821ef06106d8c9613b6081b45"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/object-keys/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "object.assign",
-      "version": "4.1.7",
-      "purl": "pkg:npm/object.assign@4.1.7",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "982c86a45d0edc61215628380656301e17e5a7f83c9e3072b38dff6778b0e1aa"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/object.assign/package.json"
         }
       ]
     },
@@ -15471,7 +14601,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/p-limit/package.json"
+          "value": "./node_modules/p-locate/node_modules/p-limit/package.json"
         }
       ]
     },
@@ -15529,7 +14659,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/p-locate/package.json"
+          "value": "./node_modules/p-locate/package.json"
         }
       ]
     },
@@ -15994,35 +15124,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/pngjs/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "possible-typed-array-names",
-      "version": "1.1.0",
-      "purl": "pkg:npm/possible-typed-array-names@1.1.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "0ff73753495cfff4556a5f8b7847ba1c06530341986e642a8637c6db74d87894"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/possible-typed-array-names/package.json"
         }
       ]
     },
@@ -17536,35 +16637,6 @@
     },
     {
       "type": "library",
-      "name": "safe-regex-test",
-      "version": "1.1.0",
-      "purl": "pkg:npm/safe-regex-test@1.1.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "b9efdb318b7f4094e6d2605ba9fbef93570abe1119488a491a4e8f3216781030"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/safe-regex-test/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "sax",
       "version": "1.4.3",
       "purl": "pkg:npm/sax@1.4.3",
@@ -17821,35 +16893,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/server-only/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "set-function-length",
-      "version": "1.2.2",
-      "purl": "pkg:npm/set-function-length@1.2.2",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "2c81bab7f7a60d625164bd840d863548e3f9d4d1aa976b9d2966e5e1e36132a7"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/set-function-length/package.json"
         }
       ]
     },
@@ -19885,35 +18928,6 @@
     },
     {
       "type": "library",
-      "name": "util",
-      "version": "0.12.5",
-      "purl": "pkg:npm/util@0.12.5",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "4957e41a94a2177b25ddd4fa46e60062e2324f0fc665d4318b90a7e4c2401f74"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/util/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "utils-merge",
       "version": "1.0.1",
       "purl": "pkg:npm/utils-merge@1.0.1",
@@ -20344,35 +19358,6 @@
         {
           "name": "pocket-hermes.package-json",
           "value": "./node_modules/which/package.json"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "which-typed-array",
-      "version": "1.1.19",
-      "purl": "pkg:npm/which-typed-array@1.1.19",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "69d73690e848d0905b5eedfd41004252e6860850d103b67c0fcf4864cecfb9eb"
-        }
-      ],
-      "properties": [
-        {
-          "name": "pocket-hermes.dependency-scope",
-          "value": "production-js"
-        },
-        {
-          "name": "pocket-hermes.package-json",
-          "value": "./node_modules/which-typed-array/package.json"
         }
       ]
     },

@@ -1,16 +1,16 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:aa1d33c4-299b-4299-ad20-92a934b67c62",
+  "serialNumber": "urn:uuid:1e331398-aa59-4d4f-8079-f5fd2a1d819e",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-18T09:02:22.763Z",
+    "timestamp": "2026-08-19T10:51:14.304Z",
     "tools": {
       "components": [
         {
           "type": "application",
           "name": "Pocket Relay SBOM generator",
-          "version": "1.0.0"
+          "version": "1.0.2"
         }
       ]
     },

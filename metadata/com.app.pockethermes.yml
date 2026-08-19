@@ -5,6 +5,8 @@ License: GPL-3.0-only
 WebSite: https://gitlab.com/theredhacker0345/pocket-relay
 SourceCode: https://gitlab.com/theredhacker0345/pocket-relay
 IssueTracker: https://gitlab.com/theredhacker0345/pocket-relay/issues
+RepoType: git
+Repo: https://gitlab.com/theredhacker0345/pocket-relay.git
 
 AutoName: Pocket Relay
 Summary: Turn a spare phone into a 24/7 self-hosted AI agent relay
@@ -17,28 +19,26 @@ Description: |-
 
   Features include secure Telegram remote control restricted to an owner allowlist,
   real-time CPU/RAM/storage telemetry, persistent background execution, and complete
-  FOSS compliance with CycloneDX SBOM verification.
+  FOSS dependency and license evidence generated from the release source tree.
 
 Builds:
-  - versionName: 1.0.0
-    versionCode: 1
-    commit: v1.0.0
+  - versionName: 1.0.2
+    versionCode: 3
+    commit: v1.0.2
     subdir: android
     gradle:
       - release
-    srclibs:
-      - hermes@0.20.1
-    rm:
-      - node_modules
+    output: app/build/outputs/apk/release/app-release-unsigned.apk
     prebuild:
       - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
       - bash ../scripts/build-jiter-compat-wheel.sh
       - bash ../scripts/build-hermes-android-wheel.sh
 
 MaintainerNotes: |-
-  Requires Android 7.0+ (API 24+). Bundles Chaquopy 17.0 for private CPython 3.11 execution.
-  Do not submit this recipe until SourceCode, IssueTracker, RepoType, Repo, and
-  the build commit point to the maintainer's public HTTPS Git repository and an
-  immutable release tag. The Gradle release artifact is intentionally unsigned
-  unless a maintainer explicitly supplies release-key material; F-Droid signs
-  its own reproducible builds. See docs/reproducible-release-policy.md.
+  Requires Android 7.0+ (API 24+) and targets ARM64. The Gradle release artifact
+  is intentionally unsigned unless a maintainer explicitly supplies release-key
+  material; F-Droid signs its own reproducible builds. The exact Hermes Agent
+  source remains pinned by commit in scripts/build-hermes-android-wheel.sh, but
+  that script currently clones upstream during prebuild. Do not submit this
+  recipe until the pinned Hermes source is vendored or converted into an approved
+  F-Droid source-library workflow, and a clean F-Droid build-server run succeeds.
