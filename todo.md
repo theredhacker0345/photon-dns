@@ -347,4 +347,4 @@
 - [x] Add Settings controls to enable, choose, update, and disable backup reminders with clear permission feedback
 - [x] Detect unsupported backup format and newer backup app versions, and warn before restore confirmation without automatically blocking a supported migration path
 - [x] Publish a step-by-step physical-device export and restore acceptance checklist covering secure backup handling, permissions, preview review, confirmation, and post-restore verification
-- [ ] Add regression coverage, complete validation, checkpoint, and publish the reminder, compatibility, and acceptance enhancement to GitLab
+- [x] Add regression coverage, complete validation, checkpoint, and publish the reminder, compatibility, and acceptance enhancement to GitLab
