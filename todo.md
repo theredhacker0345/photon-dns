@@ -348,3 +348,10 @@
 - [x] Detect unsupported backup format and newer backup app versions, and warn before restore confirmation without automatically blocking a supported migration path
 - [x] Publish a step-by-step physical-device export and restore acceptance checklist covering secure backup handling, permissions, preview review, confirmation, and post-restore verification
 - [x] Add regression coverage, complete validation, checkpoint, and publish the reminder, compatibility, and acceptance enhancement to GitLab
+
+# Master Device Notifications
+
+- [x] Define a persisted local-only master notification preference that never changes Telegram delivery or sends data off-device
+- [x] Enforce the master preference for Pocket Relay host alerts and scheduled backup reminders, including safe cancellation when disabled
+- [x] Add an accessible Settings toggle with Android notification-permission and active/inactive status feedback
+- [ ] Add regression coverage, complete validation, checkpoint, and publish the master notification control to GitLab

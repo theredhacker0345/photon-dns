@@ -37,7 +37,7 @@ type PublicHostConfig = {
   telegramProxy: PublicTelegramProxyConfiguration;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[]; lastSuccessfulBackupAt: string | null; backupReminder: BackupReminderConfiguration };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[]; lastSuccessfulBackupAt: string | null; backupReminder: BackupReminderConfiguration; deviceNotificationsEnabled: boolean };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -98,6 +98,7 @@ type PocketHermesContextValue = PersistedState & {
   clearActivity: () => void;
   clearSensitiveConfiguration: () => Promise<void>;
   exportBackup: (password: string) => Promise<{ ok: boolean; message: string }>;
+  setDeviceNotificationsEnabled: (enabled: boolean) => Promise<{ ok: boolean; message: string }>;
   configureBackupReminder: (enabled: boolean, intervalDays?: BackupReminderIntervalDays) => Promise<{ ok: boolean; message: string }>;
   importBackupPreview: (backupPath: string, password: string) => Promise<{ ok: boolean; message: string; preview?: PocketRelayBackupPayload; summary?: BackupRestoreSummary }>;
   applyBackup: (preview: PocketRelayBackupPayload) => Promise<{ ok: boolean; message: string }>;
@@ -121,7 +122,7 @@ const emptyConfig: PublicHostConfig = {
   telegramProxy: defaultTelegramProxyConfiguration,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [], lastSuccessfulBackupAt: null, backupReminder: defaultBackupReminderConfiguration };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [], lastSuccessfulBackupAt: null, backupReminder: defaultBackupReminderConfiguration, deviceNotificationsEnabled: true };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -304,6 +305,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             aiSkillDraftRequests: normalizeAiSkillDraftRequests(parsed.aiSkillDraftRequests),
             lastSuccessfulBackupAt: typeof parsed.lastSuccessfulBackupAt === "string" && Number.isFinite(Date.parse(parsed.lastSuccessfulBackupAt)) ? parsed.lastSuccessfulBackupAt : null,
             backupReminder: normalizeBackupReminderConfiguration(parsed.backupReminder),
+            deviceNotificationsEnabled: parsed.deviceNotificationsEnabled !== false,
           });
         }
       } catch {
@@ -941,7 +943,38 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }
   }, [state]);
 
+  const setDeviceNotificationsEnabled = useCallback(async (enabled: boolean) => {
+    if (Platform.OS !== "android") return { ok: false, message: "Device notifications are available in the installed Android app." };
+    if (!enabled) {
+      const cancelled = await disableBackupReminder(state.backupReminder);
+      if (!cancelled.ok) return { ok: false, message: cancelled.message };
+      const createdAt = new Date().toISOString();
+      setState((current) => ({
+        ...current,
+        deviceNotificationsEnabled: false,
+        backupReminder: { ...current.backupReminder, notificationId: null },
+        events: [{ id: createId("event"), title: "Device notifications paused", detail: "Local safety alerts and scheduled backup reminders are paused. Telegram delivery is unchanged.", severity: "info" as const, createdAt }, ...current.events].slice(0, 60),
+      }));
+      return { ok: true, message: "Device notifications are off. Local safety alerts and scheduled backup reminders are paused." };
+    }
+    let reminder = state.backupReminder;
+    if (state.backupReminder.enabled) {
+      const scheduled = await scheduleBackupReminder({ ...state.backupReminder, notificationId: null }, state.backupReminder.intervalDays);
+      if (!scheduled.ok) return { ok: false, message: scheduled.message };
+      reminder = scheduled.configuration;
+    }
+    const createdAt = new Date().toISOString();
+    setState((current) => ({
+      ...current,
+      deviceNotificationsEnabled: true,
+      backupReminder: reminder,
+      events: [{ id: createId("event"), title: "Device notifications enabled", detail: reminder.enabled ? "Local safety alerts are active and the saved backup reminder was scheduled again." : "Local safety alerts may be shown when Android permission is granted.", severity: "info" as const, createdAt }, ...current.events].slice(0, 60),
+    }));
+    return { ok: true, message: reminder.enabled ? "Device notifications are on and the saved backup reminder was scheduled." : "Device notifications are on. Enable Android permission when prompted for local safety alerts." };
+  }, [state.backupReminder]);
+
   const configureBackupReminder = useCallback(async (enabled: boolean, requestedIntervalDays = state.backupReminder.intervalDays) => {
+    if (enabled && !state.deviceNotificationsEnabled) return { ok: false, message: "Turn on Device notifications before scheduling a backup reminder." };
     const intervalDays = isBackupReminderIntervalDays(requestedIntervalDays) ? requestedIntervalDays : defaultBackupReminderConfiguration.intervalDays;
     const result = enabled
       ? await scheduleBackupReminder(state.backupReminder, intervalDays)
@@ -954,7 +987,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       events: [{ id: createId("event"), title: enabled ? "Backup reminder enabled" : "Backup reminder disabled", detail: result.message, severity: "info" as const, createdAt }, ...current.events].slice(0, 60),
     }));
     return { ok: true, message: result.message };
-  }, [state.backupReminder]);
+  }, [state.backupReminder, state.deviceNotificationsEnabled]);
 
   const importBackupPreview = useCallback(async (backupPath: string, password: string) => {
     if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup restore is available only in the installed Android app." };
@@ -1039,7 +1072,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }
   }, [state.installedSkills]);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, configureBackupReminder, importBackupPreview, applyBackup }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, configureBackupReminder, importBackupPreview, applyBackup]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, setDeviceNotificationsEnabled, configureBackupReminder, importBackupPreview, applyBackup }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, setDeviceNotificationsEnabled, configureBackupReminder, importBackupPreview, applyBackup]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

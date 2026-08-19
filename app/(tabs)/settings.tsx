@@ -29,7 +29,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const isFocused = useIsFocused();
   const { themeId, setThemeId } = useThemeContext();
-  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, backupReminder, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, exportBackup, configureBackupReminder, importBackupPreview, applyBackup } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, backupReminder, deviceNotificationsEnabled, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, exportBackup, setDeviceNotificationsEnabled, configureBackupReminder, importBackupPreview, applyBackup } = usePocketHermes();
   const { telemetry } = useSupervisorTelemetry(defaultHostRuntimePolicy, isFocused);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
@@ -74,6 +74,7 @@ export default function SettingsScreen() {
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupCompatibilityMessage, setBackupCompatibilityMessage] = useState<string | null>(null);
   const [updatingBackupReminder, setUpdatingBackupReminder] = useState(false);
+  const [updatingDeviceNotifications, setUpdatingDeviceNotifications] = useState(false);
   const hireEmphasis = useRef(new Animated.Value(0)).current;
   const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
   const selectedProviderRequiresApiKey = requiresModelApiKey(modelProvider);
@@ -374,6 +375,16 @@ export default function SettingsScreen() {
     }
   };
 
+  const updateDeviceNotifications = async (enabled: boolean) => {
+    setUpdatingDeviceNotifications(true);
+    try {
+      const result = await setDeviceNotificationsEnabled(enabled);
+      Alert.alert(result.ok ? "Device notifications updated" : "Device notifications unavailable", result.message);
+    } finally {
+      setUpdatingDeviceNotifications(false);
+    }
+  };
+
   const confirmBackupRestore = () => {
     if (!backupPreview) return;
     Alert.alert("Apply this verified backup?", "This replaces restored settings, automations, model favorites, connector metadata, and installed skills. Protected credentials, conversations, telemetry, and audit records stay on this device and are never imported.", [
@@ -606,9 +617,10 @@ export default function SettingsScreen() {
           <PrimaryButton label="Create encrypted backup" icon="save-alt" onPress={beginBackupExport} />
           <SecondaryButton label="Restore from backup" icon="restore" onPress={() => void beginBackupRestore()} />
           <View style={[styles.previewSummary, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35`, gap: 9 }]}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Backup reminder</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>{backupReminder.enabled ? `${describeBackupReminderInterval(backupReminder.intervalDays)} on this Android device.` : "Off — no reminders are scheduled."}</Text></View><Switch value={backupReminder.enabled} onValueChange={(enabled) => void updateBackupReminder(enabled)} disabled={updatingBackupReminder} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={backupReminder.enabled ? colors.success : colors.muted} /></View>
-            <View style={{ flexDirection: "row", gap: 7 }}>{BACKUP_REMINDER_INTERVALS.map((intervalDays) => { const selected = backupReminder.intervalDays === intervalDays; return <Pressable key={intervalDays} accessibilityRole="button" accessibilityLabel={`Set backup reminder ${describeBackupReminderInterval(intervalDays)}`} accessibilityState={{ selected, disabled: updatingBackupReminder }} onPress={() => void updateBackupReminder(true, intervalDays)} disabled={updatingBackupReminder} style={({ pressed }) => [{ flex: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderWidth: 1, borderRadius: 11, paddingHorizontal: 6, backgroundColor: selected ? `${colors.primary}16` : colors.background, borderColor: selected ? colors.primary : colors.border }, pressed && styles.themeOptionPressed]}><Text style={{ fontSize: 10, fontWeight: "900", color: selected ? colors.primary : colors.foreground }}>{describeBackupReminderInterval(intervalDays)}</Text></Pressable>; })}</View>
-            <Text style={[styles.backupExclusion, { color: colors.muted }]}>Optional local notification only. No backup data, notification token, password, or file path leaves this device.</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Device notifications</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>{deviceNotificationsEnabled ? "On — local safety alerts and backup reminders can notify you." : "Off — local safety alerts and backup reminders are paused."}</Text></View><Switch value={deviceNotificationsEnabled} onValueChange={(enabled) => void updateDeviceNotifications(enabled)} disabled={updatingDeviceNotifications} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={deviceNotificationsEnabled ? colors.success : colors.muted} /></View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Backup reminder</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>{backupReminder.enabled ? `${describeBackupReminderInterval(backupReminder.intervalDays)} on this Android device.` : "Off — no reminders are scheduled."}</Text></View><Switch value={backupReminder.enabled} onValueChange={(enabled) => void updateBackupReminder(enabled)} disabled={!deviceNotificationsEnabled || updatingBackupReminder} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={backupReminder.enabled ? colors.success : colors.muted} /></View>
+            <View style={{ flexDirection: "row", gap: 7 }}>{BACKUP_REMINDER_INTERVALS.map((intervalDays) => { const selected = backupReminder.intervalDays === intervalDays; return <Pressable key={intervalDays} accessibilityRole="button" accessibilityLabel={`Set backup reminder ${describeBackupReminderInterval(intervalDays)}`} accessibilityState={{ selected, disabled: !deviceNotificationsEnabled || updatingBackupReminder }} onPress={() => void updateBackupReminder(true, intervalDays)} disabled={!deviceNotificationsEnabled || updatingBackupReminder} style={({ pressed }) => [{ flex: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderWidth: 1, borderRadius: 11, paddingHorizontal: 6, backgroundColor: selected ? `${colors.primary}16` : colors.background, borderColor: selected ? colors.primary : colors.border }, pressed && styles.themeOptionPressed]}><Text style={{ fontSize: 10, fontWeight: "900", color: selected ? colors.primary : colors.foreground }}>{describeBackupReminderInterval(intervalDays)}</Text></Pressable>; })}</View>
+            <Text style={[styles.backupExclusion, { color: colors.muted }]}>{deviceNotificationsEnabled ? "Optional local notification only. No backup data, notification token, password, or file path leaves this device." : "Turn on Device notifications before scheduling reminders. Telegram delivery is unchanged."}</Text>
           </View>
         </PressableCard>
 

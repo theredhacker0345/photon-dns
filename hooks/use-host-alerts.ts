@@ -9,12 +9,12 @@ import type { HostRuntimePolicy } from "@/lib/host-contracts";
 const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const ALERT_STATE_KEY = "pocket-hermes.host-alert-cooldowns.v1";
 
-export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolicy) {
+export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolicy, deviceNotificationsEnabled = true) {
   const [permission, setPermission] = useState<Notifications.PermissionStatus | "unavailable">("unavailable");
   const sentAlerts = useRef(new Set<string>());
 
   const enableAlerts = useCallback(async () => {
-    if (Platform.OS === "web") return false;
+    if (Platform.OS === "web" || !deviceNotificationsEnabled) return false;
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("host-readiness", {
         name: "Host readiness",
@@ -27,7 +27,7 @@ export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolic
     const result = current.status === "granted" ? current : await Notifications.requestPermissionsAsync();
     setPermission(result.status);
     return result.status === "granted";
-  }, []);
+  }, [deviceNotificationsEnabled]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -38,7 +38,7 @@ export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolic
   }, []);
 
   useEffect(() => {
-    if (permission !== "granted") return;
+    if (!deviceNotificationsEnabled || permission !== "granted") return;
     const issue = readiness.isCharging === false && readiness.batteryPercent !== null && readiness.batteryPercent < policy.lowBatteryPercent
       ? { key: "low-battery", title: "Pocket Relay needs power", body: `Battery is at ${readiness.batteryPercent}%. Plug in this host phone to keep the agent available.` }
       : readiness.storageReady === false
@@ -54,7 +54,7 @@ export function useHostAlerts(readiness: HostReadiness, policy: HostRuntimePolic
       await Notifications.scheduleNotificationAsync({ content: { title: issue.title, body: issue.body, data: { route: "/(tabs)" } }, trigger: null });
       await AsyncStorage.setItem(ALERT_STATE_KEY, JSON.stringify({ ...cooldowns, [issue.key]: Date.now() }));
     })();
-  }, [permission, policy.lowBatteryPercent, readiness.batteryPercent, readiness.isCharging, readiness.storageReady]);
+  }, [deviceNotificationsEnabled, permission, policy.lowBatteryPercent, readiness.batteryPercent, readiness.isCharging, readiness.storageReady]);
 
   return { permission, enableAlerts, lowBatteryThreshold: policy.lowBatteryPercent };
 }

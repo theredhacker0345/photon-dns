@@ -134,4 +134,21 @@ describe("Pocket Relay encrypted backup contract", () => {
     expect(checklist).toContain("Detailed change review");
     expect(checklist).toContain("does not retain the password");
   });
+
+  it("keeps a master device-notifications switch local, persisted, and authoritative over alerts and reminders", () => {
+    const store = readFileSync(resolve(process.cwd(), "lib/pocket-hermes-store.tsx"), "utf8");
+    const hostAlerts = readFileSync(resolve(process.cwd(), "hooks/use-host-alerts.ts"), "utf8");
+    const settings = readFileSync(resolve(process.cwd(), "app/(tabs)/settings.tsx"), "utf8");
+    const dashboard = readFileSync(resolve(process.cwd(), "app/(tabs)/index.tsx"), "utf8");
+
+    expect(store).toContain("deviceNotificationsEnabled: true");
+    expect(store).toContain("disableBackupReminder(state.backupReminder)");
+    expect(store).toContain("Telegram delivery is unchanged");
+    expect(hostAlerts).toContain("deviceNotificationsEnabled = true");
+    expect(hostAlerts).toContain("!deviceNotificationsEnabled || permission !== \"granted\"");
+    expect(settings).toContain("Device notifications");
+    expect(settings).toContain("setDeviceNotificationsEnabled");
+    expect(settings).toContain("Turn on Device notifications before scheduling reminders");
+    expect(dashboard).toContain("Notifications paused");
+  });
 });
