@@ -2,6 +2,8 @@ Categories:
   - System
   - Internet
 License: GPL-3.0-only
+AntiFeatures:
+  - NonFreeNet
 WebSite: https://gitlab.com/theredhacker0345/pocket-relay
 SourceCode: https://gitlab.com/theredhacker0345/pocket-relay
 IssueTracker: https://gitlab.com/theredhacker0345/pocket-relay/issues
@@ -31,14 +33,13 @@ Builds:
     output: app/build/outputs/apk/release/app-release-unsigned.apk
     prebuild:
       - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
-      - bash ../scripts/build-jiter-compat-wheel.sh
-      - bash ../scripts/build-hermes-android-wheel.sh
+      - bash ../scripts/build-android-python-wheels.sh
 
 MaintainerNotes: |-
   Requires Android 7.0+ (API 24+) and targets ARM64. The Gradle release artifact
   is intentionally unsigned unless a maintainer explicitly supplies release-key
-  material; F-Droid signs its own reproducible builds. The exact Hermes Agent
-  source remains pinned by commit in scripts/build-hermes-android-wheel.sh, but
-  that script currently clones upstream during prebuild. Do not submit this
-  recipe until the pinned Hermes source is vendored or converted into an approved
-  F-Droid source-library workflow, and a clean F-Droid build-server run succeeds.
+  material; F-Droid signs its own reproducible builds. Hermes Agent 0.20.1 and
+  Pydantic Core 2.46.4 source, licenses, provenance records, and their required
+  local build inputs are vendored under third_party/. The prebuild script is
+  fail-closed and must run without network access. A clean F-Droid build-server
+  run remains the final independent verification before publication.

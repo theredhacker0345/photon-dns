@@ -382,3 +382,9 @@
 - [x] Make the Jiter and Pydantic Core wheel prerequisites deterministic and offline-only for clean Android release builds
 - [x] Inventory and establish a source-based offline strategy for the remaining Chaquopy Python dependency closure
 - [x] Checkpoint and publish the validated 1.0.0 vendored-source and deterministic-release engineering update to GitLab
+- [ ] Research the current official F-Droid merge-request workflow and metadata validation requirements
+- [ ] Prepare a source-pinned F-Droid metadata contribution for Pocket Relay 1.0.0
+- [ ] Align the F-Droid recipe with the verified vendored source tree and unified offline Python-wheel prerequisite
+- [ ] Replace the externally supplied Maturin wheel builder with a local deterministic Pydantic Core wheel assembler
+- [ ] Create and verify the corresponding F-Droid GitLab merge request using the protected GitLab credential
+- [ ] Record the F-Droid contribution URL and reviewer-facing submission evidence in the project documentation

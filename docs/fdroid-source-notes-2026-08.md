@@ -17,6 +17,38 @@ release-readiness verification. They are not a claim of acceptance by F-Droid.
 Pocket Relay’s final F-Droid metadata and public release record must be reviewed
 against these sources at the tagged release commit.
 
+## Current contribution workflow
+
+The official Quick Start Guide confirms that a new-app contribution is made by
+submitting a GitLab merge request to the `fdroiddata` repository. The source
+repository must be public, current, and licensed; upstream Fastlane metadata
+should already exist in the app source repository; and the per-app YAML must
+declare the public VCS location, a source-pinned build block, the Android
+version name/code, and appropriate descriptive metadata. F-Droid clones the
+declared revision, runs the scanner and build, validates the resulting APK
+version, and signs/publishes accepted artifacts. Reproducible developer APKs
+remain best practice rather than an inclusion prerequisite. The authoritative
+reference is the [Submitting to F-Droid Quick Start Guide](https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/), accessed on 2026-08-19.
+
+The F-Droid Data repository’s current [`CONTRIBUTING.md`](https://gitlab.com/fdroid/fdroiddata/-/blob/master/CONTRIBUTING.md)
+is the repository-specific authority for branch preparation and merge-request
+review. It was accessed on 2026-08-19; its raw form is used during submission
+preparation because the public GitLab viewer may defer rendering long code
+files.
+
+Its required contribution flow is: fork `fdroiddata`; create an unprotected,
+per-app branch in that fork; add `metadata/<application_id>.yml`; wait for the
+fork pipeline to succeed; then open a merge request to upstream `fdroiddata`
+and complete its template. For a local `fdroidserver` workflow, F-Droid
+recommends `fdroid readmeta`, `fdroid rewritemeta <id>`, `fdroid checkupdates
+<id>`, `fdroid lint <id>`, and `fdroid build -v -l <id>` before the MR. The
+metadata reference additionally requires `RepoType: git` repositories to be
+public HTTPS URLs without authentication and requires each build block to pin
+the exact source `commit`, version name, and version code. Sources: [raw
+CONTRIBUTING.md](https://gitlab.com/fdroid/fdroiddata/-/raw/master/CONTRIBUTING.md)
+and [Build Metadata Reference](https://f-droid.org/en/docs/Build_Metadata_Reference/),
+accessed on 2026-08-19.
+
 ## Python dependency conclusion
 
 The source-vendored Hermes Agent and Pydantic Core inputs remain the most

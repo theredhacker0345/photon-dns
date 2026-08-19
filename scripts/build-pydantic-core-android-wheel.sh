@@ -11,11 +11,10 @@ SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1704067200}"
 NDK_ROOT="${ANDROID_NDK_HOME:-/home/ubuntu/android-sdk/ndk/27.1.12297006}"
 RUSTUP_HOME="${RUSTUP_HOME:-/home/ubuntu/.rustup}"
 CARGO_HOME="${CARGO_HOME:-/home/ubuntu/.cargo}"
-MATURIN="${MATURIN:-}"
-if [[ -z "${MATURIN}" ]]; then
-  MATURIN="$(command -v maturin || true)"
+PYTHON="${POCKET_HERMES_BUILDPYTHON:-${PYTHON:-}}"
+if [[ -z "${PYTHON}" ]]; then
+  PYTHON="$(command -v python3.11 || command -v python3)"
 fi
-PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
 WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
@@ -27,7 +26,7 @@ if [[ -d "${python_prefix}/lib" ]]; then
   export LD_LIBRARY_PATH="${python_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 fi
 
-for executable in sha256sum "${MATURIN}" "${PYTHON}"; do
+for executable in sha256sum cargo "${PYTHON}"; do
   command -v "${executable}" >/dev/null 2>&1 || {
     echo "Missing build prerequisite: ${executable}" >&2
     exit 1
@@ -56,7 +55,6 @@ case "${ANDROID_ABI}" in
     ;;
 esac
 test -x "${CLANG}" || { echo "Android NDK clang not found at ${CLANG}" >&2; exit 1; }
-test -x "${MATURIN}" || { echo "maturin not executable at ${MATURIN}" >&2; exit 1; }
 test -f "${VENDOR_SOURCE}/UPSTREAM.md" || { echo "Missing Pydantic Core provenance manifest: ${VENDOR_SOURCE}/UPSTREAM.md" >&2; exit 1; }
 test -f "${VENDOR_SOURCE}/Cargo.lock" || { echo "Missing vendored Pydantic Core Cargo.lock" >&2; exit 1; }
 test -f "${VENDOR_SOURCE}/.cargo/config.toml" || { echo "Missing offline Cargo source replacement" >&2; exit 1; }
@@ -108,15 +106,17 @@ export PYO3_CROSS_PYTHON_IMPLEMENTATION=CPython
 SOURCE_DIR="${WORK}/pydantic_core-${VERSION}"
 (
   cd "${SOURCE_DIR}"
-  "${MATURIN}" build --release --target "${RUST_TARGET}" --interpreter "${PYTHON}" --compatibility off --out "${OUT}"
+  cargo build --release --locked --target "${RUST_TARGET}"
 )
 
-wheel="$(find "${OUT}" -maxdepth 1 -type f -name "pydantic_core-${VERSION}-*.whl" -print -quit)"
-test -n "${wheel}" || { echo "Pydantic Core wheel was not produced" >&2; exit 1; }
+extension="${SOURCE_DIR}/target/${RUST_TARGET}/release/lib_pydantic_core.so"
+test -f "${extension}" || { echo "Pydantic Core extension was not produced" >&2; exit 1; }
 target_wheel="${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}.whl"
-if [[ "${wheel}" != "${target_wheel}" ]]; then
-  mv "${wheel}" "${target_wheel}"
-fi
-"${PYTHON}" "${ROOT}/scripts/repackage-wheel-deterministic.py" "${target_wheel}" --epoch "${SOURCE_DATE_EPOCH}"
+"${PYTHON}" "${ROOT}/scripts/build-pydantic-core-android-wheel.py" \
+  --source "${SOURCE_DIR}" \
+  --extension "${extension}" \
+  --output "${target_wheel}" \
+  --epoch "${SOURCE_DATE_EPOCH}" \
+  --tag "${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}"
 echo "Built ${target_wheel}"
 sha256sum "${target_wheel}"
