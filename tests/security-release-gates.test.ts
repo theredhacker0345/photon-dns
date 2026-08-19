@@ -145,9 +145,12 @@ describe("security and FOSS release gates", () => {
     expect(read("third_party/pydantic-core/vendor/rustversion-1.0.17/build/rustc.rs")).toContain("Version");
   });
 
-  it("provisions Cargo's native host linker and retains the pipeline-canonical F-Droid prebuild layout", () => {
+  it("provisions the required Java and Cargo host toolchains while retaining the pipeline-canonical F-Droid prebuild layout", () => {
     const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
 
+    expect(fdroidMetadata).toContain("https://deb.debian.org/debian bullseye main");
+    expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
+    expect(fdroidMetadata).toContain("apt-get install -y -t bullseye openjdk-17-jdk-headless");
     expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
     expect(fdroidMetadata).toContain("--profile minimal\n        --target aarch64-linux-android");
     expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh");

@@ -419,3 +419,5 @@
 - [x] Add the upstream-published creator identity to F-Droid metadata without exposing any private contact data
 - [ ] Establish evidence for a publicly hosted developer-signed APK and its signing certificate before adding `Binaries` and `AllowedAPKSigningKeys`
 - [ ] Establish an immutable upstream release-reference policy before enabling F-Droid automatic update checks
+- [x] Collect the complete failed F-Droid build trace from pipeline 2773652679 before researching or batching another correction
+- [x] Provision the Gradle-required Java 17 toolchain on the F-Droid build server without changing app version or relying on toolchain downloads

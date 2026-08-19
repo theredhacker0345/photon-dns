@@ -20,8 +20,10 @@ Builds:
     commit: 7b69c68203eef00dd094c17ba2b73faf3b67dff5
     subdir: android
     sudo:
+      - echo "deb https://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list
       - apt-get update
       - apt-get install -y build-essential nodejs npm
+      - apt-get install -y -t bullseye openjdk-17-jdk-headless
     init:
       - cd ..
       - npm install pnpm@9.12.0 --no-save --no-package-lock
