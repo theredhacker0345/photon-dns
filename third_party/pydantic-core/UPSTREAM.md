@@ -15,7 +15,7 @@ download mechanism.
 | Rust dependency lock | `Cargo.lock` retained; SHA-256 `c3c27fc600d7dafd149229c6501271dbc5f6b4f7b1bfa116b32e77217c2b5038` |
 | Rust source closure | 103 crates from `Cargo.lock`, copied into `vendor/` through `cargo vendor --locked --versioned-dirs` |
 | Cargo source replacement | `.cargo/config.toml` replaces crates.io with `vendor/` |
-| Vendored tree SHA-256 | `087267c473a90349404c3b259193cffc8902bfa22f94bd99a2b71eefe5dddd14` |
+| Vendored tree SHA-256 | `6acfaaae6fd851180487b70fd064c1b10f4b5c0a8b21250a1b1621b6822dc2a3` |
 
 The tree digest is calculated before this file is added from the committed
 source entries, using the following portable algorithm. This intentionally

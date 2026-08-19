@@ -405,4 +405,6 @@
 - [x] Canonicalize the two remaining `fdroid rewritemeta` prebuild line wraps and reconcile the Pydantic Core vendored-tree integrity record with F-Droid source extraction before one validated submission update
 - [x] Collect every failed trace from F-Droid pipeline 2773342234 before researching or batching any subsequent correction
 - [x] Restore all Cargo-vendored source files hidden by the global `**/build/` ignore rule and canonicalize the latest upstream `rewritemeta` scalar formatting before one validated F-Droid update
+- [x] Collect every failed trace from F-Droid pipeline 2773402993 before researching or batching any subsequent correction
+- [x] Refresh the Pydantic Core committed-source integrity record to the clean-checkout value after restoring Cargo vendor files, then pin that source revision with the exact pipeline-authoritative `rewritemeta` scalar serialization
 - [x] Replace the Pydantic integrity check’s dirty-working-tree traversal with a committed-source digest so generated ignored Cargo files cannot invalidate clean F-Droid builds
