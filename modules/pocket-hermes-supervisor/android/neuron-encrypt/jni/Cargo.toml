@@ -8,7 +8,7 @@ name = "neuron_encrypt_jni"
 crate-type = ["cdylib"]
 
 [dependencies]
-neuron-encrypt = { path = "../core", default-features = false }
+neuron-encrypt = { path = "android-core", default-features = false }
 jni = { version = "0.21", default-features = false }
 libc = "0.2"
 zeroize = "1.8"

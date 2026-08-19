@@ -1,8 +1,0 @@
-# ninja log v5
-0	513	1787036539140580829	CMakeFiles/pocket_agent_sandbox.dir/quickjs_sandbox_jni.c.o	227a96997da66c05
-1	590	1787036539220580823	CMakeFiles/pocket_agent_sandbox.dir/quickjs/cutils.c.o	2c5081d444ff813a
-1	799	1787036539428580811	CMakeFiles/pocket_agent_sandbox.dir/quickjs/dtoa.c.o	50541a2c2a5cdbe4
-5	893	1787036539526251925	CMakeFiles/pocket_agent_sandbox.dir/quickjs/libunicode.c.o	bd607cd6d70f5e68
-2	1147	1787036539779352879	CMakeFiles/pocket_agent_sandbox.dir/quickjs/libregexp.c.o	551540a3a39e1ac0
-1	18324	1787036556902091332	CMakeFiles/pocket_agent_sandbox.dir/quickjs/quickjs.c.o	d70b45c8fdbc5e5
-18324	18594	1787036557223879851	/home/ubuntu/pocket-hermes/modules/pocket-hermes-supervisor/android/build/intermediates/cxx/RelWithDebInfo/1dn2jb3b/obj/arm64-v8a/libpocket_agent_sandbox.so	b5c05bd6969680eb

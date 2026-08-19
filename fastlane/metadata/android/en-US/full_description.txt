@@ -1,12 +1,13 @@
-Pocket Relay is a FOSS (Free and Open Source Software) Android application that transforms an idle spare phone into a 24/7 self-hosted AI agent host. Designed around a private embedded CPython and Hermes Agent runtime, Pocket Relay runs entirely as a native Android foreground service without requiring or displaying any external terminal user interface like Termux.
+<p>Pocket Relay turns an idle spare Android phone into a private, owner-controlled AI agent host. It runs a reviewed Hermes Agent worker in embedded CPython as a native Android foreground service. No external terminal application is required or shown.</p>
 
-Key Features:
-- **Private Embedded Runtime**: Bundles a constrained, owner-locked Hermes Agent worker executing within an embedded CPython environment.
-- **Telegram Remote Control**: Securely communicates via Telegram long-polling restricted strictly to an authorized owner chat ID, keeping your agent private and protected.
-- **24/7 Foreground Service**: Operates persistently in the background with `START_STICKY`, designed for old phones connected to a charger.
-- **Real-Time Telemetry**: Monitors device CPU load, RAM usage, storage readiness, and battery charging state directly from the native Android runtime.
-- **Local Notifications, Not Push Tracking**: Backup reminders, safety alerts, and notification tests are delivered by Android locally. Pocket Relay does not use Firebase, Google Play Services, analytics, crash reporting, or a push token.
-- **FOSS and Transparent**: Pocket Relay is GPL-3.0-only. The release tree includes dependency and license evidence, an F-Droid recipe, and a documented unsigned-release policy.
-- **Polished Mobile Control Plane**: Built with Expo and React Native, featuring a clean portrait control panel for managing agent status, automations, and secure settings.
+<p><b>Key features</b></p>
+<ul>
+<li><b>Private embedded runtime:</b> a constrained, owner-locked Hermes Agent worker runs in embedded CPython.</li>
+<li><b>Telegram remote control:</b> long polling is restricted to an authorized owner chat ID.</li>
+<li><b>24/7 host service:</b> a persistent Android service is designed for a charger-connected spare phone.</li>
+<li><b>Live host telemetry:</b> CPU load, RAM, storage readiness, and charging state come from the native runtime.</li>
+<li><b>Local notifications, not push tracking:</b> backup reminders and host safety alerts are Android-local; Pocket Relay uses no Firebase, Google Play Services, analytics, crash reporting, or push token.</li>
+<li><b>FOSS and transparent:</b> Pocket Relay is GPL-3.0-only with source-side dependency, provenance, and license evidence.</li>
+</ul>
 
-Model-provider and Telegram connections are configured by the owner and require the internet; Pocket Relay does not pretend to be an offline-first agent. Turn an old phone into your personal, owner-controlled AI relay today.
+<p>The owner configures model-provider and Telegram connections. They require internet access, so Pocket Relay does not claim to be offline-first.</p>

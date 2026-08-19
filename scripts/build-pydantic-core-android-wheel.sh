@@ -33,7 +33,7 @@ OUT="${ROOT}/.artifacts/wheels"
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
 VENDOR_SOURCE="${ROOT}/third_party/pydantic-core"
 VENDOR_RELATIVE="third_party/pydantic-core"
-EXPECTED_TREE_SHA256="6acfaaae6fd851180487b70fd064c1b10f4b5c0a8b21250a1b1621b6822dc2a3"
+EXPECTED_TREE_SHA256="4754bc4a465b6681a5cfaffbbcd8b5bc5252f25f71ea7b34ae16beff55b24312"
 
 python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"
 if [[ -d "${python_prefix}/lib" ]]; then

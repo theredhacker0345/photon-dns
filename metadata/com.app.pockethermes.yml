@@ -4,21 +4,12 @@ Categories:
   - Internet
   - System
 License: GPL-3.0-only
+AuthorName: Ubaid ur Rehman
 WebSite: https://gitlab.com/theredhacker0345/pocket-relay
 SourceCode: https://gitlab.com/theredhacker0345/pocket-relay
 IssueTracker: https://gitlab.com/theredhacker0345/pocket-relay/issues
 
 AutoName: Pocket Relay
-Description: |-
-  Pocket Relay is a FOSS Android application that transforms an idle spare phone
-  into a 24/7 self-hosted AI agent relay. Designed around a private embedded CPython
-  and Hermes Agent runtime, Pocket Relay runs entirely as a native Android
-  foreground service without requiring or displaying any external terminal user
-  interface like Termux.
-
-  Features include secure Telegram remote control restricted to an owner allowlist,
-  real-time CPU/RAM/storage telemetry, persistent background execution, and complete
-  FOSS dependency and license evidence generated from the release source tree.
 
 RepoType: git
 Repo: https://gitlab.com/theredhacker0345/pocket-relay.git
@@ -48,6 +39,7 @@ Builds:
         ../scripts/build-android-python-wheels.sh
     scandelete:
       - node_modules
+      - third_party/pydantic-core/vendor/regex-automata-0.4.13/tests/fuzz/testdata
     ndk: 27.1.12297006
 
 MaintainerNotes: |-

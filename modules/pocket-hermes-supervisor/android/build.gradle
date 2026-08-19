@@ -88,6 +88,8 @@ def pocketRelayRoot = rootProject.projectDir.parentFile
 def pocketHermesWheel = new File(pocketRelayRoot, ".artifacts/wheels/hermes_agent-0.20.1-py3-none-any.whl")
 def pocketJiterWheel = new File(pocketRelayRoot, ".artifacts/wheels/jiter-0.10.0-py3-none-any.whl")
 def pocketPydanticCoreWheel = new File(pocketRelayRoot, ".artifacts/wheels/pydantic_core-2.46.4-cp311-cp311-android_24_arm64_v8a.whl")
+def pocketNeuronEncryptRoot = new File(pocketRelayRoot, "modules/pocket-hermes-supervisor/android/neuron-encrypt")
+def pocketNeuronEncryptArm64 = new File(project.projectDir, "src/main/jniLibs/arm64-v8a/libneuron_encrypt_jni.so")
 // F-Droid's Debian Trixie image supplies Python 3.13, while the Android
 // runtime remains explicitly pinned to CPython 3.11 below. Chaquopy 16.1
 // supports any Python 3.8+ build interpreter, and local builders can still
@@ -111,9 +113,26 @@ def buildPocketRelayPythonWheels = tasks.register("buildPocketRelayPythonWheels"
   outputs.files(pocketHermesWheel, pocketJiterWheel, pocketPydanticCoreWheel)
 }
 
+// Compile the reviewable Neuron Encrypt JNI source closure after F-Droid's
+// scanner has completed. The result is an ordinary Gradle JNI input, not a
+// tracked prebuilt binary. F-Droid's recipe bootstraps exactly this ARM64 Rust
+// target before Gradle begins.
+def buildNeuronEncryptArm64 = tasks.register("buildNeuronEncryptArm64", Exec) {
+  workingDir pocketRelayRoot
+  commandLine "bash", new File(pocketRelayRoot, "scripts/build-neuron-encrypt-android-jni.sh").absolutePath
+  environment "ANDROID_ABI", "arm64-v8a"
+  environment "SOURCE_DATE_EPOCH", "1704067200"
+  inputs.dir(new File(pocketNeuronEncryptRoot, "jni"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-neuron-encrypt-android-jni.sh"))
+  outputs.file(pocketNeuronEncryptArm64)
+}
+
 tasks.configureEach {
   if (name == "installDebugPythonRequirements" || name == "installReleasePythonRequirements") {
     dependsOn(buildPocketRelayPythonWheels)
+  }
+  if (name == "mergeReleaseJniLibFolders" || name == "mergeReleaseNativeLibs") {
+    dependsOn(buildNeuronEncryptArm64)
   }
 }
 

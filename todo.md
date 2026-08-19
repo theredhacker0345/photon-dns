@@ -410,3 +410,12 @@
 - [x] Replace the Pydantic integrity check’s dirty-working-tree traversal with a committed-source digest so generated ignored Cargo files cannot invalidate clean F-Droid builds
 - [x] Collect every failed trace from F-Droid pipeline 2773464841 before researching or batching any subsequent correction
 - [x] Provision the native host compiler required by Cargo build scripts and apply the pipeline-authoritative `rewritemeta` prebuild line layout before one validated F-Droid update
+- [x] Collect every failed trace from F-Droid pipeline 2773494645 before researching or batching any subsequent correction
+- [x] Replace scanner-visible tracked native build outputs and the prebuilt Neuron Encrypt JNI library with a reproducible post-scan source build
+- [x] Remove Pydantic Core fuzz binary fixtures and the disposable prebuild Cargo cache before the F-Droid source scanner runs
+- [x] Apply the exact current F-Droid `rewritemeta` canonical prebuild wrapping to both maintained recipe copies
+- [x] Review every comment and system note on F-Droid MR !46222 and incorporate any actionable feedback into the one correction batch
+- [x] Move F-Droid public text and graphics to validated upstream Fastlane HTML and image locations, then remove redundant fdroiddata localization
+- [x] Add the upstream-published creator identity to F-Droid metadata without exposing any private contact data
+- [ ] Establish evidence for a publicly hosted developer-signed APK and its signing certificate before adding `Binaries` and `AllowedAPKSigningKeys`
+- [ ] Establish an immutable upstream release-reference policy before enabling F-Droid automatic update checks

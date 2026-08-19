@@ -135,7 +135,7 @@ describe("security and FOSS release gates", () => {
     expect(pydanticBuild).toContain('lib_name=python3.11');
     expect(pydanticBuild).not.toContain('PYO3_NO_PYTHON=1');
     expect(pydanticBuild).toContain('git -C "${ROOT}" ls-tree -r --name-only HEAD -- "${VENDOR_RELATIVE}"');
-    expect(pydanticBuild).toContain('EXPECTED_TREE_SHA256="6acfaaae6fd851180487b70fd064c1b10f4b5c0a8b21250a1b1621b6822dc2a3"');
+    expect(pydanticBuild).toContain('EXPECTED_TREE_SHA256="4754bc4a465b6681a5cfaffbbcd8b5bc5252f25f71ea7b34ae16beff55b24312"');
     expect(pydanticBuild).not.toContain("find . -type f ! -path './UPSTREAM.md'");
     expect(reproducibleBuild).toContain('PYTHON="${POCKET_HERMES_BUILDPYTHON:-python3}"');
     expect(gitignore).toContain("!third_party/pydantic-core/vendor/**/build/");
@@ -151,5 +151,30 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
     expect(fdroidMetadata).toContain("--profile \n        minimal --target aarch64-linux-android");
     expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash \n        ../scripts/build-android-python-wheels.sh");
+  });
+
+  it("keeps every native dependency reviewable at scan time and moves store assets upstream", () => {
+    const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
+    const jniBuild = read("scripts/build-neuron-encrypt-android-jni.sh");
+    const jniCargo = read("modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/Cargo.toml");
+    const jniCargoConfig = read("modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/.cargo/config.toml");
+    const nativeGradle = read("modules/pocket-hermes-supervisor/android/build.gradle");
+    const pythonWheelBuild = read("scripts/build-android-python-wheels.sh");
+    const fullDescription = read("fastlane/metadata/android/en-US/full_description.txt");
+
+    expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
+    expect(fdroidMetadata).not.toContain("Binaries:");
+    expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
+    expect(fdroidMetadata).toContain("AutoUpdateMode: None");
+    expect(jniBuild).toContain("cargo build --release --locked --offline");
+    expect(jniBuild).toContain("${JNI_ROOT}/vendor");
+    expect(jniCargo).toContain('path = "android-core"');
+    expect(jniCargoConfig).toContain('directory = "vendor"');
+    expect(nativeGradle).toContain("buildNeuronEncryptArm64");
+    expect(nativeGradle).toContain("dependsOn(buildNeuronEncryptArm64)");
+    expect(pythonWheelBuild).toContain("rm -rf \"${ROOT}/.cache/pydantic-core-");
+    expect(read("fastlane/metadata/android/en-US/images/icon.png").length).toBeGreaterThan(0);
+    expect(read("fastlane/metadata/android/en-US/images/phoneScreenshots/1.png").length).toBeGreaterThan(0);
+    expect(fullDescription).toContain("<ul>");
   });
 });
