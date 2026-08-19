@@ -115,6 +115,7 @@ describe("security and FOSS release gates", () => {
     const wheelBuild = read("scripts/build-android-python-wheels.sh");
     const pydanticBuild = read("scripts/build-pydantic-core-android-wheel.sh");
     const reproducibleBuild = read("scripts/reproducible-android-build.sh");
+    const gitignore = read(".gitignore");
 
     expect(nativeGradle).toContain('com.chaquo.python:gradle:16.1.0');
     expect(nativeGradle).toContain('version = "3.11"');
@@ -137,5 +138,10 @@ describe("security and FOSS release gates", () => {
     expect(pydanticBuild).toContain('EXPECTED_TREE_SHA256="087267c473a90349404c3b259193cffc8902bfa22f94bd99a2b71eefe5dddd14"');
     expect(pydanticBuild).not.toContain("find . -type f ! -path './UPSTREAM.md'");
     expect(reproducibleBuild).toContain('PYTHON="${POCKET_HERMES_BUILDPYTHON:-python3}"');
+    expect(gitignore).toContain("!third_party/pydantic-core/vendor/**/build/");
+    expect(gitignore).toContain("!third_party/pydantic-core/vendor/**/build/**");
+    expect(read("third_party/pydantic-core/vendor/proc-macro2-1.0.86/build/probe.rs")).toContain("proc_macro_span");
+    expect(read("third_party/pydantic-core/vendor/rustversion-1.0.17/build/build.rs")).toContain("rustc");
+    expect(read("third_party/pydantic-core/vendor/rustversion-1.0.17/build/rustc.rs")).toContain("Version");
   });
 });

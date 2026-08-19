@@ -87,3 +87,9 @@ modules/pocket-hermes-supervisor/android/src/main/python/vendor/pydantic-core/*.
 
 # Module build outputs
 **/build/
+
+# Cargo directory sources may legitimately contain `build/` source directories
+# declared in their .cargo-checksum.json manifests. Keep those vendored inputs
+# versioned while retaining the general build-output rule above.
+!third_party/pydantic-core/vendor/**/build/
+!third_party/pydantic-core/vendor/**/build/**

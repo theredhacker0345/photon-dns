@@ -402,5 +402,7 @@
 - [x] Canonicalize the Rustup source-library and wrapped prebuild fields required by `fdroid rewritemeta`, then publish one source-commit-pinned F-Droid MR correction batch
 - [x] Replace the invalid PyO3 no-interpreter fallback with an explicit CPython 3.11 Android configuration file and validate the wheel before publishing the F-Droid correction batch
 - [x] Collect every failed trace from F-Droid pipeline 2773278091 before researching or batching any subsequent correction
-- [ ] Canonicalize the two remaining `fdroid rewritemeta` prebuild line wraps and reconcile the Pydantic Core vendored-tree integrity record with F-Droid source extraction before one validated submission update
+- [x] Canonicalize the two remaining `fdroid rewritemeta` prebuild line wraps and reconcile the Pydantic Core vendored-tree integrity record with F-Droid source extraction before one validated submission update
+- [x] Collect every failed trace from F-Droid pipeline 2773342234 before researching or batching any subsequent correction
+- [x] Restore all Cargo-vendored source files hidden by the global `**/build/` ignore rule and canonicalize the latest upstream `rewritemeta` scalar formatting before one validated F-Droid update
 - [x] Replace the Pydantic integrity check’s dirty-working-tree traversal with a committed-source digest so generated ignored Cargo files cannot invalidate clean F-Droid builds
