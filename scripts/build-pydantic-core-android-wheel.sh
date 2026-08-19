@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="2.46.4"
 PYTHON_TAG="cp311"
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1704067200}"
 NDK_ROOT="${ANDROID_NDK_HOME:-/home/ubuntu/android-sdk/ndk/27.1.12297006}"
 RUSTUP_HOME="${RUSTUP_HOME:-/home/ubuntu/.rustup}"
 CARGO_HOME="${CARGO_HOME:-/home/ubuntu/.cargo}"
@@ -18,15 +19,15 @@ PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
 WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
-SOURCE_URL="https://files.pythonhosted.org/packages/9d/56/921726b776ace8d8f5db44c4ef961006580d91dc52b803c489fafd1aa249/pydantic_core-${VERSION}.tar.gz"
-SOURCE_SHA256="62f875393d7f270851f20523dd2e29f082bcc82292d66db2b64ea71f64b6e1c1"
+VENDOR_SOURCE="${ROOT}/third_party/pydantic-core"
+EXPECTED_TREE_SHA256="6acfaaae6fd851180487b70fd064c1b10f4b5c0a8b21250a1b1621b6822dc2a3"
 
 python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"
 if [[ -d "${python_prefix}/lib" ]]; then
   export LD_LIBRARY_PATH="${python_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 fi
 
-for executable in curl sha256sum tar "${MATURIN}" "${PYTHON}"; do
+for executable in sha256sum "${MATURIN}" "${PYTHON}"; do
   command -v "${executable}" >/dev/null 2>&1 || {
     echo "Missing build prerequisite: ${executable}" >&2
     exit 1
@@ -56,6 +57,21 @@ case "${ANDROID_ABI}" in
 esac
 test -x "${CLANG}" || { echo "Android NDK clang not found at ${CLANG}" >&2; exit 1; }
 test -x "${MATURIN}" || { echo "maturin not executable at ${MATURIN}" >&2; exit 1; }
+test -f "${VENDOR_SOURCE}/UPSTREAM.md" || { echo "Missing Pydantic Core provenance manifest: ${VENDOR_SOURCE}/UPSTREAM.md" >&2; exit 1; }
+test -f "${VENDOR_SOURCE}/Cargo.lock" || { echo "Missing vendored Pydantic Core Cargo.lock" >&2; exit 1; }
+test -f "${VENDOR_SOURCE}/.cargo/config.toml" || { echo "Missing offline Cargo source replacement" >&2; exit 1; }
+test -d "${VENDOR_SOURCE}/vendor" || { echo "Missing vendored Rust dependency closure" >&2; exit 1; }
+
+actual_tree_sha256="$({
+  cd "${VENDOR_SOURCE}"
+  find . -type f ! -path './UPSTREAM.md' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+})"
+if [[ "${actual_tree_sha256}" != "${EXPECTED_TREE_SHA256}" ]]; then
+  echo "Vendored Pydantic Core tree digest mismatch" >&2
+  echo "Expected: ${EXPECTED_TREE_SHA256}" >&2
+  echo "Actual:   ${actual_tree_sha256}" >&2
+  exit 1
+fi
 
 rm -rf "${WORK}"
 mkdir -p "${WORK}" "${OUT}"
@@ -64,9 +80,7 @@ mkdir -p "${WORK}" "${OUT}"
 stdlib_dir="$("${PYTHON}" -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')"
 cp "${stdlib_dir}"/_sysconfigdata*.py "${WORK}/"
 rm -f "${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}.whl"
-curl --fail --silent --show-error --location "${SOURCE_URL}" --output "${WORK}/source.tar.gz"
-echo "${SOURCE_SHA256}  ${WORK}/source.tar.gz" | sha256sum --check --status
-tar -xzf "${WORK}/source.tar.gz" -C "${WORK}"
+cp -a "${VENDOR_SOURCE}" "${WORK}/pydantic_core-${VERSION}"
 
 # PyO3 adds -lpython3.11 even for a CPython extension module. Chaquopy owns
 # that runtime library, so this zero-symbol link stub exists only to satisfy
@@ -78,6 +92,9 @@ EOF
 
 export RUSTUP_HOME CARGO_HOME
 export ANDROID_NDK_HOME="${NDK_ROOT}"
+export CARGO_NET_OFFLINE=true
+export CARGO_INCREMENTAL=0
+export SOURCE_DATE_EPOCH TZ=UTC LC_ALL=C LANG=C PYTHONHASHSEED=0
 export "CC_${CARGO_ENV_TARGET}=${CLANG}"
 export "CXX_${CARGO_ENV_TARGET}=${CXX}"
 export "AR_${CARGO_ENV_TARGET}=${NDK_BIN}/llvm-ar"
@@ -100,5 +117,6 @@ target_wheel="${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-androi
 if [[ "${wheel}" != "${target_wheel}" ]]; then
   mv "${wheel}" "${target_wheel}"
 fi
+"${PYTHON}" "${ROOT}/scripts/repackage-wheel-deterministic.py" "${target_wheel}" --epoch "${SOURCE_DATE_EPOCH}"
 echo "Built ${target_wheel}"
 sha256sum "${target_wheel}"

@@ -74,4 +74,29 @@ describe("security and FOSS release gates", () => {
     expect(contributing).toContain("Signed-off-by:");
     expect(preflight).toContain("GPL-3.0-only");
   });
+
+  it("builds the pinned Hermes worker only from verified local source and stable release inputs", () => {
+    const provenance = read("third_party/hermes-agent/UPSTREAM.md");
+    const vendorLicense = read("third_party/hermes-agent/LICENSE");
+    const wheelBuild = read("scripts/build-hermes-android-wheel.sh");
+    const wheelAssembler = read("scripts/build-hermes-android-wheel.py");
+    const nativeGradle = read("modules/pocket-hermes-supervisor/android/build.gradle");
+    const pythonSbom = read("scripts/generate-sbom.mjs");
+
+    expect(provenance).toContain("165c889e5b4277b56dadd42949a4112c1e6175a6");
+    expect(provenance).toContain("Stable content digest");
+    expect(vendorLicense).toContain("MIT License");
+    expect(wheelBuild).toContain("third_party/hermes-agent");
+    expect(wheelBuild).toContain("EXPECTED_DIGEST");
+    expect(wheelBuild).toContain("build-hermes-android-wheel.py");
+    expect(wheelBuild).not.toContain("git clone");
+    expect(wheelAssembler).toContain('parser.add_argument("--epoch"');
+    expect(wheelAssembler).toContain("ZipInfo(path, date_time=date_time)");
+    expect(nativeGradle).toContain("buildPocketRelayPythonWheels");
+    expect(nativeGradle).toContain("installReleasePythonRequirements");
+    expect(pythonSbom).toContain("vendoredHermesDigest");
+    expect(pythonSbom).toContain("SOURCE_DATE_EPOCH");
+    expect(pythonSbom).not.toContain("fetch(");
+    expect(pythonSbom).not.toContain("randomUUID");
+  });
 });

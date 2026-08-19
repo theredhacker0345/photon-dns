@@ -22,9 +22,9 @@ Description: |-
   FOSS dependency and license evidence generated from the release source tree.
 
 Builds:
-  - versionName: 1.0.2
-    versionCode: 3
-    commit: v1.0.2
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: v1.0.0
     subdir: android
     gradle:
       - release

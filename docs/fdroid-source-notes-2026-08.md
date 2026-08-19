@@ -12,6 +12,17 @@ release-readiness verification. They are not a claim of acceptance by F-Droid.
 | Dependency and tooling policy | F-Droid requires a FLOSS application and toolchain. It rejects proprietary tracking, advertising, Google Play Services, Firebase, and Crashlytics dependencies. It allows official prebuilt Android SDK and Hermes artifacts under the documented policy exception. | [Inclusion Policy](https://f-droid.org/en/docs/Inclusion_Policy/) |
 | Executable downloads | Apps must not download additional executable binaries without explicit, informed, opt-in consent that explains the bypass of F-Droid checks. | [Inclusion Policy](https://f-droid.org/en/docs/Inclusion_Policy/) |
 | Anti-features | F-Droid uses user-facing labels including Non-Free Network Services, Tethered Network Services, Non-Free Dependencies, and Tracking. These labels can be required without necessarily barring inclusion. | [Anti-Features](https://f-droid.org/en/docs/Anti-Features/) |
+| Python requirement inputs | F-Droid permits prebuilt FLOSS Python wheels from PyPI where appropriate, while preferring Debian packages whenever possible. Chaquopy supports pinned requirement specifications, local wheel files, and project-relative source directories through its Gradle `pip` block. | [Inclusion Policy](https://f-droid.org/en/docs/Inclusion_Policy/); [Chaquopy Gradle plugin documentation](https://chaquo.com/chaquopy/doc/current/android.html) |
 
 Pocket Relay’s final F-Droid metadata and public release record must be reviewed
 against these sources at the tagged release commit.
+
+## Python dependency conclusion
+
+The source-vendored Hermes Agent and Pydantic Core inputs remain the most
+important project-controlled native build inputs. The remaining fully pinned,
+FLOSS Python requirements must be inventoried and disclosed in the SBOM, but
+the F-Droid policy does not require wholesale vendoring of every trusted
+PyPI/Chaquopy wheel solely to establish compliance. The final F-Droid build
+must instead prove that each dependency is freely licensed, pinned, available
+from an allowed source, and not an undisclosed executable download at runtime.

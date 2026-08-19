@@ -9,8 +9,10 @@ describe("Hermes runtime pinning", () => {
     const script = readFileSync(resolve(root, "scripts/build-hermes-android-wheel.sh"), "utf8");
     expect(script).toContain('PIN="165c889e5b4277b56dadd42949a4112c1e6175a6"');
     expect(script).toContain('VERSION="0.20.1"');
-    expect(script).toContain('test "$(git -C "${WORK}" rev-parse HEAD)" = "${PIN}"');
-    expect(script).toContain('pip wheel --no-deps');
+    expect(script).toContain('VENDORED_SOURCE="${ROOT}/third_party/hermes-agent"');
+    expect(script).toContain('EXPECTED_DIGEST=');
+    expect(script).toContain('build-hermes-android-wheel.py');
+    expect(script).not.toContain('git clone');
   });
 
   it("publishes the source pin, upgrade procedure, online-only rationale, and MCP code-execution boundary", () => {

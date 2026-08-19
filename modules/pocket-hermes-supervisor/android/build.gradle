@@ -78,6 +78,39 @@ android {
   }
 }
 
+// Build the pure-Python Hermes wheel from Pocket Relay's reviewed local vendor
+// tree before Chaquopy resolves either debug or release requirements. The task
+// is intentionally a normal Gradle input/output edge: no release build may use
+// a stale wheel or clone/download upstream Hermes source at build time.
+def pocketRelayRoot = rootProject.projectDir.parentFile
+def pocketHermesWheel = new File(pocketRelayRoot, ".artifacts/wheels/hermes_agent-0.20.1-py3-none-any.whl")
+def pocketJiterWheel = new File(pocketRelayRoot, ".artifacts/wheels/jiter-0.10.0-py3-none-any.whl")
+def pocketPydanticCoreWheel = new File(pocketRelayRoot, ".artifacts/wheels/pydantic_core-2.46.4-cp311-cp311-android_24_arm64_v8a.whl")
+def pocketHermesBuildPython = System.getenv("POCKET_HERMES_BUILDPYTHON") ?: "python3.11"
+def buildPocketRelayPythonWheels = tasks.register("buildPocketRelayPythonWheels", Exec) {
+  workingDir pocketRelayRoot
+  commandLine "bash", new File(pocketRelayRoot, "scripts/build-android-python-wheels.sh").absolutePath
+  environment "PYTHON", pocketHermesBuildPython
+  environment "SOURCE_DATE_EPOCH", "1704067200"
+  inputs.dir(new File(pocketRelayRoot, "third_party/hermes-agent"))
+  inputs.dir(new File(pocketRelayRoot, "third_party/pydantic-core"))
+  inputs.dir(new File(pocketRelayRoot, "modules/pocket-hermes-supervisor/android/src/main/python/vendor/jiter-compat"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-android-python-wheels.sh"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-hermes-android-wheel.sh"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-hermes-android-wheel.py"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-jiter-compat-wheel.sh"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-jiter-compat-wheel.py"))
+  inputs.file(new File(pocketRelayRoot, "scripts/build-pydantic-core-android-wheel.sh"))
+  inputs.file(new File(pocketRelayRoot, "scripts/repackage-wheel-deterministic.py"))
+  outputs.files(pocketHermesWheel, pocketJiterWheel, pocketPydanticCoreWheel)
+}
+
+tasks.configureEach {
+  if (name == "installDebugPythonRequirements" || name == "installReleasePythonRequirements") {
+    dependsOn(buildPocketRelayPythonWheels)
+  }
+}
+
 // Pocket Relay packages one private CPython interpreter and only the ARM64
 // worker profile. No Python interpreter, shell, package installer, or runtime
 // downloader is exposed through the Android UI.

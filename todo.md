@@ -368,6 +368,17 @@
 - [x] Correct F-Droid metadata and Fastlane license claims to reflect the public GitLab source and GPL-3.0-only project license
 - [x] Remove unnecessary media, overlay, and legacy-storage declarations from the Android release manifest
 - [x] Rebuild and inspect the release manifest to verify the minimized permission and component surface
-- [ ] Vendor the pinned Hermes Agent source and remove its F-Droid build-time network clone
+- [x] Vendor the pinned Hermes Agent source and remove its F-Droid build-time network clone
 - [x] Remove unused transitive storage and biometric permissions from the merged Android release manifest
-- [ ] Diagnose and normalize Chaquopy/R8 release artifacts so clean ARM64 builds are byte-for-byte reproducible
+- [x] Diagnose and normalize Chaquopy/R8 release artifacts so clean ARM64 builds are byte-for-byte reproducible
+- [x] Restore Pocket Relay’s app, package, F-Droid metadata, SBOM, and release documentation version to 1.0.0
+- [x] Vendor the exact Hermes Agent 0.20.1 pinned source with license, provenance, and integrity manifest
+- [x] Make the Hermes Android wheel build offline-only and fail closed unless the verified vendored source is present
+- [x] Add deterministic Gradle, Python-archive, Chaquopy, and R8 build controls based on clean-build diff evidence
+- [x] Rebuild twice from clean state, compare ARM64 APK hashes, and document any remaining byte-level differences
+- [x] Make SBOM generation consume local Hermes provenance and deterministic release metadata without network access
+- [x] Integrate the verified local Hermes wheel build as an explicit Gradle prerequisite for every Chaquopy package task
+- [x] Vendor the pinned Pydantic Core 2.46.4 source with license, provenance, and integrity verification
+- [x] Make the Jiter and Pydantic Core wheel prerequisites deterministic and offline-only for clean Android release builds
+- [x] Inventory and establish a source-based offline strategy for the remaining Chaquopy Python dependency closure
+- [ ] Checkpoint and publish the validated 1.0.0 vendored-source and deterministic-release engineering update to GitLab

@@ -19,6 +19,9 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const moduleRoot = join(projectRoot, "modules", "pocket-hermes-supervisor", "android");
 const requirementsPath = join(moduleRoot, "src", "main", "python", "requirements-android.txt");
 const outputPath = join(projectRoot, "sbom.json");
+const hermesVendorRoot = join(projectRoot, "third_party", "hermes-agent");
+const hermesProvenancePath = join(hermesVendorRoot, "UPSTREAM.md");
+const sourceDateEpoch = Number.parseInt(process.env.SOURCE_DATE_EPOCH ?? "1786807638", 10);
 const approvedLicense = /\b(MIT|Apache(?: Software License)?(?:[- ]2(?:\.0)?)?|BSD(?:[- ](?:2|3)[- ]Clause)?|ISC|PSF|Python Software Foundation|MPL(?:[- ]2(?:\.0)?)?|LGPL(?:[- ]\S+)?|GNU Lesser General Public License|GPL(?:[- ]\S+)?|EPL(?:[- ]\S+)?|Zlib|Unlicense|CC0|Freetype|IJG|Independent JPEG Group)\b/i;
 const ignoredDirectories = new Set(["__pycache__", ".git", ".pytest_cache"]);
 const chaquopyRuntimeLicenses = new Map([
@@ -96,24 +99,53 @@ async function hashDirectory(directory) {
   return hash.digest("hex");
 }
 
-async function pypiLicense(name, version) {
-  const response = await fetch(`https://pypi.org/pypi/${encodeURIComponent(name)}/${encodeURIComponent(version)}/json`);
-  if (!response.ok) throw new Error(`PyPI metadata returned HTTP ${response.status}`);
-  const info = (await response.json()).info ?? {};
-  const evidence = [info.license, info.license_expression, ...(info.classifiers ?? []).filter((item) => item.includes("License ::"))]
-    .filter(Boolean)
-    .join("; ");
-  return { evidence, reference: `pkg:pypi/${normalizeName(name)}@${version}` };
+async function vendoredHermesDigest() {
+  const files = [];
+  async function visit(current) {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (entry.name === "UPSTREAM.md") continue;
+      const entryPath = join(current, entry.name);
+      if (entry.isDirectory()) await visit(entryPath);
+      else if (entry.isFile()) files.push(entryPath);
+    }
+  }
+  await visit(hermesVendorRoot);
+  const listing = [];
+  for (const file of files.sort((a, b) => {
+    const left = relative(hermesVendorRoot, a).replaceAll("\\", "/");
+    const right = relative(hermesVendorRoot, b).replaceAll("\\", "/");
+    return left < right ? -1 : left > right ? 1 : 0;
+  })) {
+    const digest = createHash("sha256").update(await fs.readFile(file)).digest("hex");
+    listing.push(`${relative(hermesVendorRoot, file)}  ${digest}`);
+  }
+  return createHash("sha256").update(listing.join("\n") + "\n").digest("hex");
 }
 
 async function hermesSourceLicense(name, version) {
   if (normalizeName(name) !== "hermes-agent") throw new Error("No PyPI metadata available for this package.");
-  const reference = "https://github.com/NousResearch/hermes-agent/blob/165c889e5b4277b56dadd42949a4112c1e6175a6/LICENSE";
-  const response = await fetch("https://raw.githubusercontent.com/NousResearch/hermes-agent/165c889e5b4277b56dadd42949a4112c1e6175a6/LICENSE");
-  if (!response.ok || !(await response.text()).includes("MIT License")) {
-    throw new Error("Pinned Hermes source did not provide MIT license evidence.");
+  const provenance = await fs.readFile(hermesProvenancePath, "utf8");
+  const revision = provenance.match(/Upstream revision \| `([0-9a-f]{40})`/)?.[1];
+  const expectedDigest = provenance.match(/Stable content digest \| `([0-9a-f]{64})`/)?.[1];
+  const license = await fs.readFile(join(hermesVendorRoot, "LICENSE"), "utf8");
+  if (revision !== "165c889e5b4277b56dadd42949a4112c1e6175a6" || !expectedDigest || await vendoredHermesDigest() !== expectedDigest) {
+    throw new Error("Vendored Hermes provenance or source digest does not match the pinned reviewed snapshot.");
   }
+  if (!license.includes("MIT License")) throw new Error("Vendored Hermes source did not preserve MIT license evidence.");
+  const reference = "https://github.com/NousResearch/hermes-agent/blob/165c889e5b4277b56dadd42949a4112c1e6175a6/LICENSE";
   return { evidence: "MIT License (pinned upstream source)", reference: `pkg:github/NousResearch/hermes-agent@${version}`, externalReference: reference };
+}
+
+function localDistributionLicense(name, version, metadata) {
+  return {
+    evidence: metadata.licenses.filter(Boolean).join("; "),
+    reference: `pkg:pypi/${normalizeName(name)}@${version}`,
+  };
+}
+
+function deterministicUuid(hash) {
+  const variant = ((Number.parseInt(hash[16], 16) & 0x3) | 0x8).toString(16);
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-${variant}${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
 
 function requestedVersion(requirements, packageName, fallbackVersion) {
@@ -147,7 +179,7 @@ async function main() {
         ? { ...chaquopyRuntimeLicenses.get(name), reference: `pkg:generic/${name}@${version}`, externalReference: chaquopyRuntimeLicenses.get(name).reference }
         : name === "hermes-agent"
           ? await hermesSourceLicense(name, version)
-          : await pypiLicense(name, version);
+          : localDistributionLicense(name, version, metadata);
       const evidence = [registry.evidence, ...metadata.licenses].filter(Boolean).join("; ");
       if (!approvedLicense.test(evidence)) {
         throw new Error(`non-FOSS or unrecognized license evidence: ${evidence || "none"}`);
@@ -171,14 +203,18 @@ async function main() {
   }
   const uniquePackages = [...new Map(packages.map((item) => [`${item.name}@${item.version}`, item])).values()]
     .sort((a, b) => a.name.localeCompare(b.name));
+  if (!Number.isSafeInteger(sourceDateEpoch) || sourceDateEpoch < 315532800) {
+    throw new Error("SOURCE_DATE_EPOCH must be a valid Unix timestamp on or after 1980-01-01.");
+  }
+  const bomHash = createHash("sha256").update(JSON.stringify(uniquePackages)).digest("hex");
   const bom = {
     bomFormat: "CycloneDX",
     specVersion: "1.6",
-    serialNumber: `urn:uuid:${crypto.randomUUID()}`,
+    serialNumber: `urn:uuid:${deterministicUuid(bomHash)}`,
     version: 1,
     metadata: {
-      timestamp: new Date().toISOString(),
-      tools: { components: [{ type: "application", name: "Pocket Relay SBOM generator", version: "1.0.2" }] },
+      timestamp: new Date(sourceDateEpoch * 1000).toISOString(),
+      tools: { components: [{ type: "application", name: "Pocket Relay SBOM generator", version: "1.0.0" }] },
       component: { type: "application", name: "Pocket Relay embedded Hermes worker", version: "0.20.1", licenses: [{ license: { id: "MIT" } }] },
     },
     components: uniquePackages,

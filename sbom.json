@@ -1,16 +1,16 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:1e331398-aa59-4d4f-8079-f5fd2a1d819e",
+  "serialNumber": "urn:uuid:275f9698-fe6f-561e-95b5-5ee6ce80ca97",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-19T10:51:14.304Z",
+    "timestamp": "2025-10-09T08:53:20.000Z",
     "tools": {
       "components": [
         {
           "type": "application",
           "name": "Pocket Relay SBOM generator",
-          "version": "1.0.2"
+          "version": "1.0.0"
         }
       ]
     },
@@ -86,7 +86,7 @@
       "licenses": [
         {
           "license": {
-            "name": "License :: OSI Approved :: MIT License"
+            "name": "MIT; License :: OSI Approved :: MIT License"
           }
         }
       ],
@@ -99,7 +99,7 @@
       "properties": [
         {
           "name": "pocket-hermes.license-evidence",
-          "value": "License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
+          "value": "MIT; License :: OSI Approved :: MIT License; MIT; License :: OSI Approved :: MIT License"
         }
       ]
     },
@@ -380,7 +380,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "218df5b3644a90390235e51cc65c8857689e54d695cd8d0fae020b82a6dabf5e"
+          "content": "74f0522edff07a3bb1c05230144fa1a2d3bbbad5a4b4e5c9a196b8e6f71672f8"
         }
       ],
       "externalReferences": [
@@ -479,20 +479,20 @@
       "licenses": [
         {
           "license": {
-            "name": "MIT; License :: OSI Approved :: MIT License"
+            "name": "MIT"
           }
         }
       ],
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "b42f375de39ee0a3546125a5d2be56028880667308bddfe8fdd7ecf2233a2b11"
+          "content": "5dfdef85770faa64f1759f1ec985eb7b15ec99eabab15b40032e2e26ea54cd36"
         }
       ],
       "properties": [
         {
           "name": "pocket-hermes.license-evidence",
-          "value": "MIT; License :: OSI Approved :: MIT License; MIT"
+          "value": "MIT; MIT"
         }
       ]
     },
@@ -711,7 +711,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ccfbd0c876ece6bc612c37cddbca4b9502d795816a86caa15e6172771d1d1239"
+          "content": "1149f4def4d09b8b30f8d5bef8a2e02f74f8d7954ba773283823266459e9e07c"
         }
       ],
       "properties": [
@@ -779,7 +779,7 @@
       "licenses": [
         {
           "license": {
-            "name": "Dual License; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License"
+            "name": "Dual License; License :: OSI Approved :: BSD License; License :: OSI Approved :: Apache Software License"
           }
         }
       ],
@@ -792,7 +792,7 @@
       "properties": [
         {
           "name": "pocket-hermes.license-evidence",
-          "value": "Dual License; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: BSD License; Dual License; License :: OSI Approved :: BSD License; License :: OSI Approved :: Apache Software License"
+          "value": "Dual License; License :: OSI Approved :: BSD License; License :: OSI Approved :: Apache Software License; Dual License; License :: OSI Approved :: BSD License; License :: OSI Approved :: Apache Software License"
         }
       ]
     },
@@ -1054,7 +1054,7 @@
       "licenses": [
         {
           "license": {
-            "name": "MIT OR Apache-2.0; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: MIT License"
+            "name": "MIT OR Apache-2.0; License :: OSI Approved :: MIT License; License :: OSI Approved :: Apache Software License"
           }
         }
       ],
@@ -1067,7 +1067,7 @@
       "properties": [
         {
           "name": "pocket-hermes.license-evidence",
-          "value": "MIT OR Apache-2.0; License :: OSI Approved :: Apache Software License; License :: OSI Approved :: MIT License; MIT OR Apache-2.0; License :: OSI Approved :: MIT License; License :: OSI Approved :: Apache Software License"
+          "value": "MIT OR Apache-2.0; License :: OSI Approved :: MIT License; License :: OSI Approved :: Apache Software License; MIT OR Apache-2.0; License :: OSI Approved :: MIT License; License :: OSI Approved :: Apache Software License"
         }
       ]
     },
@@ -1079,7 +1079,7 @@
       "licenses": [
         {
           "license": {
-            "name": "License :: OSI Approved :: MIT License"
+            "name": "UNKNOWN; License :: OSI Approved :: MIT License"
           }
         }
       ],
@@ -1092,7 +1092,7 @@
       "properties": [
         {
           "name": "pocket-hermes.license-evidence",
-          "value": "License :: OSI Approved :: MIT License; UNKNOWN; License :: OSI Approved :: MIT License"
+          "value": "UNKNOWN; License :: OSI Approved :: MIT License; UNKNOWN; License :: OSI Approved :: MIT License"
         }
       ]
     },

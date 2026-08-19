@@ -3,11 +3,11 @@
   "specVersion": "1.6",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-19T10:51:11.973Z",
+    "timestamp": "2026-08-19T11:43:36.009Z",
     "component": {
       "type": "application",
       "name": "Pocket Relay mobile JavaScript runtime",
-      "version": "1.0.2",
+      "version": "1.0.0",
       "licenses": [
         {
           "license": {
@@ -6220,7 +6220,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/argparse/package.json"
+          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/argparse/package.json"
         }
       ]
     },
@@ -7003,7 +7003,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/brace-expansion/package.json"
+          "value": "./node_modules/minimatch/node_modules/brace-expansion/package.json"
         }
       ]
     },
@@ -7496,7 +7496,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/ci-info/package.json"
+          "value": "./node_modules/jest-util/node_modules/ci-info/package.json"
         }
       ]
     },
@@ -10135,7 +10135,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/find-up/package.json"
+          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/find-up/package.json"
         }
       ]
     },
@@ -10715,7 +10715,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/hermes-estree/package.json"
+          "value": "./node_modules/@expo/metro-config/node_modules/hermes-estree/package.json"
         }
       ]
     },
@@ -12252,7 +12252,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/locate-path/package.json"
+          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/locate-path/package.json"
         }
       ]
     },
@@ -12687,7 +12687,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro/package.json"
         }
       ]
     },
@@ -12745,7 +12745,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/node_modules/metro-babel-transformer/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-babel-transformer/package.json"
         }
       ]
     },
@@ -12803,7 +12803,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/node_modules/metro-cache/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-cache/package.json"
         }
       ]
     },
@@ -12861,7 +12861,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/node_modules/metro-cache-key/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-cache-key/package.json"
         }
       ]
     },
@@ -12919,7 +12919,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-config/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-config/package.json"
         }
       ]
     },
@@ -12977,7 +12977,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-core/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-core/package.json"
         }
       ]
     },
@@ -13035,7 +13035,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/node_modules/metro-file-map/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-file-map/package.json"
         }
       ]
     },
@@ -13093,7 +13093,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-minify-terser/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-minify-terser/package.json"
         }
       ]
     },
@@ -13151,7 +13151,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-core/node_modules/metro-resolver/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-resolver/package.json"
         }
       ]
     },
@@ -13209,7 +13209,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-runtime/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-runtime/package.json"
         }
       ]
     },
@@ -13267,7 +13267,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-source-map/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-source-map/package.json"
         }
       ]
     },
@@ -13325,7 +13325,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro-symbolicate/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-symbolicate/package.json"
         }
       ]
     },
@@ -13383,7 +13383,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/node_modules/metro-transform-plugins/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-transform-plugins/package.json"
         }
       ]
     },
@@ -13441,7 +13441,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/metro/node_modules/metro-transform-worker/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/metro-transform-worker/package.json"
         }
       ]
     },
@@ -14311,7 +14311,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/ob1/package.json"
+          "value": "./node_modules/@react-native/community-cli-plugin/node_modules/ob1/package.json"
         }
       ]
     },
@@ -14601,7 +14601,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/p-locate/node_modules/p-limit/package.json"
+          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/p-limit/package.json"
         }
       ]
     },
@@ -14659,7 +14659,7 @@
         },
         {
           "name": "pocket-hermes.package-json",
-          "value": "./node_modules/p-locate/package.json"
+          "value": "./node_modules/@istanbuljs/load-nyc-config/node_modules/p-locate/package.json"
         }
       ]
     },
