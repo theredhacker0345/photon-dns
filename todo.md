@@ -331,3 +331,11 @@
 - [x] Import an encrypted backup, authenticate it with the owner password, show a restore preview, and require explicit final confirmation
 - [x] Add deterministic backup security regressions and restoration documentation
 - [x] Run complete validation, checkpoint, and publish the encrypted backup and restore feature to GitLab
+
+# Backup Health and Restore-Difference Summary
+
+- [x] Persist the timestamp of the last successful encrypted backup without storing any backup password or private file reference
+- [x] Add a dashboard backup-health card that clearly reports the latest successful encrypted backup time or that no backup has been created
+- [x] Derive a detailed safe restore-difference summary before confirmation, covering control-plane settings, automations, favourites, providers, MCP metadata, and skills
+- [x] Add restore-preview UI that distinguishes items that will change, items that are unchanged, and permanently excluded credentials and private history
+- [ ] Add regression coverage, complete validation, checkpoint, and publish the backup health and restore-difference enhancement to GitLab

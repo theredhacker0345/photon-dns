@@ -16,7 +16,7 @@ import type { McpAuthMode } from "@/lib/mcp-contracts";
 import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
 import { stageNativeEncryptedBackupForPreview } from "@/lib/native-supervisor";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
-import { BACKUP_EXCLUSIONS, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
+import { BACKUP_EXCLUSIONS, type BackupRestoreSummary, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
 import { getRecommendedResourceLimits, getResourceLimitWarnings } from "@/lib/resource-guardrails";
 import { useThemeContext } from "@/lib/theme-provider";
 
@@ -69,6 +69,7 @@ export default function SettingsScreen() {
   const [backupPath, setBackupPath] = useState<string | null>(null);
   const [backupFileName, setBackupFileName] = useState<string | null>(null);
   const [backupPreview, setBackupPreview] = useState<PocketRelayBackupPayload | null>(null);
+  const [backupSummary, setBackupSummary] = useState<BackupRestoreSummary | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
   const hireEmphasis = useRef(new Animated.Value(0)).current;
   const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
@@ -284,11 +285,13 @@ export default function SettingsScreen() {
     setBackupPath(null);
     setBackupFileName(null);
     setBackupPreview(null);
+    setBackupSummary(null);
   };
 
   const beginBackupExport = () => {
     setBackupPassword("");
     setBackupPreview(null);
+    setBackupSummary(null);
     setBackupPath(null);
     setBackupFileName(null);
     setBackupMode("export");
@@ -315,6 +318,7 @@ export default function SettingsScreen() {
       }
       setBackupPassword("");
       setBackupPreview(null);
+      setBackupSummary(null);
       setBackupPath(stagedPath);
       setBackupFileName(file.name || "Selected backup");
       setBackupMode("restore");
@@ -342,11 +346,12 @@ export default function SettingsScreen() {
       }
       const result = await importBackupPreview(backupPath, backupPassword);
       setBackupPassword("");
-      if (!result.ok || !result.preview) {
+      if (!result.ok || !result.preview || !result.summary) {
         Alert.alert("Backup could not be verified", result.message);
         return;
       }
       setBackupPreview(result.preview);
+      setBackupSummary(result.summary);
     } finally {
       setBackupBusy(false);
     }
@@ -639,8 +644,13 @@ export default function SettingsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.backupSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.backupSheetHeader}><View style={styles.settingCopy}><Text style={[styles.backupSheetTitle, { color: colors.foreground }]}>{backupPreview ? "Review verified backup" : backupMode === "export" ? "Create encrypted backup" : "Unlock backup for review"}</Text><Text style={[styles.backupSheetDetail, { color: colors.muted }]}>{backupPreview ? `${backupFileName ?? "Backup"} is decrypted only in private app storage. Review what will change before restoring.` : backupMode === "export" ? "Choose a backup password. Pocket Relay never stores it." : `Enter the password for ${backupFileName ?? "the selected file"}. Nothing is restored yet.`}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Close encrypted backup sheet" onPress={() => closeBackupSheet()} disabled={backupBusy} style={({ pressed }) => [styles.modalClose, { backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="close" size={19} color={colors.foreground} /></Pressable></View>
-            {backupPreview ? <>
-              <View style={[styles.previewSummary, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35` }]}><Text style={[styles.previewSummaryTitle, { color: colors.foreground }]}>Will restore</Text><Text style={[styles.previewSummaryText, { color: colors.muted }]}>{backupPreview.automations.length} automations · {backupPreview.favoriteModelIds.length} favorites · {backupPreview.providerConnections.length} provider records · {backupPreview.mcpServers.length} MCP server records · {backupPreview.installedSkills.length} reviewed skills</Text></View>
+            {backupPreview && backupSummary ? <>
+              <View style={[styles.previewSummary, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35` }]}><Text style={[styles.previewSummaryTitle, { color: colors.foreground }]}>Detailed change review</Text><Text style={[styles.previewSummaryText, { color: colors.muted }]}>Backup created {formatBackupCreatedAt(backupSummary.backupCreatedAt)} · Pocket Relay {backupSummary.backupAppVersion}</Text></View>
+              <View style={{ gap: 8 }}>{backupSummary.items.map((item) => {
+                const accent = item.status === "changed" ? colors.primary : item.status === "unchanged" ? colors.success : colors.warning;
+                const statusLabel = item.status === "changed" ? "WILL CHANGE" : item.status === "unchanged" ? "UNCHANGED" : "EXCLUDED";
+                return <View key={item.id} style={[styles.previewSummary, { backgroundColor: colors.background, borderColor: colors.border }]}><View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}><Text style={[styles.previewSummaryTitle, { flex: 1, color: colors.foreground }]}>{item.title}</Text><Text style={{ color: accent, backgroundColor: `${accent}16`, borderRadius: 7, fontSize: 9, fontWeight: "900", letterSpacing: 0.55, paddingHorizontal: 7, paddingVertical: 4 }}>{statusLabel}</Text></View><Text style={[styles.previewSummaryText, { color: colors.muted }]}>Current: {item.current}</Text><Text style={[styles.previewSummaryText, { color: colors.muted }]}>Backup: {item.incoming}</Text><Text style={[styles.previewSummaryText, { color: colors.muted, fontSize: 10 }]}>{item.detail}</Text></View>;
+              })}</View>
               <View style={[styles.previewWarning, { backgroundColor: `${colors.warning}10`, borderColor: `${colors.warning}35` }]}><MaterialIcons name="privacy-tip" size={18} color={colors.warning} /><Text style={[styles.previewWarningText, { color: colors.muted }]}>Credential-bearing connections remain disabled. Re-enter API keys, Telegram token, proxy password, and MCP bearer tokens after restore.</Text></View>
               <PrimaryButton label={backupBusy ? "Restoring verified backup…" : "Confirm and restore"} icon="verified-user" onPress={confirmBackupRestore} disabled={backupBusy} />
               <SecondaryButton label="Cancel restore" icon="close" onPress={() => closeBackupSheet()} disabled={backupBusy} />
@@ -659,6 +669,12 @@ export default function SettingsScreen() {
 }
 
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
+
+function formatBackupCreatedAt(value: string) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "at an unknown time";
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(timestamp));
+}
 
 const styles = StyleSheet.create({
   content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, providerConnectionsCard: { gap: 9 }, providerConnectionList: { gap: 7 }, providerConnectionRow: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 68, borderWidth: 1, borderRadius: 14, padding: 10 }, providerConnectionIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" }, providerConnectionCopy: { flex: 1, gap: 2 }, providerConnectionTitle: { fontSize: 13, fontWeight: "900" }, providerConnectionDetail: { fontSize: 11, lineHeight: 15, fontWeight: "700" }, providerConnectionEndpoint: { fontSize: 10, lineHeight: 14, fontWeight: "600" }, providerActiveLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 }, activeProviderSummary: { gap: 4, borderWidth: 1, borderRadius: 14, padding: 12 }, activeProviderSummaryHeader: { flexDirection: "row", alignItems: "center", gap: 7 }, activeProviderSummaryTitle: { fontSize: 12, fontWeight: "900" }, activeProviderSummaryValue: { fontSize: 15, lineHeight: 19, fontWeight: "900", marginTop: 2 }, activeProviderSummaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },

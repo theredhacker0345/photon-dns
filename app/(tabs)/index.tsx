@@ -24,10 +24,15 @@ function formatFreeStorage(bytes: number | null) {
   return bytes === null ? "Checking…" : `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
 
+function formatLastSuccessfulBackup(value: string | null) {
+  if (!value || !Number.isFinite(Date.parse(value))) return null;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
 export default function HostScreen() {
   const colors = useColors();
   const isFocused = useIsFocused();
-  const { config, phase, events, hydrated, prepareRuntime, stopHost } = usePocketHermes();
+  const { config, phase, events, hydrated, lastSuccessfulBackupAt, prepareRuntime, stopHost } = usePocketHermes();
   const readiness = useHostReadiness(config.policy.minimumFreeStorageBytes);
   const { telemetry, status: telemetryStatus, history: telemetryHistory } = useSupervisorTelemetry(config.policy, isFocused);
   const { permission: alertPermission, enableAlerts } = useHostAlerts(readiness, config.policy);
@@ -37,6 +42,7 @@ export default function HostScreen() {
   const resourceWarnings = getResourceLimitWarnings({ telemetry, policy: config.policy });
   const hasCriticalWarning = resourceWarnings.some((warning) => warning.severity === "critical");
   const storageWarning = resourceWarnings.find((warning) => warning.resource === "workspace");
+  const lastBackupLabel = formatLastSuccessfulBackup(lastSuccessfulBackupAt);
   const [detailsVisible, setDetailsVisible] = useState(false);
 
   if (!hydrated) {
@@ -99,6 +105,11 @@ export default function HostScreen() {
             <View style={styles.storageCopy}><Text style={[styles.storageLabel, { color: colors.muted }]}>HOST READINESS</Text><Text style={[styles.storageValue, { color: colors.foreground }]}>{formatFreeStorage(readiness.freeStorageBytes)} free</Text><Text style={[styles.storageDetail, { color: colors.muted }]}>{readiness.batteryPercent === null ? readiness.chargingLabel : `${readiness.batteryPercent}% · ${readiness.chargingLabel}`}</Text></View>
             <View style={[styles.readinessBadge, { backgroundColor: `${readiness.storageReady === false || storageWarning?.severity === "critical" ? colors.error : storageWarning || !readiness.isCharging ? colors.warning : colors.success}18` }]}><Text style={[styles.readinessBadgeText, { color: readiness.storageReady === false || storageWarning?.severity === "critical" ? colors.error : storageWarning || !readiness.isCharging ? colors.warning : colors.success }]}>{readiness.storageReady === false || storageWarning?.severity === "critical" ? "CHECK" : storageWarning ? "WATCH" : "READY"}</Text></View>
           </PressableCard>
+          <Pressable accessibilityRole="button" accessibilityLabel={lastBackupLabel ? `Backup health. Last successful backup ${lastBackupLabel}. Open encrypted backup controls.` : "Backup health. No successful encrypted backup has been created. Open encrypted backup controls."} onPress={() => router.push("/(tabs)/settings" as never)} style={({ pressed }) => [styles.storageCard, { backgroundColor: colors.surface, borderColor: lastBackupLabel ? `${colors.success}55` : `${colors.warning}66` }, pressed && styles.pressed]}>
+            <View style={[styles.storageIcon, { backgroundColor: `${lastBackupLabel ? colors.success : colors.warning}18` }]}><MaterialIcons name="backup" size={20} color={lastBackupLabel ? colors.success : colors.warning} /></View>
+            <View style={styles.storageCopy}><Text style={[styles.storageLabel, { color: colors.muted }]}>BACKUP HEALTH</Text><Text style={[styles.storageValue, { color: colors.foreground }]}>{lastBackupLabel ? "Protected backup ready" : "No backup created"}</Text><Text style={[styles.storageDetail, { color: colors.muted }]}>{lastBackupLabel ? `Last successful: ${lastBackupLabel}` : "Create an encrypted export in Settings"}</Text></View>
+            <View style={[styles.readinessBadge, { backgroundColor: `${lastBackupLabel ? colors.success : colors.warning}18` }]}><Text style={[styles.readinessBadgeText, { color: lastBackupLabel ? colors.success : colors.warning }]}>{lastBackupLabel ? "CURRENT" : "ACTION"}</Text></View>
+          </Pressable>
           {resourceWarnings.length ? <View style={[styles.resourceAlert, { backgroundColor: `${hasCriticalWarning ? colors.error : colors.warning}13`, borderColor: `${hasCriticalWarning ? colors.error : colors.warning}55` }]}><MaterialIcons name="warning-amber" size={19} color={hasCriticalWarning ? colors.error : colors.warning} /><View style={styles.resourceAlertCopy}><Text style={[styles.resourceAlertTitle, { color: hasCriticalWarning ? colors.error : colors.warning }]}>{hasCriticalWarning ? "Action needed on this host" : "Resource limit approaching"}</Text>{resourceWarnings.map((warning) => <Text key={warning.resource} style={[styles.resourceAlertDetail, { color: colors.muted }]}>{warning.detail}</Text>)}</View></View> : null}
           <View style={[styles.alertCard, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}><View style={[styles.alertIcon, { backgroundColor: `${alertPermission === "granted" ? colors.success : colors.warning}18` }]}><MaterialIcons name={alertPermission === "granted" ? "notifications-active" : "notifications-none"} size={18} color={alertPermission === "granted" ? colors.success : colors.warning} /></View><View style={styles.alertCopy}><Text style={[styles.alertTitle, { color: colors.foreground }]}>{alertPermission === "granted" ? "Safety alerts are on" : "Turn on safety alerts"}</Text><Text style={[styles.alertDetail, { color: colors.muted }]}>{alertPermission === "granted" ? "You will be warned about low battery and storage." : "Get a local warning before this unattended host becomes unsafe."}</Text></View>{alertPermission !== "granted" ? <Pressable accessibilityRole="button" accessibilityLabel="Enable local host safety alerts" onPress={() => void enableAlerts()} style={({ pressed }) => [styles.alertAction, { borderColor: colors.border, backgroundColor: colors.surfaceInset }, pressed && styles.pressed]}><Text style={[styles.alertActionText, { color: colors.primary }]}>Enable</Text></Pressable> : null}</View>
         </> : null}

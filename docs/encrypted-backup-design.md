@@ -43,6 +43,8 @@ Neuron Encrypt documents an Argon2id profile with an approximately 256 MiB worki
 
 Encrypted export files reside in the app cache only until Android’s share target consumes them. The selected restore file is copied to the app-private cache. Pocket Relay does not request cloud-provider credentials, copy SecureStore databases, or expose a file-system or shell tool to the agent.
 
+The dashboard may retain only the timestamp of the last successful encrypted export as owner-visible backup health metadata. It never stores a backup password, destination, filesystem path, or payload-derived secret. Restore confirmation presents a calculated, safe difference summary so the owner can see which allowed control-plane records would change and which private categories remain excluded.
+
 ## Compatibility and maintenance
 
 The backup contract, test suite, and Android bridge must be updated together whenever the format version changes. A future version must retain a migration path or reject older data clearly; it must never interpret an unknown version as the current schema. Changes to the vendored Neuron Encrypt source require a renewed provenance, dependency, format, JNI, and Android build-chain review before publication.

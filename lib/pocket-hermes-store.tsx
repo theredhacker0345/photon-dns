@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
-import { createBackupPayload, parseBackupPayload, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
+import { createBackupPayload, parseBackupPayload, summarizeBackupRestore, type BackupRestoreSummary, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
 import { canStartWorker, defaultHostRuntimePolicy, defaultTelegramProxyConfiguration, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, isSafeTelegramProxyConfiguration, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId, type PublicTelegramProxyConfiguration, type TelegramProxyType } from "@/lib/host-contracts";
 import { fetchProviderModels, getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
@@ -36,7 +36,7 @@ type PublicHostConfig = {
   telegramProxy: PublicTelegramProxyConfiguration;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[] };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[]; lastSuccessfulBackupAt: string | null };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -97,7 +97,7 @@ type PocketHermesContextValue = PersistedState & {
   clearActivity: () => void;
   clearSensitiveConfiguration: () => Promise<void>;
   exportBackup: (password: string) => Promise<{ ok: boolean; message: string }>;
-  importBackupPreview: (backupPath: string, password: string) => Promise<{ ok: boolean; message: string; preview?: PocketRelayBackupPayload }>;
+  importBackupPreview: (backupPath: string, password: string) => Promise<{ ok: boolean; message: string; preview?: PocketRelayBackupPayload; summary?: BackupRestoreSummary }>;
   applyBackup: (preview: PocketRelayBackupPayload) => Promise<{ ok: boolean; message: string }>;
 };
 
@@ -119,7 +119,7 @@ const emptyConfig: PublicHostConfig = {
   telegramProxy: defaultTelegramProxyConfiguration,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [] };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [], lastSuccessfulBackupAt: null };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -300,6 +300,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             skillDrafts: normalizeSkillDrafts(parsed.skillDrafts),
             installedSkills: normalizeInstalledSkills(parsed.installedSkills),
             aiSkillDraftRequests: normalizeAiSkillDraftRequests(parsed.aiSkillDraftRequests),
+            lastSuccessfulBackupAt: typeof parsed.lastSuccessfulBackupAt === "string" && Number.isFinite(Date.parse(parsed.lastSuccessfulBackupAt)) ? parsed.lastSuccessfulBackupAt : null,
           });
         }
       } catch {
@@ -925,12 +926,17 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       const Sharing = await import("expo-sharing");
       if (!(await Sharing.isAvailableAsync())) return { ok: false, message: "The Android system share sheet is unavailable on this device." };
       await Sharing.shareAsync(`file://${encryptedPath}`, { dialogTitle: "Share encrypted Pocket Relay backup", mimeType: "application/octet-stream" });
-      appendEvent({ title: "Encrypted backup shared", detail: "A password-protected backup was created. It excludes Telegram, provider, MCP, and proxy credentials as well as conversations, telemetry, and audit data.", severity: "success" });
+      const exportedAt = new Date().toISOString();
+      setState((current) => ({
+        ...current,
+        lastSuccessfulBackupAt: exportedAt,
+        events: [{ id: createId("event"), title: "Encrypted backup shared", detail: "A password-protected backup was created. It excludes Telegram, provider, MCP, and proxy credentials as well as conversations, telemetry, and audit data.", severity: "success" as const, createdAt: exportedAt }, ...current.events].slice(0, 60),
+      }));
       return { ok: true, message: "Encrypted backup opened in the Android share sheet." };
     } catch {
       return { ok: false, message: "Pocket Relay could not create or share the encrypted backup." };
     }
-  }, [appendEvent, state]);
+  }, [state]);
 
   const importBackupPreview = useCallback(async (backupPath: string, password: string) => {
     if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup restore is available only in the installed Android app." };
@@ -939,11 +945,23 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     if (!raw) return { ok: false, message: "Pocket Relay could not decrypt this backup. Check the password and file." };
     try {
       const parsed = parseBackupPayload(JSON.parse(raw) as unknown);
-      return parsed.ok ? { ok: true, message: "Backup decrypted safely. Review the restore preview before applying it.", preview: parsed.value } : parsed;
+      if (!parsed.ok) return parsed;
+      const summary = summarizeBackupRestore({
+        config: state.config,
+        automations: state.automations,
+        favoriteModelIds: state.favoriteModelIds,
+        mcpServers: state.mcpServers,
+        mcpTools: state.mcpTools,
+        mcpApprovals: state.mcpApprovals,
+        providerConnections: state.providerConnections,
+        activeProviderConnectionId: state.activeProviderConnectionId,
+        installedSkills: state.installedSkills,
+      }, parsed.value);
+      return { ok: true, message: "Backup decrypted safely. Review the detailed restore changes before applying it.", preview: parsed.value, summary };
     } catch {
       return { ok: false, message: "The decrypted file is not a valid Pocket Relay backup." };
     }
-  }, []);
+  }, [state]);
 
   const applyBackup = useCallback(async (preview: PocketRelayBackupPayload) => {
     if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup restore is available only in the installed Android app." };

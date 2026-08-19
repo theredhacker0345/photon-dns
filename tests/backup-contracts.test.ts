@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { createBackupPayload, parseBackupPayload, POCKET_RELAY_BACKUP_FORMAT, POCKET_RELAY_BACKUP_VERSION } from "../lib/backup-contracts";
+import { createBackupPayload, parseBackupPayload, POCKET_RELAY_BACKUP_FORMAT, POCKET_RELAY_BACKUP_VERSION, summarizeBackupRestore } from "../lib/backup-contracts";
 import { defaultHostRuntimePolicy } from "../lib/host-contracts";
 
 const unsafeSource = {
@@ -78,5 +78,34 @@ describe("Pocket Relay encrypted backup contract", () => {
     expect(settings).toContain("Apply this verified backup?");
     expect(settings).toContain("await applyBackup(backupPreview)");
     expect(settings).not.toContain("applyBackup(result.preview)");
+  });
+
+  it("computes an itemized safe restore summary without examining credentials or restoring approvals", () => {
+    const payload = createBackupPayload(unsafeSource as never, "1.2.3");
+    const unchanged = summarizeBackupRestore(unsafeSource as never, payload);
+    const changedPayload = { ...payload, favoriteModelIds: ["gpt-5-mini"] };
+    const changed = summarizeBackupRestore(unsafeSource as never, changedPayload);
+
+    expect(unchanged.items.find((item) => item.id === "configuration")?.status).toBe("unchanged");
+    expect(unchanged.items.find((item) => item.id === "providers")?.status).toBe("unchanged");
+    expect(unchanged.items.find((item) => item.id === "mcpApprovals")).toMatchObject({ status: "excluded", incoming: "No approvals restored" });
+    expect(changed.items.find((item) => item.id === "favorites")).toMatchObject({ status: "changed", current: "1 favourite", incoming: "1 favourite" });
+    expect(unchanged.exclusions).toContain("Provider API keys");
+    expect(JSON.stringify(unchanged)).not.toContain("telegram-token-must-never-export");
+    expect(JSON.stringify(unchanged)).not.toContain("provider-connection-key-must-never-export");
+  });
+
+  it("keeps the dashboard health signal and itemized restore statuses tied to safe persisted data", () => {
+    const settings = readFileSync(resolve(process.cwd(), "app/(tabs)/settings.tsx"), "utf8");
+    const dashboard = readFileSync(resolve(process.cwd(), "app/(tabs)/index.tsx"), "utf8");
+
+    expect(settings).toContain("setBackupSummary(result.summary)");
+    expect(settings).toContain("Detailed change review");
+    expect(settings).toContain("WILL CHANGE");
+    expect(settings).toContain("UNCHANGED");
+    expect(settings).toContain("EXCLUDED");
+    expect(dashboard).toContain("lastSuccessfulBackupAt");
+    expect(dashboard).toContain("BACKUP HEALTH");
+    expect(dashboard).toContain("Last successful:");
   });
 });
