@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { createBackupPayload, parseBackupPayload, POCKET_RELAY_BACKUP_FORMAT, POCKET_RELAY_BACKUP_VERSION, summarizeBackupRestore } from "../lib/backup-contracts";
+import { assessBackupCompatibility, createBackupPayload, parseBackupPayload, POCKET_RELAY_BACKUP_FORMAT, POCKET_RELAY_BACKUP_VERSION, summarizeBackupRestore } from "../lib/backup-contracts";
+import { defaultBackupReminderConfiguration, describeBackupReminderInterval, normalizeBackupReminderConfiguration } from "../lib/backup-reminder-contracts";
 import { defaultHostRuntimePolicy } from "../lib/host-contracts";
 
 const unsafeSource = {
@@ -64,8 +65,8 @@ describe("Pocket Relay encrypted backup contract", () => {
   });
 
   it("rejects other encrypted file formats, unsupported versions, and incomplete backup objects", () => {
-    expect(parseBackupPayload({ format: "other", version: 1 })).toEqual({ ok: false, message: "This encrypted file is not a supported Pocket Relay backup." });
-    expect(parseBackupPayload({ format: POCKET_RELAY_BACKUP_FORMAT, version: 2 })).toEqual({ ok: false, message: "This encrypted file is not a supported Pocket Relay backup." });
+    expect(parseBackupPayload({ format: "other", version: 1 })).toEqual({ ok: false, message: "This backup format is incompatible with Pocket Relay and cannot be safely previewed or restored by this app version." });
+    expect(parseBackupPayload({ format: POCKET_RELAY_BACKUP_FORMAT, version: 2 })).toEqual({ ok: false, message: "Backup format version 2 is not supported by this Pocket Relay build. Update the app before restoring this file." });
     expect(parseBackupPayload({ format: POCKET_RELAY_BACKUP_FORMAT, version: POCKET_RELAY_BACKUP_VERSION, config: {}, automations: [], favoriteModelIds: [], mcpServers: [], installedSkills: [] })).toEqual({ ok: false, message: "The backup payload is incomplete or malformed." });
   });
 
@@ -107,5 +108,30 @@ describe("Pocket Relay encrypted backup contract", () => {
     expect(dashboard).toContain("lastSuccessfulBackupAt");
     expect(dashboard).toContain("BACKUP HEALTH");
     expect(dashboard).toContain("Last successful:");
+  });
+
+  it("warns about app-version compatibility without bypassing the preview-first boundary", () => {
+    expect(assessBackupCompatibility("2.0.0")).toMatchObject({ format: "supported", appVersion: "newer" });
+    expect(assessBackupCompatibility("0.9.0")).toMatchObject({ format: "supported", appVersion: "older" });
+    expect(assessBackupCompatibility("not-a-version")).toMatchObject({ format: "supported", appVersion: "unknown" });
+
+    const settings = readFileSync(resolve(process.cwd(), "app/(tabs)/settings.tsx"), "utf8");
+    expect(settings).toContain("backupSummary.compatibility.warning");
+    expect(settings).toContain("backupCompatibilityMessage");
+    expect(settings).toContain("Confirm and restore");
+  });
+
+  it("keeps local backup reminders opt-in, bounded, and free of backup secrets", () => {
+    expect(defaultBackupReminderConfiguration).toEqual({ enabled: false, intervalDays: 14, notificationId: null });
+    expect(normalizeBackupReminderConfiguration({ enabled: true, intervalDays: 7, notificationId: "scheduled-local-id" })).toEqual({ enabled: true, intervalDays: 7, notificationId: "scheduled-local-id" });
+    expect(normalizeBackupReminderConfiguration({ enabled: true, intervalDays: 99, notificationId: "unexpected" })).toEqual({ enabled: true, intervalDays: 14, notificationId: "unexpected" });
+    expect(describeBackupReminderInterval(30)).toBe("Every month");
+
+    const settings = readFileSync(resolve(process.cwd(), "app/(tabs)/settings.tsx"), "utf8");
+    expect(settings).toContain("Backup reminder");
+    expect(settings).toContain("configureBackupReminder");
+    const checklist = readFileSync(resolve(process.cwd(), "docs/physical-device-backup-acceptance-checklist.md"), "utf8");
+    expect(checklist).toContain("Detailed change review");
+    expect(checklist).toContain("does not retain the password");
   });
 });

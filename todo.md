@@ -339,3 +339,12 @@
 - [x] Derive a detailed safe restore-difference summary before confirmation, covering control-plane settings, automations, favourites, providers, MCP metadata, and skills
 - [x] Add restore-preview UI that distinguishes items that will change, items that are unchanged, and permanently excluded credentials and private history
 - [x] Add regression coverage, complete validation, checkpoint, and publish the backup health and restore-difference enhancement to GitLab
+
+# Backup Reminders, Compatibility Warnings, and Device Acceptance
+
+- [x] Define a credential-free local backup reminder policy with opt-in schedules, notification permission handling, and safe cancellation
+- [x] Persist and schedule configurable Android-local backup reminders without transmitting any backup data or using remote notifications
+- [x] Add Settings controls to enable, choose, update, and disable backup reminders with clear permission feedback
+- [x] Detect unsupported backup format and newer backup app versions, and warn before restore confirmation without automatically blocking a supported migration path
+- [x] Publish a step-by-step physical-device export and restore acceptance checklist covering secure backup handling, permissions, preview review, confirmation, and post-restore verification
+- [ ] Add regression coverage, complete validation, checkpoint, and publish the reminder, compatibility, and acceptance enhancement to GitLab

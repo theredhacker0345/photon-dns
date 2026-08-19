@@ -17,6 +17,7 @@ import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } fr
 import { stageNativeEncryptedBackupForPreview } from "@/lib/native-supervisor";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
 import { BACKUP_EXCLUSIONS, type BackupRestoreSummary, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
+import { BACKUP_REMINDER_INTERVALS, describeBackupReminderInterval } from "@/lib/backup-reminders";
 import { getRecommendedResourceLimits, getResourceLimitWarnings } from "@/lib/resource-guardrails";
 import { useThemeContext } from "@/lib/theme-provider";
 
@@ -28,7 +29,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const isFocused = useIsFocused();
   const { themeId, setThemeId } = useThemeContext();
-  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, exportBackup, importBackupPreview, applyBackup } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, backupReminder, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, exportBackup, configureBackupReminder, importBackupPreview, applyBackup } = usePocketHermes();
   const { telemetry } = useSupervisorTelemetry(defaultHostRuntimePolicy, isFocused);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
@@ -71,6 +72,8 @@ export default function SettingsScreen() {
   const [backupPreview, setBackupPreview] = useState<PocketRelayBackupPayload | null>(null);
   const [backupSummary, setBackupSummary] = useState<BackupRestoreSummary | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
+  const [backupCompatibilityMessage, setBackupCompatibilityMessage] = useState<string | null>(null);
+  const [updatingBackupReminder, setUpdatingBackupReminder] = useState(false);
   const hireEmphasis = useRef(new Animated.Value(0)).current;
   const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
   const selectedProviderRequiresApiKey = requiresModelApiKey(modelProvider);
@@ -286,12 +289,14 @@ export default function SettingsScreen() {
     setBackupFileName(null);
     setBackupPreview(null);
     setBackupSummary(null);
+    setBackupCompatibilityMessage(null);
   };
 
   const beginBackupExport = () => {
     setBackupPassword("");
     setBackupPreview(null);
     setBackupSummary(null);
+    setBackupCompatibilityMessage(null);
     setBackupPath(null);
     setBackupFileName(null);
     setBackupMode("export");
@@ -319,6 +324,7 @@ export default function SettingsScreen() {
       setBackupPassword("");
       setBackupPreview(null);
       setBackupSummary(null);
+      setBackupCompatibilityMessage(null);
       setBackupPath(stagedPath);
       setBackupFileName(file.name || "Selected backup");
       setBackupMode("restore");
@@ -347,6 +353,7 @@ export default function SettingsScreen() {
       const result = await importBackupPreview(backupPath, backupPassword);
       setBackupPassword("");
       if (!result.ok || !result.preview || !result.summary) {
+        if (/format|incompatible|update/i.test(result.message)) setBackupCompatibilityMessage(result.message);
         Alert.alert("Backup could not be verified", result.message);
         return;
       }
@@ -354,6 +361,16 @@ export default function SettingsScreen() {
       setBackupSummary(result.summary);
     } finally {
       setBackupBusy(false);
+    }
+  };
+
+  const updateBackupReminder = async (enabled: boolean, intervalDays = backupReminder.intervalDays) => {
+    setUpdatingBackupReminder(true);
+    try {
+      const result = await configureBackupReminder(enabled, intervalDays);
+      Alert.alert(result.ok ? "Backup reminder updated" : "Backup reminder unavailable", result.message);
+    } finally {
+      setUpdatingBackupReminder(false);
     }
   };
 
@@ -588,6 +605,11 @@ export default function SettingsScreen() {
           <Text style={[styles.backupExclusion, { color: colors.muted }]}>Never included: {BACKUP_EXCLUSIONS.join(" · ")}.</Text>
           <PrimaryButton label="Create encrypted backup" icon="save-alt" onPress={beginBackupExport} />
           <SecondaryButton label="Restore from backup" icon="restore" onPress={() => void beginBackupRestore()} />
+          <View style={[styles.previewSummary, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35`, gap: 9 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><View style={styles.settingCopy}><Text style={[styles.settingTitle, { color: colors.foreground }]}>Backup reminder</Text><Text style={[styles.settingDetail, { color: colors.muted }]}>{backupReminder.enabled ? `${describeBackupReminderInterval(backupReminder.intervalDays)} on this Android device.` : "Off — no reminders are scheduled."}</Text></View><Switch value={backupReminder.enabled} onValueChange={(enabled) => void updateBackupReminder(enabled)} disabled={updatingBackupReminder} trackColor={{ false: colors.border, true: `${colors.success}AA` }} thumbColor={backupReminder.enabled ? colors.success : colors.muted} /></View>
+            <View style={{ flexDirection: "row", gap: 7 }}>{BACKUP_REMINDER_INTERVALS.map((intervalDays) => { const selected = backupReminder.intervalDays === intervalDays; return <Pressable key={intervalDays} accessibilityRole="button" accessibilityLabel={`Set backup reminder ${describeBackupReminderInterval(intervalDays)}`} accessibilityState={{ selected, disabled: updatingBackupReminder }} onPress={() => void updateBackupReminder(true, intervalDays)} disabled={updatingBackupReminder} style={({ pressed }) => [{ flex: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderWidth: 1, borderRadius: 11, paddingHorizontal: 6, backgroundColor: selected ? `${colors.primary}16` : colors.background, borderColor: selected ? colors.primary : colors.border }, pressed && styles.themeOptionPressed]}><Text style={{ fontSize: 10, fontWeight: "900", color: selected ? colors.primary : colors.foreground }}>{describeBackupReminderInterval(intervalDays)}</Text></Pressable>; })}</View>
+            <Text style={[styles.backupExclusion, { color: colors.muted }]}>Optional local notification only. No backup data, notification token, password, or file path leaves this device.</Text>
+          </View>
         </PressableCard>
 
         <SectionHeading eyebrow="LOCAL DATA" title="Privacy controls" />
@@ -644,8 +666,10 @@ export default function SettingsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.backupSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.backupSheetHeader}><View style={styles.settingCopy}><Text style={[styles.backupSheetTitle, { color: colors.foreground }]}>{backupPreview ? "Review verified backup" : backupMode === "export" ? "Create encrypted backup" : "Unlock backup for review"}</Text><Text style={[styles.backupSheetDetail, { color: colors.muted }]}>{backupPreview ? `${backupFileName ?? "Backup"} is decrypted only in private app storage. Review what will change before restoring.` : backupMode === "export" ? "Choose a backup password. Pocket Relay never stores it." : `Enter the password for ${backupFileName ?? "the selected file"}. Nothing is restored yet.`}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Close encrypted backup sheet" onPress={() => closeBackupSheet()} disabled={backupBusy} style={({ pressed }) => [styles.modalClose, { backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="close" size={19} color={colors.foreground} /></Pressable></View>
+            {backupCompatibilityMessage ? <View style={[styles.previewWarning, { backgroundColor: `${colors.error}10`, borderColor: `${colors.error}42` }]}><MaterialIcons name="error-outline" size={18} color={colors.error} /><Text style={[styles.previewWarningText, { color: colors.muted }]}>{backupCompatibilityMessage}</Text></View> : null}
             {backupPreview && backupSummary ? <>
               <View style={[styles.previewSummary, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35` }]}><Text style={[styles.previewSummaryTitle, { color: colors.foreground }]}>Detailed change review</Text><Text style={[styles.previewSummaryText, { color: colors.muted }]}>Backup created {formatBackupCreatedAt(backupSummary.backupCreatedAt)} · Pocket Relay {backupSummary.backupAppVersion}</Text></View>
+              {backupSummary.compatibility.warning ? <View style={[styles.previewWarning, { backgroundColor: `${backupSummary.compatibility.appVersion === "newer" ? colors.error : colors.warning}10`, borderColor: `${backupSummary.compatibility.appVersion === "newer" ? colors.error : colors.warning}42` }]}><MaterialIcons name="warning-amber" size={18} color={backupSummary.compatibility.appVersion === "newer" ? colors.error : colors.warning} /><Text style={[styles.previewWarningText, { color: colors.muted }]}>{backupSummary.compatibility.warning}</Text></View> : null}
               <View style={{ gap: 8 }}>{backupSummary.items.map((item) => {
                 const accent = item.status === "changed" ? colors.primary : item.status === "unchanged" ? colors.success : colors.warning;
                 const statusLabel = item.status === "changed" ? "WILL CHANGE" : item.status === "unchanged" ? "UNCHANGED" : "EXCLUDED";

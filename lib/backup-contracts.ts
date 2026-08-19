@@ -5,6 +5,7 @@ import type { InstalledSkill, SkillPackage } from "@/lib/skill-contracts";
 
 export const POCKET_RELAY_BACKUP_FORMAT = "pocket-relay-backup" as const;
 export const POCKET_RELAY_BACKUP_VERSION = 1 as const;
+export const POCKET_RELAY_APP_VERSION = "1.0.0" as const;
 export const BACKUP_FILE_EXTENSION = ".prbackup.neuron";
 
 export type BackupPublicConfig = {
@@ -46,8 +47,16 @@ export type BackupRestoreSummaryItem = {
 export type BackupRestoreSummary = {
   backupCreatedAt: string;
   backupAppVersion: string;
+  compatibility: BackupCompatibility;
   items: BackupRestoreSummaryItem[];
   exclusions: readonly string[];
+};
+
+export type BackupCompatibility = {
+  format: "supported";
+  formatMessage: string;
+  appVersion: "same" | "older" | "newer" | "unknown";
+  warning: string | null;
 };
 
 export const BACKUP_EXCLUSIONS = [
@@ -110,12 +119,38 @@ function summaryItem(
   return { id, title, status: isUnchanged ? "unchanged" : "changed", current, incoming, detail };
 }
 
+function parseMajorVersion(version: string) {
+  const match = /^(\d+)\./.exec(version.trim());
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Assesses compatibility for display before confirmation. A valid format remains
+ * previewable even when its app version differs, so the owner can make an
+ * informed choice instead of having a safe migration path auto-blocked.
+ */
+export function assessBackupCompatibility(backupAppVersion: string, currentAppVersion = POCKET_RELAY_APP_VERSION): BackupCompatibility {
+  const backupMajor = parseMajorVersion(backupAppVersion);
+  const currentMajor = parseMajorVersion(currentAppVersion);
+  const formatMessage = `Backup format ${POCKET_RELAY_BACKUP_FORMAT} v${POCKET_RELAY_BACKUP_VERSION} is supported.`;
+  if (backupMajor === null || currentMajor === null) {
+    return { format: "supported", formatMessage, appVersion: "unknown", warning: "The backup app version is not recognizable. Review every planned change carefully before restoring." };
+  }
+  if (backupMajor > currentMajor) {
+    return { format: "supported", formatMessage, appVersion: "newer", warning: `This backup was created by Pocket Relay ${backupAppVersion}, which is newer than this app (${currentAppVersion}). Update Pocket Relay when possible, then review the change summary before restoring.` };
+  }
+  if (backupMajor < currentMajor) {
+    return { format: "supported", formatMessage, appVersion: "older", warning: `This backup was created by an older Pocket Relay ${backupAppVersion}. Its supported format can be reviewed and restored, but verify the listed settings after completion.` };
+  }
+  return { format: "supported", formatMessage, appVersion: "same", warning: null };
+}
+
 /**
  * Produces a display-only comparison of safe restore data. It intentionally does
  * not inspect SecureStore, passwords, tokens, conversation content, telemetry,
  * audit records, or the encrypted source file.
  */
-export function summarizeBackupRestore(current: BackupRestoreComparisonSource, incoming: PocketRelayBackupPayload): BackupRestoreSummary {
+export function summarizeBackupRestore(current: BackupRestoreComparisonSource, incoming: PocketRelayBackupPayload, currentAppVersion = POCKET_RELAY_APP_VERSION): BackupRestoreSummary {
   const incomingConfig = publicConfigSignature(incoming.config);
   const currentConfig = publicConfigSignature(current.config);
   const items: BackupRestoreSummaryItem[] = [
@@ -135,7 +170,7 @@ export function summarizeBackupRestore(current: BackupRestoreComparisonSource, i
     { id: "mcpApprovals", title: "MCP approvals", status: "excluded", current: countLabel(current.mcpApprovals.length, "active approval"), incoming: "No approvals restored", detail: "Time-limited owner approvals are deliberately cleared during every restore." },
     summaryItem("skills", "Reviewed skills", countLabel(current.installedSkills.length, "installed skill"), countLabel(incoming.installedSkills.length, "installed skill"), sameValue(skillMetadata(current.installedSkills), skillMetadata(incoming.installedSkills)), "Source-verified skill packages are restored disabled and must be explicitly re-enabled."),
   ];
-  return { backupCreatedAt: incoming.createdAt, backupAppVersion: incoming.appVersion, items, exclusions: BACKUP_EXCLUSIONS };
+  return { backupCreatedAt: incoming.createdAt, backupAppVersion: incoming.appVersion, compatibility: assessBackupCompatibility(incoming.appVersion, currentAppVersion), items, exclusions: BACKUP_EXCLUSIONS };
 }
 
 export function createBackupPayload(source: BackupSource, appVersion: string): PocketRelayBackupPayload {
@@ -175,9 +210,8 @@ export function createBackupPayload(source: BackupSource, appVersion: string): P
 export function parseBackupPayload(value: unknown): { ok: true; value: PocketRelayBackupPayload } | { ok: false; message: string } {
   if (!value || typeof value !== "object") return { ok: false, message: "The decrypted file does not contain a Pocket Relay backup." };
   const payload = value as Partial<PocketRelayBackupPayload>;
-  if (payload.format !== POCKET_RELAY_BACKUP_FORMAT || payload.version !== POCKET_RELAY_BACKUP_VERSION) {
-    return { ok: false, message: "This encrypted file is not a supported Pocket Relay backup." };
-  }
+  if (payload.format !== POCKET_RELAY_BACKUP_FORMAT) return { ok: false, message: "This backup format is incompatible with Pocket Relay and cannot be safely previewed or restored by this app version." };
+  if (payload.version !== POCKET_RELAY_BACKUP_VERSION) return { ok: false, message: `Backup format version ${String(payload.version)} is not supported by this Pocket Relay build. Update the app before restoring this file.` };
   if (!payload.config || typeof payload.config !== "object" || !Array.isArray(payload.automations) || !Array.isArray(payload.favoriteModelIds) || !Array.isArray(payload.mcpServers) || !Array.isArray(payload.installedSkills) || !Array.isArray(payload.skillBundles)) {
     return { ok: false, message: "The backup payload is incomplete or malformed." };
   }

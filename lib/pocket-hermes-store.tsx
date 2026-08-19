@@ -3,7 +3,8 @@ import * as SecureStore from "expo-secure-store";
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
-import { createBackupPayload, parseBackupPayload, summarizeBackupRestore, type BackupRestoreSummary, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
+import { createBackupPayload, parseBackupPayload, POCKET_RELAY_APP_VERSION, summarizeBackupRestore, type BackupRestoreSummary, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
+import { defaultBackupReminderConfiguration, disableBackupReminder, isBackupReminderIntervalDays, normalizeBackupReminderConfiguration, scheduleBackupReminder, type BackupReminderConfiguration, type BackupReminderIntervalDays } from "@/lib/backup-reminders";
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
 import { canStartWorker, defaultHostRuntimePolicy, defaultTelegramProxyConfiguration, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, isSafeTelegramProxyConfiguration, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId, type PublicTelegramProxyConfiguration, type TelegramProxyType } from "@/lib/host-contracts";
 import { fetchProviderModels, getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
@@ -36,7 +37,7 @@ type PublicHostConfig = {
   telegramProxy: PublicTelegramProxyConfiguration;
   policy: HostRuntimePolicy;
 };
-type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[]; lastSuccessfulBackupAt: string | null };
+type PersistedState = { config: PublicHostConfig; phase: HostPhase; events: HostEvent[]; automations: Automation[]; drafts: AgentDraft[]; modelCatalog: ModelCatalogEntry[]; modelCatalogFetchedAt: string | null; providerConnection: ProviderConnectionStatus; favoriteModelIds: string[]; mcpServers: RemoteMcpServer[]; mcpTools: McpToolManifestItem[]; mcpApprovals: McpToolApproval[]; providerConnections: SavedProviderConnection[]; activeProviderConnectionId: string | null; skillDrafts: SkillDraft[]; installedSkills: InstalledSkill[]; aiSkillDraftRequests: AiSkillDraftRequest[]; lastSuccessfulBackupAt: string | null; backupReminder: BackupReminderConfiguration };
 type SaveConfigurationInput = {
   hostName: string;
   allowedChatId: string;
@@ -97,6 +98,7 @@ type PocketHermesContextValue = PersistedState & {
   clearActivity: () => void;
   clearSensitiveConfiguration: () => Promise<void>;
   exportBackup: (password: string) => Promise<{ ok: boolean; message: string }>;
+  configureBackupReminder: (enabled: boolean, intervalDays?: BackupReminderIntervalDays) => Promise<{ ok: boolean; message: string }>;
   importBackupPreview: (backupPath: string, password: string) => Promise<{ ok: boolean; message: string; preview?: PocketRelayBackupPayload; summary?: BackupRestoreSummary }>;
   applyBackup: (preview: PocketRelayBackupPayload) => Promise<{ ok: boolean; message: string }>;
 };
@@ -119,7 +121,7 @@ const emptyConfig: PublicHostConfig = {
   telegramProxy: defaultTelegramProxyConfiguration,
   policy: defaultHostRuntimePolicy,
 };
-const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [], lastSuccessfulBackupAt: null };
+const initialState: PersistedState = { config: emptyConfig, phase: "unconfigured", events: [], automations: [], drafts: [], modelCatalog: [], modelCatalogFetchedAt: null, providerConnection: { authStatus: "not_checked", latencyMs: null, checkedAt: null }, favoriteModelIds: [], mcpServers: [], mcpTools: [], mcpApprovals: [], providerConnections: [], activeProviderConnectionId: null, skillDrafts: [], installedSkills: [], aiSkillDraftRequests: [], lastSuccessfulBackupAt: null, backupReminder: defaultBackupReminderConfiguration };
 const PocketHermesContext = createContext<PocketHermesContextValue | null>(null);
 
 function createId(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
@@ -301,6 +303,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
             installedSkills: normalizeInstalledSkills(parsed.installedSkills),
             aiSkillDraftRequests: normalizeAiSkillDraftRequests(parsed.aiSkillDraftRequests),
             lastSuccessfulBackupAt: typeof parsed.lastSuccessfulBackupAt === "string" && Number.isFinite(Date.parse(parsed.lastSuccessfulBackupAt)) ? parsed.lastSuccessfulBackupAt : null,
+            backupReminder: normalizeBackupReminderConfiguration(parsed.backupReminder),
           });
         }
       } catch {
@@ -920,7 +923,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
         activeProviderConnectionId: state.activeProviderConnectionId,
         installedSkills: state.installedSkills,
         skillBundles,
-      }, "1.0.0");
+      }, POCKET_RELAY_APP_VERSION);
       const encryptedPath = await exportNativeEncryptedBackup(JSON.stringify(payload), password);
       if (!encryptedPath) return { ok: false, message: "Pocket Relay could not encrypt the backup in private Android storage." };
       const Sharing = await import("expo-sharing");
@@ -937,6 +940,21 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
       return { ok: false, message: "Pocket Relay could not create or share the encrypted backup." };
     }
   }, [state]);
+
+  const configureBackupReminder = useCallback(async (enabled: boolean, requestedIntervalDays = state.backupReminder.intervalDays) => {
+    const intervalDays = isBackupReminderIntervalDays(requestedIntervalDays) ? requestedIntervalDays : defaultBackupReminderConfiguration.intervalDays;
+    const result = enabled
+      ? await scheduleBackupReminder(state.backupReminder, intervalDays)
+      : await disableBackupReminder(state.backupReminder);
+    if (!result.ok) return { ok: false, message: result.message };
+    const createdAt = new Date().toISOString();
+    setState((current) => ({
+      ...current,
+      backupReminder: result.configuration,
+      events: [{ id: createId("event"), title: enabled ? "Backup reminder enabled" : "Backup reminder disabled", detail: result.message, severity: "info" as const, createdAt }, ...current.events].slice(0, 60),
+    }));
+    return { ok: true, message: result.message };
+  }, [state.backupReminder]);
 
   const importBackupPreview = useCallback(async (backupPath: string, password: string) => {
     if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup restore is available only in the installed Android app." };
@@ -956,7 +974,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
         providerConnections: state.providerConnections,
         activeProviderConnectionId: state.activeProviderConnectionId,
         installedSkills: state.installedSkills,
-      }, parsed.value);
+      }, parsed.value, POCKET_RELAY_APP_VERSION);
       return { ok: true, message: "Backup decrypted safely. Review the detailed restore changes before applying it.", preview: parsed.value, summary };
     } catch {
       return { ok: false, message: "The decrypted file is not a valid Pocket Relay backup." };
@@ -1021,7 +1039,7 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }
   }, [state.installedSkills]);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, importBackupPreview, applyBackup }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, importBackupPreview, applyBackup]);
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, configureBackupReminder, importBackupPreview, applyBackup }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, configureBackupReminder, importBackupPreview, applyBackup]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 
