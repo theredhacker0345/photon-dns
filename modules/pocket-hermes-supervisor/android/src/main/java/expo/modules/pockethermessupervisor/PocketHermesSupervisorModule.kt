@@ -14,6 +14,60 @@ class PocketHermesSupervisorModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("PocketHermesSupervisor")
 
+    AsyncFunction("exportEncryptedBackup") { payloadJson: String, password: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      require(payloadJson.length <= 4_000_000) { "The backup payload is unexpectedly large." }
+      val backupDirectory = File(context.cacheDir, "pocket-relay-backups").also { it.mkdirs() }
+      val plain = File(backupDirectory, "export-payload.json")
+      val encrypted = File(backupDirectory, "pocket-relay.prbackup.neuron")
+      try {
+        plain.writeText(payloadJson, Charsets.UTF_8)
+        EncryptedBackupFiles.encrypt(plain, encrypted, password)
+        encrypted.absolutePath
+      } finally {
+        plain.delete()
+      }
+    }
+
+    AsyncFunction("stageEncryptedBackupForPreview") { selectedPath: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      val cacheRoot = context.cacheDir.canonicalFile
+      val selected = File(selectedPath).canonicalFile
+      require(selected.isFile && selected.path.startsWith("${cacheRoot.path}${File.separator}")) {
+        "Copy the selected backup into Pocket Relay's private cache before restoring."
+      }
+      val backupDirectory = File(cacheRoot, "pocket-relay-backups").also { it.mkdirs() }
+      val staged = File(backupDirectory, "restore-input.prbackup.neuron")
+      selected.inputStream().use { input ->
+        staged.outputStream().use { output -> input.copyTo(output) }
+      }
+      staged.absolutePath
+    }
+
+    AsyncFunction("decryptEncryptedBackupPreview") { backupPath: String, password: String ->
+      val context = requireNotNull(appContext.reactContext) {
+        "Pocket Relay supervisor requires an Android application context."
+      }
+      val backupDirectory = File(context.cacheDir, "pocket-relay-backups").also { it.mkdirs() }
+      val source = File(backupPath)
+      require(source.canonicalFile.parentFile == backupDirectory.canonicalFile) {
+        "The selected backup must be copied into Pocket Relay's private cache first."
+      }
+      val plain = File(backupDirectory, "restore-preview.json")
+      try {
+        EncryptedBackupFiles.decrypt(source, plain, password)
+        plain.readText(Charsets.UTF_8).also {
+          require(it.length <= 4_000_000) { "The decrypted backup is unexpectedly large." }
+        }
+      } finally {
+        plain.delete()
+      }
+    }
+
     AsyncFunction("getTelemetry") {
       val context = requireNotNull(appContext.reactContext) {
         "Pocket Relay supervisor requires an Android application context."

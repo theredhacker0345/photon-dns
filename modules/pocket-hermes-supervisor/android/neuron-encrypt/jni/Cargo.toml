@@ -1,0 +1,25 @@
+[package]
+name = "neuron-encrypt-jni"
+version = "2.1.2"
+edition = "2021"
+
+[lib]
+name = "neuron_encrypt_jni"
+crate-type = ["cdylib"]
+
+[dependencies]
+neuron-encrypt = { path = "../core", default-features = false }
+jni = { version = "0.21", default-features = false }
+libc = "0.2"
+zeroize = "1.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+# Do NOT set panic = "abort" here. The `panic::catch_unwind` wrappers in lib.rs
+# rely on unwinding to convert native panics into Java exceptions instead of
+# crashing the whole Android app. The core neuron-encrypt crate can keep its
+# panic = "abort" because panics there propagate up to the JNI boundary, where
+# catch_unwind catches them.

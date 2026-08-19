@@ -26,6 +26,39 @@ import { formatTelemetryBytes, normalizeSupervisorTelemetry, type SupervisorTele
 export type { SupervisorTelemetry } from "./supervisor-telemetry";
 
 /**
+ * Encrypts a credential-free portable payload on Android. The result is an
+ * app-cache path intended for immediate sharing, not a durable app setting.
+ */
+export async function exportNativeEncryptedBackup(payloadJson: string, password: string): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.exportEncryptedBackup(payloadJson, password);
+  } catch {
+    return null;
+  }
+}
+
+/** Copies a document-picker file into the backup-only Android cache directory before decryption. */
+export async function stageNativeEncryptedBackupForPreview(backupUri: string): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.stageEncryptedBackupForPreview(backupUri.replace(/^file:\/\//, ""));
+  } catch {
+    return null;
+  }
+}
+
+/** Decrypts a private-cache backup into a JSON string for preview only. */
+export async function decryptNativeEncryptedBackupPreview(backupPath: string, password: string): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    return await PocketHermesSupervisorModule.decryptEncryptedBackupPreview(backupPath, password);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reads real Android process telemetry from the FOSS foreground supervisor.
  * Expo web preview intentionally resolves to null because it has no Android
  * process, foreground service, or embedded Hermes runtime.

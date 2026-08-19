@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Animated, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 
 import { ModelCatalog } from "@/components/model-catalog";
@@ -14,7 +14,9 @@ import { useSupervisorTelemetry } from "@/hooks/use-supervisor-telemetry";
 import { defaultHostRuntimePolicy, requiresModelApiKey, type ModelProviderId, type TelegramProxyType } from "@/lib/host-contracts";
 import type { McpAuthMode } from "@/lib/mcp-contracts";
 import { getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry } from "@/lib/model-providers";
+import { stageNativeEncryptedBackupForPreview } from "@/lib/native-supervisor";
 import { usePocketHermes } from "@/lib/pocket-hermes-store";
+import { BACKUP_EXCLUSIONS, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
 import { getRecommendedResourceLimits, getResourceLimitWarnings } from "@/lib/resource-guardrails";
 import { useThemeContext } from "@/lib/theme-provider";
 
@@ -26,7 +28,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const isFocused = useIsFocused();
   const { themeId, setThemeId } = useThemeContext();
-  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval } = usePocketHermes();
+  const { config, modelCatalog, modelCatalogFetchedAt, providerConnection, phase, mcpServers, mcpTools, mcpApprovals, providerConnections, activeProviderConnectionId, saveConfiguration, selectProviderConnection, removeProviderConnection, clearActivity, clearSensitiveConfiguration, testGateway, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, exportBackup, importBackupPreview, applyBackup } = usePocketHermes();
   const { telemetry } = useSupervisorTelemetry(defaultHostRuntimePolicy, isFocused);
   const [hostName, setHostName] = useState(config.hostName);
   const [allowedChatId, setAllowedChatId] = useState(config.allowedChatId);
@@ -62,6 +64,12 @@ export default function SettingsScreen() {
   const [mcpResult, setMcpResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [addingProvider, setAddingProvider] = useState(false);
   const [showHireChoices, setShowHireChoices] = useState(false);
+  const [backupMode, setBackupMode] = useState<"export" | "restore" | null>(null);
+  const [backupPassword, setBackupPassword] = useState("");
+  const [backupPath, setBackupPath] = useState<string | null>(null);
+  const [backupFileName, setBackupFileName] = useState<string | null>(null);
+  const [backupPreview, setBackupPreview] = useState<PocketRelayBackupPayload | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
   const hireEmphasis = useRef(new Animated.Value(0)).current;
   const activeProviderConnection = providerConnections.find((connection) => connection.id === activeProviderConnectionId) ?? null;
   const selectedProviderRequiresApiKey = requiresModelApiKey(modelProvider);
@@ -269,6 +277,105 @@ export default function SettingsScreen() {
     Animated.timing(hireEmphasis, { toValue: active ? 1 : 0, duration: 150, useNativeDriver: true }).start();
   };
 
+  const closeBackupSheet = (force = false) => {
+    if (backupBusy && !force) return;
+    setBackupMode(null);
+    setBackupPassword("");
+    setBackupPath(null);
+    setBackupFileName(null);
+    setBackupPreview(null);
+  };
+
+  const beginBackupExport = () => {
+    setBackupPassword("");
+    setBackupPreview(null);
+    setBackupPath(null);
+    setBackupFileName(null);
+    setBackupMode("export");
+  };
+
+  const beginBackupRestore = async () => {
+    if (Platform.OS !== "android") {
+      Alert.alert("Android build required", "Encrypted backups use Pocket Relay’s Android-native encryption boundary and are unavailable in the web preview.");
+      return;
+    }
+    try {
+      const DocumentPicker = await import("expo-document-picker");
+      const result = await DocumentPicker.getDocumentAsync({ type: "application/octet-stream", copyToCacheDirectory: true, multiple: false });
+      if (result.canceled) return;
+      const file = result.assets?.[0];
+      if (!file?.uri) {
+        Alert.alert("Backup unavailable", "Pocket Relay could not access the selected backup file.");
+        return;
+      }
+      const stagedPath = await stageNativeEncryptedBackupForPreview(file.uri);
+      if (!stagedPath) {
+        Alert.alert("Backup unavailable", "Pocket Relay could not prepare the selected backup in private storage.");
+        return;
+      }
+      setBackupPassword("");
+      setBackupPreview(null);
+      setBackupPath(stagedPath);
+      setBackupFileName(file.name || "Selected backup");
+      setBackupMode("restore");
+    } catch {
+      Alert.alert("File picker unavailable", "Pocket Relay could not open the Android file picker right now.");
+    }
+  };
+
+  const submitBackupPassword = async () => {
+    if (backupPassword.length < 12) {
+      Alert.alert("Use a longer backup password", "Choose or enter the backup password with at least 12 characters.");
+      return;
+    }
+    setBackupBusy(true);
+    try {
+      if (backupMode === "export") {
+        const result = await exportBackup(backupPassword);
+        if (result.ok) closeBackupSheet(true);
+        else Alert.alert("Backup not created", result.message);
+        return;
+      }
+      if (!backupPath) {
+        Alert.alert("Select a backup", "Choose an encrypted .prbackup.neuron file first.");
+        return;
+      }
+      const result = await importBackupPreview(backupPath, backupPassword);
+      setBackupPassword("");
+      if (!result.ok || !result.preview) {
+        Alert.alert("Backup could not be verified", result.message);
+        return;
+      }
+      setBackupPreview(result.preview);
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const confirmBackupRestore = () => {
+    if (!backupPreview) return;
+    Alert.alert("Apply this verified backup?", "This replaces restored settings, automations, model favorites, connector metadata, and installed skills. Protected credentials, conversations, telemetry, and audit records stay on this device and are never imported.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Restore", style: "destructive", onPress: () => void applyVerifiedBackup() },
+    ]);
+  };
+
+  const applyVerifiedBackup = async () => {
+    if (!backupPreview) return;
+    setBackupBusy(true);
+    try {
+      const result = await applyBackup(backupPreview);
+      if (result.ok) {
+        closeBackupSheet(true);
+        Alert.alert("Backup restored", result.message);
+      } else {
+        Alert.alert("Restore not applied", result.message);
+      }
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
   return (
     <ScreenContainer className="px-5">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -468,6 +575,16 @@ export default function SettingsScreen() {
           </PressableCard>;
         })}
 
+        <SectionHeading eyebrow="DATA & BACKUP" title="Encrypted backups" />
+        <PressableCard style={styles.backupCard}>
+          <View style={styles.securityHeader}><View style={[styles.lockIcon, { backgroundColor: `${colors.primary}16` }]}><MaterialIcons name="lock" size={18} color={colors.primary} /></View><Text style={[styles.securityTitle, { color: colors.foreground }]}>Password-protected backup</Text></View>
+          <Text style={[styles.helper, { color: colors.muted }]}>Backups use Neuron Encrypt on this phone. A restore is always decrypted into a private preview and never applied until you confirm it.</Text>
+          <View style={[styles.backupIncluded, { backgroundColor: `${colors.success}10`, borderColor: `${colors.success}35` }]}><MaterialIcons name="check-circle" size={17} color={colors.success} /><Text style={[styles.backupIncludedText, { color: colors.muted }]}>Includes host settings, automations, model favorites, connector metadata, and reviewed skills.</Text></View>
+          <Text style={[styles.backupExclusion, { color: colors.muted }]}>Never included: {BACKUP_EXCLUSIONS.join(" · ")}.</Text>
+          <PrimaryButton label="Create encrypted backup" icon="save-alt" onPress={beginBackupExport} />
+          <SecondaryButton label="Restore from backup" icon="restore" onPress={() => void beginBackupRestore()} />
+        </PressableCard>
+
         <SectionHeading eyebrow="LOCAL DATA" title="Privacy controls" />
         <SecondaryButton label="Clear local activity" icon="delete-outline" onPress={clear} danger />
         <SecondaryButton label="Remove protected credentials" icon="key-off" onPress={removeCredentials} danger />
@@ -518,6 +635,25 @@ export default function SettingsScreen() {
         </PressableCard>
         <Text style={[styles.footer, { color: colors.muted }]}>Pocket Relay is designed as a FOSS, app-private host. Secrets are excluded from activity history and diagnostics.</Text>
       </ScrollView>
+      <Modal visible={backupMode !== null} transparent animationType="slide" onRequestClose={() => closeBackupSheet()}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.backupSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.backupSheetHeader}><View style={styles.settingCopy}><Text style={[styles.backupSheetTitle, { color: colors.foreground }]}>{backupPreview ? "Review verified backup" : backupMode === "export" ? "Create encrypted backup" : "Unlock backup for review"}</Text><Text style={[styles.backupSheetDetail, { color: colors.muted }]}>{backupPreview ? `${backupFileName ?? "Backup"} is decrypted only in private app storage. Review what will change before restoring.` : backupMode === "export" ? "Choose a backup password. Pocket Relay never stores it." : `Enter the password for ${backupFileName ?? "the selected file"}. Nothing is restored yet.`}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Close encrypted backup sheet" onPress={() => closeBackupSheet()} disabled={backupBusy} style={({ pressed }) => [styles.modalClose, { backgroundColor: colors.background }, pressed && styles.themeOptionPressed]}><MaterialIcons name="close" size={19} color={colors.foreground} /></Pressable></View>
+            {backupPreview ? <>
+              <View style={[styles.previewSummary, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}35` }]}><Text style={[styles.previewSummaryTitle, { color: colors.foreground }]}>Will restore</Text><Text style={[styles.previewSummaryText, { color: colors.muted }]}>{backupPreview.automations.length} automations · {backupPreview.favoriteModelIds.length} favorites · {backupPreview.providerConnections.length} provider records · {backupPreview.mcpServers.length} MCP server records · {backupPreview.installedSkills.length} reviewed skills</Text></View>
+              <View style={[styles.previewWarning, { backgroundColor: `${colors.warning}10`, borderColor: `${colors.warning}35` }]}><MaterialIcons name="privacy-tip" size={18} color={colors.warning} /><Text style={[styles.previewWarningText, { color: colors.muted }]}>Credential-bearing connections remain disabled. Re-enter API keys, Telegram token, proxy password, and MCP bearer tokens after restore.</Text></View>
+              <PrimaryButton label={backupBusy ? "Restoring verified backup…" : "Confirm and restore"} icon="verified-user" onPress={confirmBackupRestore} disabled={backupBusy} />
+              <SecondaryButton label="Cancel restore" icon="close" onPress={() => closeBackupSheet()} disabled={backupBusy} />
+            </> : <>
+              <Label text="Backup password · at least 12 characters" color={colors.muted} />
+              <TextInput value={backupPassword} onChangeText={setBackupPassword} placeholder="Enter a strong password" placeholderTextColor={colors.muted} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!backupBusy} style={[styles.field, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]} />
+              <Text style={[styles.helper, { color: colors.muted }]}>{backupMode === "export" ? "Keep this password safe. Pocket Relay cannot recover it, and the resulting .prbackup.neuron file cannot be opened without it." : "The selected file will be decrypted only into Pocket Relay’s private cache for validation and preview."}</Text>
+              <PrimaryButton label={backupBusy ? (backupMode === "export" ? "Encrypting backup…" : "Verifying backup…") : backupMode === "export" ? "Encrypt and share" : "Decrypt for preview"} icon="lock" onPress={() => void submitBackupPassword()} disabled={backupBusy} />
+              <SecondaryButton label="Cancel" icon="close" onPress={() => closeBackupSheet()} disabled={backupBusy} />
+            </>}
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -525,7 +661,7 @@ export default function SettingsScreen() {
 function Label({ text, color }: { text: string; color: string }) { return <Text style={[styles.label, { color }]}>{text.toUpperCase()}</Text>; }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, providerConnectionsCard: { gap: 9 }, providerConnectionList: { gap: 7 }, providerConnectionRow: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 68, borderWidth: 1, borderRadius: 14, padding: 10 }, providerConnectionIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" }, providerConnectionCopy: { flex: 1, gap: 2 }, providerConnectionTitle: { fontSize: 13, fontWeight: "900" }, providerConnectionDetail: { fontSize: 11, lineHeight: 15, fontWeight: "700" }, providerConnectionEndpoint: { fontSize: 10, lineHeight: 14, fontWeight: "600" }, providerActiveLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 }, activeProviderSummary: { gap: 4, borderWidth: 1, borderRadius: 14, padding: 12 }, activeProviderSummaryHeader: { flexDirection: "row", alignItems: "center", gap: 7 }, activeProviderSummaryTitle: { fontSize: 12, fontWeight: "900" }, activeProviderSummaryValue: { fontSize: 15, fontWeight: "900", marginTop: 2 }, activeProviderSummaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
+  content: { paddingTop: 16, paddingBottom: 34, gap: 20 }, header: { gap: 11 }, themeCard: { gap: 11 }, themeSelector: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, themeOption: { flexGrow: 1, flexBasis: "30%", minWidth: 86, minHeight: 62, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 }, themeOptionPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] }, themeDot: { width: 12, height: 12, borderRadius: 6 }, themeOptionTitle: { fontSize: 10, fontWeight: "900" }, providerConnectionsCard: { gap: 9 }, providerConnectionList: { gap: 7 }, providerConnectionRow: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 68, borderWidth: 1, borderRadius: 14, padding: 10 }, providerConnectionIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" }, providerConnectionCopy: { flex: 1, gap: 2 }, providerConnectionTitle: { fontSize: 13, fontWeight: "900" }, providerConnectionDetail: { fontSize: 11, lineHeight: 15, fontWeight: "700" }, providerConnectionEndpoint: { fontSize: 10, lineHeight: 14, fontWeight: "600" }, providerActiveLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 }, activeProviderSummary: { gap: 4, borderWidth: 1, borderRadius: 14, padding: 12 }, activeProviderSummaryHeader: { flexDirection: "row", alignItems: "center", gap: 7 }, activeProviderSummaryTitle: { fontSize: 12, fontWeight: "900" }, activeProviderSummaryValue: { fontSize: 15, lineHeight: 19, fontWeight: "900", marginTop: 2 }, activeProviderSummaryDetail: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, formCard: { gap: 9 }, label: { fontSize: 10, fontWeight: "900", letterSpacing: 0.9, marginTop: 3 }, field: { borderWidth: 1, minHeight: 50, borderRadius: 16, paddingHorizontal: 14, fontSize: 14, fontWeight: "600" }, helper: { fontSize: 12, lineHeight: 17, fontWeight: "500", marginTop: 2 }, connectionResult: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 11 }, connectionResultText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "800" },
   securityHeader: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 3 }, lockIcon: { width: 33, height: 33, borderRadius: 11, alignItems: "center", justifyContent: "center" }, securityTitle: { fontSize: 14, fontWeight: "900" }, webNotice: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderRadius: 12, padding: 10, marginTop: 3 }, webNoticeText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700" }, inlineDangerButton: { alignSelf: "flex-start", minHeight: 34, borderWidth: 1, borderRadius: 10, justifyContent: "center", paddingHorizontal: 10 }, inlineDangerText: { fontSize: 11, fontWeight: "900" },
-  settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, creatorCard: { gap: 12 }, creatorIdentity: { flexDirection: "row", alignItems: "center", gap: 11 }, creatorIcon: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center" }, creatorCopy: { flex: 1, gap: 2 }, creatorTitle: { fontSize: 16, lineHeight: 21, fontWeight: "900" }, creatorRole: { fontSize: 11, lineHeight: 16, fontWeight: "900", letterSpacing: 0.25 }, creatorStatement: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderWidth: 1, borderRadius: 14, padding: 11 }, creatorDetail: { flex: 1, fontSize: 12, lineHeight: 18, fontWeight: "600" }, hireButton: { minHeight: 50, borderWidth: 1, borderRadius: 15, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 2 }, hireButtonPressed: { opacity: 0.9 }, hireButtonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14 }, hireButtonText: { fontSize: 13, fontWeight: "900" }, hireChoices: { gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 13 }, contactIntro: { gap: 2 }, contactTitle: { fontSize: 13, fontWeight: "900" }, contactDetail: { fontSize: 11, lineHeight: 16, fontWeight: "600" }, contactActions: { flexDirection: "row", gap: 8 }, issueLink: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, paddingHorizontal: 10 }, issueLinkText: { fontSize: 11, fontWeight: "800" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: 12 }, settingCopy: { flex: 1, gap: 3 }, settingTitle: { fontSize: 14, lineHeight: 18, fontWeight: "900" }, settingDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, resourceCard: { gap: 9 }, recommendationCard: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 13, padding: 10 }, recommendationCopy: { flex: 1, gap: 2 }, recommendationTitle: { fontSize: 12, fontWeight: "900" }, recommendationDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, recommendationButton: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 11, paddingHorizontal: 9 }, recommendationButtonText: { fontSize: 11, fontWeight: "900" }, resourceFields: { gap: 8 }, resourceField: { gap: 2 }, resourceWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, warningCopy: { flex: 1, gap: 7 }, warningTitle: { fontSize: 12, fontWeight: "900" }, warningDetail: { fontSize: 11, lineHeight: 15, fontWeight: "600" }, runtimeGuide: { flexDirection: "row", alignItems: "center", gap: 12 }, guideIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" }, guideCopy: { flex: 1, gap: 3 }, guideTitle: { fontSize: 14, fontWeight: "900" }, guideDetail: { fontSize: 12, lineHeight: 17, fontWeight: "500" }, authSelector: { flexDirection: "row", gap: 8 }, authOption: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, authOptionText: { fontSize: 12, fontWeight: "900" }, mcpServerCard: { gap: 9 }, mcpServerHeader: { flexDirection: "row", alignItems: "center", gap: 12 }, mcpEndpoint: { fontSize: 11, fontWeight: "600" }, mcpToolRow: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 9 }, mcpToolName: { fontSize: 12, fontWeight: "900" }, mcpToolDescription: { fontSize: 11, lineHeight: 15, fontWeight: "500" }, approvalButton: { minHeight: 34, borderWidth: 1, borderRadius: 10, paddingHorizontal: 9, alignItems: "center", justifyContent: "center" }, approvalButtonText: { fontSize: 11, fontWeight: "900" }, backupCard: { gap: 10 }, backupIncluded: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 13, padding: 10 }, backupIncludedText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "700" }, backupExclusion: { fontSize: 11, lineHeight: 16, fontWeight: "600" }, modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" }, backupSheet: { gap: 12, borderTopWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 28 }, backupSheetHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 }, backupSheetTitle: { fontSize: 18, lineHeight: 23, fontWeight: "900" }, backupSheetDetail: { fontSize: 12, lineHeight: 18, fontWeight: "600" }, modalClose: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" }, previewSummary: { gap: 5, borderWidth: 1, borderRadius: 14, padding: 12 }, previewSummaryTitle: { fontSize: 13, fontWeight: "900" }, previewSummaryText: { fontSize: 12, lineHeight: 17, fontWeight: "600" }, previewWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderWidth: 1, borderRadius: 14, padding: 11 }, previewWarningText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" }, creatorCard: { gap: 12 }, creatorIdentity: { flexDirection: "row", alignItems: "center", gap: 11 }, creatorIcon: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center" }, creatorCopy: { flex: 1, gap: 2 }, creatorTitle: { fontSize: 16, lineHeight: 21, fontWeight: "900" }, creatorRole: { fontSize: 11, lineHeight: 16, fontWeight: "900", letterSpacing: 0.25 }, creatorStatement: { flexDirection: "row", alignItems: "flex-start", gap: 7, borderWidth: 1, borderRadius: 14, padding: 11 }, creatorDetail: { flex: 1, fontSize: 12, lineHeight: 18, fontWeight: "600" }, hireButton: { minHeight: 50, borderWidth: 1, borderRadius: 15, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 2 }, hireButtonPressed: { opacity: 0.9 }, hireButtonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14 }, hireButtonText: { fontSize: 13, fontWeight: "900" }, hireChoices: { gap: 10, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 13 }, contactIntro: { gap: 2 }, contactTitle: { fontSize: 13, fontWeight: "900" }, contactDetail: { fontSize: 11, lineHeight: 16, fontWeight: "600" }, contactActions: { flexDirection: "row", gap: 8 }, issueLink: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, paddingHorizontal: 10 }, issueLinkText: { fontSize: 11, fontWeight: "800" }, footer: { fontSize: 12, lineHeight: 18, fontWeight: "500", textAlign: "center", paddingHorizontal: 12 },
 });

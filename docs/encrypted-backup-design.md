@@ -1,44 +1,51 @@
-# Optional encrypted backup design
+# Encrypted backup and restore
 
-## Decision
+## Decision and shipped scope
 
-Pocket Relay **can use Neuron Encrypt**, but it should not be embedded yet. The repository is GPLv3 and documents Android API 24 support, a streaming authenticated format, and an Android-oriented build path. Its documented memory cost of roughly 256 MiB per operation, unverified dependency chain, and observable outer-file metadata make direct inclusion premature for a resource-bounded persistent agent host.[1]
+Pocket Relay ships an **owner-triggered, password-protected portable backup** for its non-secret control-plane data. The Android module vendors the reviewed Neuron Encrypt source and invokes it through a deliberately narrow Android-native boundary. The encrypted file extension is `.prbackup.neuron`.
 
-> **Design rule:** Backup is an explicit owner action, never an agent tool, never an automatic cloud upload, and never a shell or CLI invocation.
+> **Security rule:** A backup is never an agent tool, an MCP tool, a schedule action, or an automatic cloud upload. Only the phone owner can start export or restore from Settings.
 
-## Proposed owner flow
+The current format uses Neuron Encrypt’s authenticated streaming encryption construction with AES-256-GCM-SIV, Argon2id key derivation, and HKDF-SHA512 domain separation. The vendored JNI implementation accepts app-private file handles and password bytes; it clears the password byte array on the native side after the cryptographic operation completes.[1]
 
-| Step | Owner experience | Security boundary |
+| Operation | Owner experience | Boundary enforced by Pocket Relay |
 |---|---|---|
-| Create | The owner selects **Create encrypted backup**, chooses whether protected credentials are included, and confirms the destination with Android’s system picker. | A fresh backup passphrase is entered locally and never saved by Pocket Relay. |
-| Prepare | Pocket Relay compiles a minimal allow-listed payload: public host configuration, approved skills, selected local metadata, and—only if chosen—protected credentials decrypted directly in memory. | No terminal, agent, MCP connector, or background task can request this action. |
-| Encrypt | A pinned, source-built Neuron Encrypt Android library streams the payload into a single encrypted file. | The immutable format header, KDF settings, and integrity check are recorded inside the encrypted payload. |
-| Share/store | Android’s document or share sheet writes the completed opaque-named file to a user-selected location. | Pocket Relay does not obtain cloud credentials or maintain a remote backup channel. |
-| Restore | The owner picks a backup file, enters its passphrase, reviews the decrypted manifest, and explicitly selects items to restore. | Validation and a dry-run occur before settings or credentials are replaced; no automatic overwrite exists. |
+| Export | Select **Create encrypted backup**, enter a password of at least 12 characters, then choose a destination through Android’s system share sheet. | The password is never persisted. The portable JSON is created from an explicit allow-list before it reaches the native encryption boundary. |
+| File selection | Select **Restore from backup** and choose one `.prbackup.neuron` file using Android’s file picker. | The file picker copies the selected file into app-private cache before native processing. |
+| Verification | Enter the password and select **Decrypt for preview**. | Decryption returns a JSON candidate for schema/version parsing only. No live state changes happen during verification. |
+| Confirmation | Review the safe contents, then select **Confirm and restore** and accept the final Android confirmation prompt. | Only this final action calls the store-level restore routine. Closing the preview or entering a wrong password makes no configuration changes. |
 
-## Payload and metadata rules
+## Strict payload allow-list
 
-The encrypted payload should use a versioned `pocket-relay-backup.json` manifest and content-addressed skill files. It must omit execution output, audit-result text, raw Telegram traffic, unapproved drafts, decrypted passwords, and Android keystore material. The manifest itself should be inside the encrypted archive. Because Neuron Encrypt documents filename, size, and timestamp exposure, exported files should use opaque names such as `prb-<random>.vault`; the app must avoid descriptive names and minimize externally visible timestamps.[1]
+The encrypted payload uses the versioned format identifier `pocket-relay-backup`, version `1`. It intentionally backs up portable configuration—not a device image or copy of protected Android storage.
 
-Android Keystore keys are intentionally non-exportable. When the owner opts in to credential backup, the app must decrypt the required values only within its process and immediately stream them into the encrypted payload; a raw SecureStore or preferences database must never be copied. Restoring credentials must require an explicit owner confirmation and re-store them through the current protected-storage boundary.
+| Included | Restored safely | Never included or restored |
+|---|---|---|
+| Host name, private owner chat ID, selected model metadata, Telegram proxy type/host/port, and resource policy | Restored as public configuration; protected token flags are reset. | Telegram bot token, model API keys, provider connection keys, MCP bearer tokens, Telegram proxy username/password, Android Keystore data |
+| Automations and favorite model IDs | Restored as ordinary local preferences. | Conversation ledger, task history, Telegram traffic, runtime diagnostics, telemetry, QuickJS audit records |
+| Provider connection labels/endpoints and active provider ID | Metadata returns without an API key, so a provider must be re-authenticated before use. | Any untyped credential-like field supplied to a provider record |
+| Remote MCP server metadata, tool manifests, and time-limited approval records | Restored connectors are deliberately made **disabled** and **not checked**; an owner must verify and enable them again. | MCP credential material and any untyped credential-like field attached to a connector |
+| Installed QuickJS skill manifests and source-verified portable bundles | Restored as reviewed, source-bound packages through the existing private skill storage flow. | Execution output, drafts, private history, or device files outside the skill bundle |
 
-## Runtime policy
+The serializer reconstructs proxy, provider, and MCP objects field by field. It does not spread an input object into the output. Regression tests deliberately inject token- and credential-like fields and prove that they are absent from the JSON supplied for encryption.
 
-Neuron Encrypt’s documented Argon2id configuration uses approximately 256 MiB of working memory.[1] Pocket Relay should refuse to begin a backup when the native host reports insufficient available memory, an active model task, storage below the configured reserve, or battery conditions that violate the current host policy. It must use the existing foreground notification only while the owner-initiated operation is active and provide cancellation that deletes incomplete output. The crypto profile must not be silently weakened to make a backup fit a smaller phone; any alternate profile needs a separate compatibility and security review.
+## Restore safeguards
 
-## Integration gates
+The app validates the outer format and exact version before a candidate reaches the restore stage. A malformed file, wrong password, unrelated Neuron Encrypt file, or unsupported version is rejected without applying any part of the payload.
 
-| Gate | Required evidence before implementation |
-|---|---|
-| Source and licence | Pin an immutable Neuron Encrypt revision, include corresponding source and GPL notices, generate an SBOM, and review every native dependency licence. |
-| Cryptographic review | Independently inspect the format, key derivation, nonce handling, authenticated metadata, errors, zeroization claims, and restore compatibility; add known-answer and corruption test vectors. |
-| Android build | Build a minimal Android library from source under Pocket Relay’s reproducible toolchain—no CLI process, downloaded binary, or externally executable helper. |
-| Host safety | Prove bounded memory, cancellation cleanup, foreground lifecycle behaviour, user-selected storage destinations, and absence of plaintext temp files on API 24 and ARM64 hardware. |
-| Restore safety | Add dry-run, schema/version checks, credential opt-in, partial restore selection, and a non-destructive rollback path before any persistent state changes. |
+Restoration is intentionally not a merge with credentials. Existing Android-protected credentials remain device-local and are not copied into the backup. The restored public metadata is normalized so a model provider, Telegram gateway proxy, or MCP connector cannot claim that credentials were restored. In particular, MCP connectors are saved disabled and `not_checked`; they have to be re-verified under the current owner’s authority.
 
-## Recommendation
+There is no automatic background restore, no partial silent apply, and no backup operation available to the embedded Hermes worker or QuickJS skills. A new backup password cannot be recovered by Pocket Relay; if it is lost, the encrypted file is not recoverable.
 
-Approve a **design-and-audit milestone** next, not production integration. That milestone can vendor or reference a pinned Neuron Encrypt source revision, build a compatibility harness, audit its dependencies and format, and measure memory on representative phones. Only after those gates pass should Pocket Relay expose a disabled-by-default encrypted backup beta in Settings.
+## Operational constraints
+
+Neuron Encrypt documents an Argon2id profile with an approximately 256 MiB working-memory cost per operation.[1] This is intentional and is not silently weakened by Pocket Relay. Owners should create and restore backups while the host is idle, the device is on power, and the configured storage reserve is available. The operation is Android-only; the browser preview does not expose the native encryption boundary.
+
+Encrypted export files reside in the app cache only until Android’s share target consumes them. The selected restore file is copied to the app-private cache. Pocket Relay does not request cloud-provider credentials, copy SecureStore databases, or expose a file-system or shell tool to the agent.
+
+## Compatibility and maintenance
+
+The backup contract, test suite, and Android bridge must be updated together whenever the format version changes. A future version must retain a migration path or reject older data clearly; it must never interpret an unknown version as the current schema. Changes to the vendored Neuron Encrypt source require a renewed provenance, dependency, format, JNI, and Android build-chain review before publication.
 
 ## References
 

@@ -150,6 +150,12 @@ export type NativeSupervisorStartConfig = {
 };
 
 type SupervisorModule = {
+  /** Creates an encrypted cache file from a strictly credential-free JSON payload. */
+  exportEncryptedBackup(payloadJson: string, password: string): Promise<string>;
+  /** Copies a document-picker cache file into the backup-only private cache directory. */
+  stageEncryptedBackupForPreview(selectedPath: string): Promise<string>;
+  /** Decrypts an app-cache file into memory for owner review only; it never applies the backup. */
+  decryptEncryptedBackupPreview(backupPath: string, password: string): Promise<string>;
   getTelemetry(): Promise<NativeSupervisorTelemetry>;
   getHealth(): Promise<NativeSupervisorHealth>;
   getDiagnostics(): Promise<NativeSupervisorDiagnostic[]>;

@@ -3,11 +3,12 @@ import * as SecureStore from "expo-secure-store";
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
+import { createBackupPayload, parseBackupPayload, type PocketRelayBackupPayload } from "@/lib/backup-contracts";
 import { canPreparePrivateHost, isValidTelegramChatId, normalizeHostName } from "@/lib/pocket-hermes-policy";
 import { canStartWorker, defaultHostRuntimePolicy, defaultTelegramProxyConfiguration, getRuntimePolicyBlock, isAllowedModelEndpoint, isSafeRuntimePolicy, isSafeTelegramProxyConfiguration, requiresModelApiKey, type HostReadinessSnapshot, type HostRuntimePolicy, type ModelProviderId, type PublicTelegramProxyConfiguration, type TelegramProxyType } from "@/lib/host-contracts";
 import { fetchProviderModels, getProviderPreset, resolveProviderEndpoint, type ModelCatalogEntry, type ModelDiscoveryResult, type ProviderConnectionStatus } from "@/lib/model-providers";
 import { loadFavoriteModelIds, saveFavoriteModelIds } from "@/lib/model-favorites";
-import { approveNativeCodeJob, clearNativeSupervisorConfiguration, enqueueNativeTask, listNativeTasks, preflightNativeModel, proposeNativeCodeJob, revokeNativeCodeJob, runNativeApprovedCodeJob, sendNativeTelegramTestMessage, startNativeSupervisor, stopNativeSupervisor, testNativeTelegramGateway, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
+import { approveNativeCodeJob, clearNativeSupervisorConfiguration, decryptNativeEncryptedBackupPreview, enqueueNativeTask, exportNativeEncryptedBackup, listNativeTasks, preflightNativeModel, proposeNativeCodeJob, revokeNativeCodeJob, runNativeApprovedCodeJob, sendNativeTelegramTestMessage, startNativeSupervisor, stopNativeSupervisor, testNativeTelegramGateway, updateNativeMcpRuntimeConfig } from "@/lib/native-supervisor";
 import { discoverRemoteMcpTools, type McpDiscoveryResult } from "@/lib/mcp-client";
 import { MAX_REMOTE_MCP_SERVERS, normalizeRemoteMcpEndpoint, validateRemoteMcpDraft, type McpAuthMode, type McpToolApproval, type McpToolManifestItem, type RemoteMcpServer } from "@/lib/mcp-contracts";
 import { importSkillFromGitHub } from "@/lib/github-skill-import";
@@ -95,6 +96,9 @@ type PocketHermesContextValue = PersistedState & {
   addDraft: (body: string) => void;
   clearActivity: () => void;
   clearSensitiveConfiguration: () => Promise<void>;
+  exportBackup: (password: string) => Promise<{ ok: boolean; message: string }>;
+  importBackupPreview: (backupPath: string, password: string) => Promise<{ ok: boolean; message: string; preview?: PocketRelayBackupPayload }>;
+  applyBackup: (preview: PocketRelayBackupPayload) => Promise<{ ok: boolean; message: string }>;
 };
 
 const STORAGE_KEY = "pocket-hermes.control-plane.v1";
@@ -899,7 +903,107 @@ export function PocketHermesProvider({ children }: PropsWithChildren) {
     }));
   }, [state.providerConnections]);
 
-  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration]);
+  const exportBackup = useCallback(async (password: string) => {
+    if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup export is available only in the installed Android app." };
+    if (password.length < 12) return { ok: false, message: "Use a backup password with at least 12 characters." };
+    try {
+      const skillBundles = await Promise.all(state.installedSkills.map(async (skill) => ({ id: skill.id, skillPackage: await readInstalledSkillPackage(skill.id) })));
+      const payload = createBackupPayload({
+        config: state.config,
+        automations: state.automations,
+        favoriteModelIds: state.favoriteModelIds,
+        mcpServers: state.mcpServers,
+        mcpTools: state.mcpTools,
+        mcpApprovals: state.mcpApprovals,
+        providerConnections: state.providerConnections,
+        activeProviderConnectionId: state.activeProviderConnectionId,
+        installedSkills: state.installedSkills,
+        skillBundles,
+      }, "1.0.0");
+      const encryptedPath = await exportNativeEncryptedBackup(JSON.stringify(payload), password);
+      if (!encryptedPath) return { ok: false, message: "Pocket Relay could not encrypt the backup in private Android storage." };
+      const Sharing = await import("expo-sharing");
+      if (!(await Sharing.isAvailableAsync())) return { ok: false, message: "The Android system share sheet is unavailable on this device." };
+      await Sharing.shareAsync(`file://${encryptedPath}`, { dialogTitle: "Share encrypted Pocket Relay backup", mimeType: "application/octet-stream" });
+      appendEvent({ title: "Encrypted backup shared", detail: "A password-protected backup was created. It excludes Telegram, provider, MCP, and proxy credentials as well as conversations, telemetry, and audit data.", severity: "success" });
+      return { ok: true, message: "Encrypted backup opened in the Android share sheet." };
+    } catch {
+      return { ok: false, message: "Pocket Relay could not create or share the encrypted backup." };
+    }
+  }, [appendEvent, state]);
+
+  const importBackupPreview = useCallback(async (backupPath: string, password: string) => {
+    if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup restore is available only in the installed Android app." };
+    if (password.length < 12) return { ok: false, message: "Use the backup password with at least 12 characters." };
+    const raw = await decryptNativeEncryptedBackupPreview(backupPath.replace(/^file:\/\//, ""), password);
+    if (!raw) return { ok: false, message: "Pocket Relay could not decrypt this backup. Check the password and file." };
+    try {
+      const parsed = parseBackupPayload(JSON.parse(raw) as unknown);
+      return parsed.ok ? { ok: true, message: "Backup decrypted safely. Review the restore preview before applying it.", preview: parsed.value } : parsed;
+    } catch {
+      return { ok: false, message: "The decrypted file is not a valid Pocket Relay backup." };
+    }
+  }, []);
+
+  const applyBackup = useCallback(async (preview: PocketRelayBackupPayload) => {
+    if (Platform.OS !== "android") return { ok: false, message: "Encrypted backup restore is available only in the installed Android app." };
+    const parsed = parseBackupPayload(preview);
+    if (!parsed.ok) return parsed;
+    const backup = parsed.value;
+    const verifiedBundles: Array<{ id: string; skillPackage: Awaited<ReturnType<typeof readInstalledSkillPackage>> }> = [];
+    for (const bundle of backup.skillBundles.slice(0, MAX_INSTALLED_SKILLS)) {
+      if (!isSafeSkillIdentifier(bundle?.id)) return { ok: false, message: "The backup contains an invalid installed-skill identifier." };
+      const verified = await validateSkillPackage(bundle.skillPackage);
+      const expected = backup.installedSkills.find((skill) => skill.id === bundle.id);
+      if (!verified.ok || !expected || verified.value.manifest.sourceSha256 !== expected.manifest.sourceSha256) {
+        return { ok: false, message: "The backup contains a skill package that does not match its reviewed manifest." };
+      }
+      verifiedBundles.push({ id: bundle.id, skillPackage: verified.value });
+    }
+    if (verifiedBundles.length !== backup.installedSkills.length) return { ok: false, message: "The backup is missing one or more installed skill packages." };
+    try {
+      await Promise.all(state.installedSkills.map((skill) => removeInstalledSkillPackage(skill.id).catch(() => undefined)));
+      for (const bundle of verifiedBundles) await installVerifiedSkillPackage(bundle.id, bundle.skillPackage);
+      const providerConnections = normalizeSavedProviderConnections(backup.providerConnections).map((connection) => ({ ...connection, id: createId("provider"), hasApiKey: false }));
+      const originalConnectionIds = normalizeSavedProviderConnections(backup.providerConnections).map((connection) => connection.id);
+      const activeIndex = backup.activeProviderConnectionId ? originalConnectionIds.indexOf(backup.activeProviderConnectionId) : -1;
+      const activeProviderConnectionId = activeIndex >= 0 ? providerConnections[activeIndex]?.id ?? null : null;
+      const provider = modelProviderIds.has(backup.config.modelProvider as ModelProviderId) ? backup.config.modelProvider as ModelProviderId : "openai";
+      const telegramProxy = isSafeTelegramProxyConfiguration(backup.config.telegramProxy) ? { ...backup.config.telegramProxy, hasCredentials: false } : defaultTelegramProxyConfiguration;
+      const policy = isSafeRuntimePolicy(backup.config.policy) ? backup.config.policy : defaultHostRuntimePolicy;
+      const config: PublicHostConfig = {
+        hostName: normalizeHostName(backup.config.hostName),
+        allowedChatId: isValidTelegramChatId(backup.config.allowedChatId) ? backup.config.allowedChatId : "",
+        modelProvider: provider,
+        modelEndpoint: isAllowedModelEndpoint(backup.config.modelEndpoint, provider) ? backup.config.modelEndpoint : resolveProviderEndpoint(provider, ""),
+        modelName: backup.config.modelName.trim().slice(0, 200),
+        hasTelegramToken: await hasSecret(TELEGRAM_TOKEN_KEY),
+        hasModelApiKey: false,
+        telegramProxy,
+        policy,
+      };
+      await saveFavoriteModelIds(backup.favoriteModelIds.slice(0, 200));
+      setState((current) => ({
+        ...current,
+        config,
+        phase: "ready",
+        automations: backup.automations.slice(0, 80),
+        favoriteModelIds: backup.favoriteModelIds.slice(0, 200),
+        mcpServers: backup.mcpServers.slice(0, MAX_REMOTE_MCP_SERVERS).map((server) => ({ ...server, hasCredential: false, enabled: false, connectionState: "not_checked" as const })),
+        mcpTools: backup.mcpTools.slice(0, MAX_REMOTE_MCP_SERVERS * 80),
+        mcpApprovals: [],
+        providerConnections,
+        activeProviderConnectionId,
+        installedSkills: normalizeInstalledSkills(backup.installedSkills).map((skill) => ({ ...skill, enabled: false, lastRunAt: null, lastRunStatus: null })),
+        events: [{ id: createId("event"), title: "Encrypted backup restored", detail: "Settings, automations, model favorites, connector metadata, and reviewed skills were restored. Credentials, connector tokens, proxy passwords, conversation history, telemetry, and audit data were not restored.", severity: "success" as const, createdAt: new Date().toISOString() }, ...current.events].slice(0, 60),
+      }));
+      return { ok: true, message: "Backup restored. Re-enter protected credentials and re-verify any remote MCP connector before starting the host." };
+    } catch {
+      return { ok: false, message: "Pocket Relay could not apply this verified backup." };
+    }
+  }, [state.installedSkills]);
+
+  const value = useMemo<PocketHermesContextValue>(() => ({ ...state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, importBackupPreview, applyBackup }), [state, hydrated, saveConfiguration, selectProviderConnection, removeProviderConnection, testGateway, sendTestMessage, testModel, discoverModels, testProviderConnection, saveMcpServer, removeMcpServer, setMcpServerEnabled, approveMcpTool, revokeMcpToolApproval, importSkill, installFirstPartySkill, requestAiSkillDraft, refreshAiSkillDraftRequests, getSkillDraftSource, installSkillDraft, discardSkillDraft, setSkillEnabled, runSkill, shareSkill, removeSkill, toggleFavoriteModel, isFavoriteModel, prepareRuntime, stopHost, addAutomation, setAutomationEnabled, addDraft, clearActivity, clearSensitiveConfiguration, exportBackup, importBackupPreview, applyBackup]);
   return <PocketHermesContext.Provider value={value}>{children}</PocketHermesContext.Provider>;
 }
 

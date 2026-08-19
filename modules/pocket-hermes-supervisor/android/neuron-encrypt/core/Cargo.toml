@@ -1,0 +1,73 @@
+[package]
+name = "neuron-encrypt"
+version = "2.1.2"
+edition = "2021"
+description = "Military-grade file encryption — AES-256-GCM-SIV · Argon2id · HKDF-SHA512"
+license = "GPL-3.0-only"
+authors = ["Ubaid ur Rehman <arifubaid0345@gmail.com>"]
+readme = "README.md"
+keywords = ["encryption", "aes", "argon2", "cli", "crypto"]
+categories = ["command-line-utilities", "cryptography"]
+repository = "https://gitlab.com/theredhacker0345/neuron-encrypt"
+homepage = "https://theredhacker0345.gitlab.io/neuron-encrypt/"
+documentation = "https://docs.rs/neuron-encrypt"
+
+include = [
+    "src/**",
+    "assets/**",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "build.rs",
+    "build.bat",
+]
+
+# Library crate exposing crypto and error types for Rust consumers.
+# For C/Swift FFI, additional extern "C" wrappers and cbindgen config are required.
+[lib]
+name = "neuron_encrypt_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "neuron-encrypt"
+path = "src/main.rs"
+
+[[bin]]
+name = "neuron-encrypt-cli"
+path = "src/bin/cli.rs"
+
+[dependencies]
+aes-gcm-siv = { version = "0.11", features = ["std", "aes"] }
+aead = { version = "0.5", features = ["stream"] }
+argon2      = { version = "0.5",  features = ["std"] }
+hkdf        = "0.12"
+sha2        = "0.10"
+zeroize     = { version = "1.7",  features = ["derive"] }
+rand_core   = { version = "0.6",  features = ["getrandom"] }
+thiserror   = "1.0.61"
+crossbeam-channel = "0.5"
+hex = "0.4.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+open = "5"
+image = "0.25"
+eframe = { version = "0.33", features = ["default"] }
+egui = "0.33"
+rfd = "0.15"
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+indicatif = "0.18.4"
+rpassword = "7"
+tempfile = "3"
+
+[lints.clippy]
+explicit_auto_deref = "allow"
+
+[profile.release]
+opt-level     = 3
+lto           = true
+codegen-units = 1
+strip         = true
+panic         = "abort"

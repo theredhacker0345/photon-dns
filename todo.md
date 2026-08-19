@@ -320,3 +320,14 @@
 - [x] Research Neuron Encrypt for licensing, cryptographic design, dependencies, and Android/Expo integration suitability
 - [x] Design an optional encrypted-backup architecture that preserves Pocket Relay’s private, owner-approved security model
 - [x] Validate, checkpoint, and publish the completed changelog and readiness-review work to GitLab
+- [x] Perform a source-level Neuron Encrypt cryptography, dependency, provenance, and Android build-chain audit
+- [x] Define restore-verification requirements that never decrypt into or apply to live Pocket Relay state
+- [x] Implement an owner-controlled encrypted-backup verification flow only for audit-approved package boundaries
+- [x] Add restoration safeguard documentation and deterministic regression coverage
+- [ ] Run complete validation, checkpoint, and publish the audit and restore-verification work to GitLab
+- [x] Define the portable encrypted backup manifest and explicit credential-exclusion contract
+- [x] Serialize only safe owner configuration, workflows, skills, themes, and non-secret preferences for backup export
+- [x] Encrypt and share a password-protected backup file through the approved Neuron Encrypt boundary
+- [x] Import an encrypted backup, authenticate it with the owner password, show a restore preview, and require explicit final confirmation
+- [x] Add deterministic backup security regressions and restoration documentation
+- [ ] Run complete validation, checkpoint, and publish the encrypted backup and restore feature to GitLab
