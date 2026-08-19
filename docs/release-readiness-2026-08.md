@@ -1,7 +1,8 @@
 # Pocket Relay F-Droid Release Verification — August 2026
 
 This verification covers the **Pocket Relay 1.0.0** source tree, Android package
-`com.app.pockethermes`, and its candidate tag `v1.0.0`. It distinguishes
+`com.app.pockethermes`, and its immutable candidate tag `v1.0.0-fdroid.2`
+(`4ce53341ce0f47ad94f164a0d4fbff40b137f5d2`). It distinguishes
 source-verified controls from device-only checks and F-Droid’s own independent
 build-server review. It is therefore an evidence record, not a claim that the
 application has already been accepted by F-Droid.
@@ -9,25 +10,25 @@ application has already been accepted by F-Droid.
 > **Assessment.** The public source, licensing, owner-facing control plane,
 > Android-local notification implementation, vendored Python build inputs, and
 > deterministic local ARM64 release packaging are ready for maintainer handoff.
-> The project is **not yet submitted to F-Droid**: a clean F-Droid build-server
-> build, an immutable public `v1.0.0` tag, reviewer anti-feature classification,
-> and real ARM64 hardware acceptance with owner-supplied credentials remain
-> external release gates.
+> The project is **submitted for F-Droid review** through
+> [fdroid/fdroiddata merge request !46222](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222).
+> A clean F-Droid build-server build, reviewer anti-feature classification,
+> acceptance, and real ARM64 hardware acceptance with owner-supplied credentials
+> remain external release gates.
 
 ## Scope and evidence
 
 F-Droid requires publicly available current source, an open-source license, and
 a FLOSS dependency/toolchain. Its inclusion policy rejects Firebase, Google
 Play Services, proprietary tracking, advertising, and Crashlytics dependencies.[1] [2]
-The repository's public GitLab endpoint was checked anonymously on 19 August
-2026 and resolved `main` at `e7932621c208a29d7f0652cebe1f3514f4f34b63` before
-this candidate's changes. The committed recipe now declares that Git URL using
-`RepoType: git`; the release tag will be created from the final published
-candidate, not retroactively assigned to an older revision.
+The repository's public GitLab `main` branch and `v1.0.0-fdroid.2` tag resolve
+to `4ce53341ce0f47ad94f164a0d4fbff40b137f5d2`. The committed recipe declares
+that Git URL using `RepoType: git` and pins the same immutable tag for the
+submitted build.
 
 | Area | Evidence reviewed | Verification result | Remaining condition |
 |---|---|---|---|
-| Source, identifiers, and license | `LICENSE`, `package.json`, `app.config.ts`, `android/app/build.gradle`, `metadata/com.app.pockethermes.yml` | **Pass in source.** GPL-3.0-only, preserved Android package ID, `1.0.0` / version code `1`, and public GitLab source fields are aligned. | Create and publish immutable `v1.0.0` after final validation. |
+| Source, identifiers, and license | `LICENSE`, `package.json`, `app.config.ts`, `android/app/build.gradle`, `metadata/com.app.pockethermes.yml` | **Pass in source.** GPL-3.0-only, preserved Android package ID, `1.0.0` / version code `1`, and public GitLab source fields are aligned. | F-Droid reviewer verification of the submitted immutable `v1.0.0-fdroid.2` tag. |
 | Owner-facing flows | Setup, provider connections/models, Agent Console, automations, skills, Settings, encrypted backup/restore, notifications | **Covered by source contracts and regression suite.** Device-only handoff flows remain visibly bounded and do not fabricate success. | Physical-device test with real credentials and Android permission prompts. |
 | Android notification stack | Native `PocketRelayLocalNotifications`, `PocketHermesBootReceiver`, Settings master preference, `backup-reminders.ts`, merged release manifest | **Pass locally.** Test, reminder, and safety delivery is device-local, permission-first, master-gated, and Firebase-free. | Repeat manifest inspection in the F-Droid build environment. |
 | Privacy and tracking | JavaScript/native imports, manifest surface, Fastlane listing, merged release manifest | **Pass locally.** No analytics, crash-reporting, push-token, Firebase, or Google Play Services path is retained; credentials remain in protected storage and are excluded from backups. | Confirm the F-Droid-built dependency graph. |
@@ -89,9 +90,9 @@ real ARM64 candidate before submission rather than generated from a web preview.
 | 1. Finish source validation | Passed locally | Deterministic tests, TypeScript, lint, release preflight, Kotlin compile, native local-wheel prerequisite, manifest inspection, and two clean release builds passed. |
 | 2. Eliminate wheel-build network clone | Passed locally | Hermes Agent and Pydantic Core are verified vendored source inputs; local wheel assembly fails closed and makes no network request. |
 | 3. Normalize artifact reproducibility | Passed locally | The hermetic wrapper produced two clean unsigned ARM64 APKs with the same SHA-256 checksum; retain this evidence with the candidate. |
-| 4. Publish immutable candidate | Pending | Commit reviewed code, push to public GitLab, then create and push `v1.0.0`. |
+| 4. Publish immutable candidate | Passed | Public GitLab `main` and immutable `v1.0.0-fdroid.2` resolve to `4ce53341ce0f47ad94f164a0d4fbff40b137f5d2`. |
 | 5. Hardware acceptance | Pending | Complete `docs/physical-device-backup-acceptance-checklist.md` plus the flow matrix above on Android 7.0+ ARM64 hardware. |
-| 6. F-Droid tooling review | Pending | Run `fdroid lint com.app.pockethermes`, a clean F-Droid build-server build, and submit the resulting recipe/metadata. |
+| 6. F-Droid tooling review | Submitted for review | [MR !46222](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222) adds the recipe; F-Droid must run lint and a clean build-server build. |
 | 7. Reviewer anti-feature decision | Pending | Disclose Telegram and owner-configured provider networking; accept F-Droid's final anti-feature labels where applicable. |
 
 ## References

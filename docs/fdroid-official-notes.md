@@ -19,4 +19,9 @@ Key requirements relevant to Pocket Relay:
 - Reproducible builds are encouraged for new apps. F-Droid verifies the build against upstream binaries when Binaries/build.binary metadata is configured, using APK signatures and byte-for-byte matching apart from signatures.
 - F-Droid policy requires a unique Android application ID, source-buildable dependencies, no undisclosed anti-features, and no downloading additional executable binaries without explicit informed opt-in.
 
-Current project caveat: the F-Droid recipe references a source repository placeholder and the final application source/release tag still needs a real public upstream URL and tag before an official merge request can be filed.
+Current project status: the recipe now references the public Pocket Relay GitLab
+repository and pins immutable source tag `v1.0.0-fdroid.2`
+(`4ce53341ce0f47ad94f164a0d4fbff40b137f5d2`). The metadata contribution is
+submitted for maintainer review in [fdroid/fdroiddata merge request !46222](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222).
+F-Droid lint, build-server verification, reviewer anti-feature confirmation,
+and acceptance remain pending.

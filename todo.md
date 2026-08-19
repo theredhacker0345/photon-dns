@@ -128,7 +128,7 @@
 - [x] Remove unused app dependencies and prototype naming from the Android release graph
 - [x] Add a source-controlled unsigned-release policy, release preflight, and F-Droid handoff evidence that cannot fall back to the debug signing key
 - [x] Run final sandbox test, type, SBOM, license, and APK-integrity validation gates
-- [ ] Publish an immutable public source tag and complete F-Droid build-server plus post-gap-closure physical-device validation (requires maintainer-controlled public hosting, credentials, and hardware)
+- [ ] Complete F-Droid build-server and post-gap-closure physical-device validation; immutable public tag `v1.0.0-fdroid.2` and F-Droid MR !46222 are already published, while maintainer review and hardware remain external gates
 - [x] Upgrade README with current app UI screenshots and the shipped Pocket Relay icon
 - [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update
 - [x] Delete remote GitLab tags `v1.0.0` and `v1.0.1` and any attached Release objects without deleting their commits
@@ -382,9 +382,22 @@
 - [x] Make the Jiter and Pydantic Core wheel prerequisites deterministic and offline-only for clean Android release builds
 - [x] Inventory and establish a source-based offline strategy for the remaining Chaquopy Python dependency closure
 - [x] Checkpoint and publish the validated 1.0.0 vendored-source and deterministic-release engineering update to GitLab
-- [ ] Research the current official F-Droid merge-request workflow and metadata validation requirements
-- [ ] Prepare a source-pinned F-Droid metadata contribution for Pocket Relay 1.0.0
-- [ ] Align the F-Droid recipe with the verified vendored source tree and unified offline Python-wheel prerequisite
-- [ ] Replace the externally supplied Maturin wheel builder with a local deterministic Pydantic Core wheel assembler
-- [ ] Create and verify the corresponding F-Droid GitLab merge request using the protected GitLab credential
-- [ ] Record the F-Droid contribution URL and reviewer-facing submission evidence in the project documentation
+- [x] Research the current official F-Droid merge-request workflow and metadata validation requirements
+- [x] Prepare a source-pinned F-Droid metadata contribution for Pocket Relay 1.0.0
+- [x] Align the F-Droid recipe with the verified vendored source tree and unified offline Python-wheel prerequisite
+- [x] Replace the externally supplied Maturin wheel builder with a local deterministic Pydantic Core wheel assembler
+- [x] Create and verify the corresponding F-Droid GitLab merge request using the protected GitLab credential
+- [x] Record the F-Droid contribution URL and reviewer-facing submission evidence in the project documentation: https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222
+- [ ] Collect and compare every existing F-Droid MR !46222 pipeline result and failed-job trace before making any change; then verify the relevant pipeline reaches a successful terminal state without unnecessary runs
+- [ ] Publish one consolidated F-Droid source repair: track the reproducible Android Gradle project while excluding generated artifacts, retain version 1.0.0 without a new tag, and then update the existing MR metadata exactly once
+- [ ] Batch all remaining confirmed F-Droid corrections into one reviewed merge-request update before any further push; do not publish incremental per-issue fixes
+- [ ] Batch the confirmed post-update F-Droid failures: apply `rewritemeta` ordering and provision Node/npm before the locked pnpm install, then review all changes together before any further MR push
+- [ ] Collect every failed trace from the latest F-Droid pipeline and batch the confirmed remedy under a commit message that names the precise corrected failure
+- [ ] Collect the full failed-job evidence from F-Droid pipeline 2772924414 before researching and batching any subsequent correction
+- [ ] Update the F-Droid recipe’s source commit from 19db113 to 27e6ae6 so the build uses the validated portable buildPython repair; validate the one-line batch before publishing
+- [ ] Collect the full failed-job evidence from F-Droid pipeline 2773060586 before researching and batching any subsequent correction
+- [ ] Research and batch the missing-Cargo toolchain remedy from F-Droid pipeline 2773060586; use a failure-specific commit message after local validation
+- [ ] Collect the full failed-job evidence from F-Droid pipeline 2773174201 before researching and batching any subsequent correction
+- [ ] Replace the wheel builder’s workstation-specific Android NDK fallback with F-Droid build-server environment resolution and declare the required NDK in the submission recipe
+- [ ] Canonicalize the Rustup source-library and wrapped prebuild fields required by `fdroid rewritemeta`, then publish one source-commit-pinned F-Droid MR correction batch
+- [ ] Replace the invalid PyO3 no-interpreter fallback with an explicit CPython 3.11 Android configuration file and validate the wheel before publishing the F-Droid correction batch

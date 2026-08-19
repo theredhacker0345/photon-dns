@@ -49,6 +49,20 @@ CONTRIBUTING.md](https://gitlab.com/fdroid/fdroiddata/-/raw/master/CONTRIBUTING.
 and [Build Metadata Reference](https://f-droid.org/en/docs/Build_Metadata_Reference/),
 accessed on 2026-08-19.
 
+### Submission outcome
+
+On 2026-08-19, Pocket Relay’s source-pinned metadata file was committed to
+`theredhacker0345/fdroiddata` branch `add-pocket-relay-1.0.0` at
+`e1742d0febd5c3337f98a51267bfca61967139a2`. A cross-project merge request was
+then opened against `fdroid/fdroiddata:master`:
+[!46222 — Add Pocket Relay 1.0.0 (com.app.pockethermes)](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222).
+The recipe targets public immutable tag `v1.0.0-fdroid.2` at
+`4ce53341ce0f47ad94f164a0d4fbff40b137f5d2`, declares GPL-3.0-only, and carries
+the `NonFreeNet` anti-feature for Telegram and owner-selected AI-provider
+network services. The merge request is a review submission, not evidence of
+acceptance; F-Droid’s own lint, scanner, build-server, and reviewer checks are
+still required.
+
 ## Python dependency conclusion
 
 The source-vendored Hermes Agent and Pydantic Core inputs remain the most

@@ -8,9 +8,25 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="2.46.4"
 PYTHON_TAG="cp311"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1704067200}"
-NDK_ROOT="${ANDROID_NDK_HOME:-/home/ubuntu/android-sdk/ndk/27.1.12297006}"
-RUSTUP_HOME="${RUSTUP_HOME:-/home/ubuntu/.rustup}"
-CARGO_HOME="${CARGO_HOME:-/home/ubuntu/.cargo}"
+NDK_VERSION="${ANDROID_NDK_VERSION:-27.1.12297006}"
+LOCAL_PROPERTIES="${ROOT}/android/local.properties"
+NDK_ROOT="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
+if [[ -z "${NDK_ROOT}" && -f "${LOCAL_PROPERTIES}" ]]; then
+  NDK_ROOT="$(sed -n -e 's/^ndk\.dir=//p' "${LOCAL_PROPERTIES}" | head -n 1)"
+fi
+if [[ -z "${NDK_ROOT}" ]]; then
+  SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+  if [[ -z "${SDK_ROOT}" && -f "${LOCAL_PROPERTIES}" ]]; then
+    SDK_ROOT="$(sed -n -e 's/^sdk\.dir=//p' "${LOCAL_PROPERTIES}" | head -n 1)"
+  fi
+  [[ -n "${SDK_ROOT}" ]] || {
+    echo "Android SDK root is required; set ANDROID_NDK_HOME, ANDROID_NDK_ROOT, ANDROID_HOME, or ANDROID_SDK_ROOT" >&2
+    exit 1
+  }
+  NDK_ROOT="${SDK_ROOT}/ndk/${NDK_VERSION}"
+fi
+RUSTUP_HOME="${RUSTUP_HOME:-${HOME:?HOME is required for Rustup}/.rustup}"
+CARGO_HOME="${CARGO_HOME:-${HOME:?HOME is required for Cargo}/.cargo}"
 PYTHON="${POCKET_HERMES_BUILDPYTHON:-${PYTHON:-python3}}"
 WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
@@ -72,7 +88,7 @@ rm -rf "${WORK}"
 mkdir -p "${WORK}" "${OUT}"
 # Do not copy the build host's sysconfig data: F-Droid builds on Python 3.13,
 # whereas this wheel targets the embedded CPython 3.11 Android ABI. PyO3's
-# no-Python cross mode uses the explicit target settings below instead.
+# explicit configuration file keeps those target facts independent of the host.
 rm -f "${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}.whl"
 cp -a "${VENDOR_SOURCE}" "${WORK}/pydantic_core-${VERSION}"
 
@@ -83,6 +99,16 @@ cat > "${WORK}/python-link-stub.c" <<'EOF'
 void pocket_hermes_build_time_python_link_stub(void) {}
 EOF
 "${CLANG}" -shared -fPIC "${WORK}/python-link-stub.c" -o "${WORK}/libpython3.11.so"
+cat > "${WORK}/pyo3-config.txt" <<EOF
+implementation=CPython
+version=3.11
+shared=true
+abi3=false
+lib_name=python3.11
+lib_dir=${WORK}
+pointer_width=64
+build_flags=
+EOF
 
 export RUSTUP_HOME CARGO_HOME
 export ANDROID_NDK_HOME="${NDK_ROOT}"
@@ -95,10 +121,7 @@ export "AR_${CARGO_ENV_TARGET}=${NDK_BIN}/llvm-ar"
 export "CARGO_TARGET_${CARGO_ENV_TARGET}_LINKER=${CLANG}"
 export RUSTFLAGS="${RUSTFLAGS:-} -L native=${WORK}"
 export PYO3_CROSS=1
-export PYO3_NO_PYTHON=1
-export PYO3_CROSS_LIB_DIR="${WORK}"
-export PYO3_CROSS_PYTHON_VERSION=3.11
-export PYO3_CROSS_PYTHON_IMPLEMENTATION=CPython
+export PYO3_CONFIG_FILE="${WORK}/pyo3-config.txt"
 
 SOURCE_DIR="${WORK}/pydantic_core-${VERSION}"
 (
