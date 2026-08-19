@@ -32,14 +32,15 @@ WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
 VENDOR_SOURCE="${ROOT}/third_party/pydantic-core"
-EXPECTED_TREE_SHA256="6acfaaae6fd851180487b70fd064c1b10f4b5c0a8b21250a1b1621b6822dc2a3"
+VENDOR_RELATIVE="third_party/pydantic-core"
+EXPECTED_TREE_SHA256="087267c473a90349404c3b259193cffc8902bfa22f94bd99a2b71eefe5dddd14"
 
 python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"
 if [[ -d "${python_prefix}/lib" ]]; then
   export LD_LIBRARY_PATH="${python_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 fi
 
-for executable in sha256sum cargo "${PYTHON}"; do
+for executable in git sha256sum cargo "${PYTHON}"; do
   command -v "${executable}" >/dev/null 2>&1 || {
     echo "Missing build prerequisite: ${executable}" >&2
     exit 1
@@ -73,9 +74,17 @@ test -f "${VENDOR_SOURCE}/Cargo.lock" || { echo "Missing vendored Pydantic Core 
 test -f "${VENDOR_SOURCE}/.cargo/config.toml" || { echo "Missing offline Cargo source replacement" >&2; exit 1; }
 test -d "${VENDOR_SOURCE}/vendor" || { echo "Missing vendored Rust dependency closure" >&2; exit 1; }
 
+# Restrict the integrity calculation to committed source files. A previous
+# traversal included ignored Cargo build output left by local validation, which
+# made the recorded digest differ from the clean Git checkout F-Droid builds.
 actual_tree_sha256="$({
   cd "${VENDOR_SOURCE}"
-  find . -type f ! -path './UPSTREAM.md' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+  git -C "${ROOT}" ls-tree -r --name-only HEAD -- "${VENDOR_RELATIVE}" \
+    | sed -e "s|^${VENDOR_RELATIVE}/|./|" -e '/^\.\/UPSTREAM\.md$/d' \
+    | LC_ALL=C sort \
+    | xargs -d '\n' sha256sum \
+    | sha256sum \
+    | awk '{print $1}'
 })"
 if [[ "${actual_tree_sha256}" != "${EXPECTED_TREE_SHA256}" ]]; then
   echo "Vendored Pydantic Core tree digest mismatch" >&2

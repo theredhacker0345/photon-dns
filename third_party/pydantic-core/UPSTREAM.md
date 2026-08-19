@@ -15,18 +15,21 @@ download mechanism.
 | Rust dependency lock | `Cargo.lock` retained; SHA-256 `c3c27fc600d7dafd149229c6501271dbc5f6b4f7b1bfa116b32e77217c2b5038` |
 | Rust source closure | 103 crates from `Cargo.lock`, copied into `vendor/` through `cargo vendor --locked --versioned-dirs` |
 | Cargo source replacement | `.cargo/config.toml` replaces crates.io with `vendor/` |
-| Vendored tree SHA-256 | `6acfaaae6fd851180487b70fd064c1b10f4b5c0a8b21250a1b1621b6822dc2a3` |
+| Vendored tree SHA-256 | `087267c473a90349404c3b259193cffc8902bfa22f94bd99a2b71eefe5dddd14` |
 
-The tree digest is calculated before this file is added, using the following
-portable algorithm:
+The tree digest is calculated before this file is added from the committed
+source entries, using the following portable algorithm. This intentionally
+excludes ignored Cargo build output, so it remains identical in a clean
+F-Droid checkout and after local validation:
 
 ```sh
-find . -type f ! -path './UPSTREAM.md' -print0 \
-  | LC_ALL=C sort -z \
-  | xargs -0 sha256sum \
+git -C ../.. ls-tree -r --name-only HEAD -- third_party/pydantic-core \
+  | sed -e 's|^third_party/pydantic-core/|./|' -e '/^\.\/UPSTREAM\.md$/d' \
+  | LC_ALL=C sort \
+  | xargs -d '\n' sha256sum \
   | sha256sum
 ```
 
-`scripts/build-pydantic-core-android-wheel.sh` verifies the recorded source
-tree digest before cross-compilation, enables Cargo offline mode, and refuses
-to build when the checked-in source closure is incomplete or altered.
+`scripts/build-pydantic-core-android-wheel.sh` verifies the recorded committed
+source-tree digest before cross-compilation, enables Cargo offline mode, and
+refuses to build when the checked-in source closure is incomplete or altered.

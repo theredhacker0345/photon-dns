@@ -396,8 +396,11 @@
 - [ ] Collect the full failed-job evidence from F-Droid pipeline 2772924414 before researching and batching any subsequent correction
 - [ ] Update the F-Droid recipe’s source commit from 19db113 to 27e6ae6 so the build uses the validated portable buildPython repair; validate the one-line batch before publishing
 - [ ] Collect the full failed-job evidence from F-Droid pipeline 2773060586 before researching and batching any subsequent correction
-- [ ] Research and batch the missing-Cargo toolchain remedy from F-Droid pipeline 2773060586; use a failure-specific commit message after local validation
-- [ ] Collect the full failed-job evidence from F-Droid pipeline 2773174201 before researching and batching any subsequent correction
-- [ ] Replace the wheel builder’s workstation-specific Android NDK fallback with F-Droid build-server environment resolution and declare the required NDK in the submission recipe
-- [ ] Canonicalize the Rustup source-library and wrapped prebuild fields required by `fdroid rewritemeta`, then publish one source-commit-pinned F-Droid MR correction batch
-- [ ] Replace the invalid PyO3 no-interpreter fallback with an explicit CPython 3.11 Android configuration file and validate the wheel before publishing the F-Droid correction batch
+- [x] Research and batch the missing-Cargo toolchain remedy from F-Droid pipeline 2773060586; use a failure-specific commit message after local validation
+- [x] Collect the full failed-job evidence from F-Droid pipeline 2773174201 before researching and batching any subsequent correction
+- [x] Replace the wheel builder’s workstation-specific Android NDK fallback with F-Droid build-server environment resolution and declare the required NDK in the submission recipe
+- [x] Canonicalize the Rustup source-library and wrapped prebuild fields required by `fdroid rewritemeta`, then publish one source-commit-pinned F-Droid MR correction batch
+- [x] Replace the invalid PyO3 no-interpreter fallback with an explicit CPython 3.11 Android configuration file and validate the wheel before publishing the F-Droid correction batch
+- [x] Collect every failed trace from F-Droid pipeline 2773278091 before researching or batching any subsequent correction
+- [ ] Canonicalize the two remaining `fdroid rewritemeta` prebuild line wraps and reconcile the Pydantic Core vendored-tree integrity record with F-Droid source extraction before one validated submission update
+- [x] Replace the Pydantic integrity check’s dirty-working-tree traversal with a committed-source digest so generated ignored Cargo files cannot invalidate clean F-Droid builds

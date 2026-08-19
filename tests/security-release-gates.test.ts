@@ -133,6 +133,9 @@ describe("security and FOSS release gates", () => {
     expect(pydanticBuild).toContain('version=3.11');
     expect(pydanticBuild).toContain('lib_name=python3.11');
     expect(pydanticBuild).not.toContain('PYO3_NO_PYTHON=1');
+    expect(pydanticBuild).toContain('git -C "${ROOT}" ls-tree -r --name-only HEAD -- "${VENDOR_RELATIVE}"');
+    expect(pydanticBuild).toContain('EXPECTED_TREE_SHA256="087267c473a90349404c3b259193cffc8902bfa22f94bd99a2b71eefe5dddd14"');
+    expect(pydanticBuild).not.toContain("find . -type f ! -path './UPSTREAM.md'");
     expect(reproducibleBuild).toContain('PYTHON="${POCKET_HERMES_BUILDPYTHON:-python3}"');
   });
 });
