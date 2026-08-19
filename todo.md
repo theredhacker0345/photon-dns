@@ -354,4 +354,4 @@
 - [x] Define a persisted local-only master notification preference that never changes Telegram delivery or sends data off-device
 - [x] Enforce the master preference for Pocket Relay host alerts and scheduled backup reminders, including safe cancellation when disabled
 - [x] Add an accessible Settings toggle with Android notification-permission and active/inactive status feedback
-- [ ] Add regression coverage, complete validation, checkpoint, and publish the master notification control to GitLab
+- [x] Add regression coverage, complete validation, checkpoint, and publish the master notification control to GitLab
