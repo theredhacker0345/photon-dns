@@ -7,13 +7,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIN="165c889e5b4277b56dadd42949a4112c1e6175a6"
 VERSION="0.20.1"
-PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
+PYTHON="${PYTHON:-${POCKET_HERMES_BUILDPYTHON:-python3}}"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1786807638}"
 VENDORED_SOURCE="${ROOT}/third_party/hermes-agent"
 OUT="${ROOT}/.artifacts/wheels"
 EXPECTED_DIGEST="392f5607c915d780a03e9a9cf75e849a02b87fa1df17733df502ec1bd0e78565"
 
-"${PYTHON}" --version | grep -q '^Python 3\.11\.'
+command -v "${PYTHON}" >/dev/null 2>&1 || {
+  echo "Missing build prerequisite: ${PYTHON}" >&2
+  exit 1
+}
 test -f "${VENDORED_SOURCE}/UPSTREAM.md"
 test -f "${VENDORED_SOURCE}/LICENSE"
 grep -Fq "${PIN}" "${VENDORED_SOURCE}/UPSTREAM.md"

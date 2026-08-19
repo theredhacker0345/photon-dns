@@ -3,7 +3,9 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath "com.chaquo.python:gradle:17.0.0"
+    // Chaquopy 16.1 supports the F-Droid build server's Python 3.13 host while
+    // retaining the embedded CPython 3.11 Android runtime target.
+    classpath "com.chaquo.python:gradle:16.1.0"
   }
 }
 
@@ -86,7 +88,11 @@ def pocketRelayRoot = rootProject.projectDir.parentFile
 def pocketHermesWheel = new File(pocketRelayRoot, ".artifacts/wheels/hermes_agent-0.20.1-py3-none-any.whl")
 def pocketJiterWheel = new File(pocketRelayRoot, ".artifacts/wheels/jiter-0.10.0-py3-none-any.whl")
 def pocketPydanticCoreWheel = new File(pocketRelayRoot, ".artifacts/wheels/pydantic_core-2.46.4-cp311-cp311-android_24_arm64_v8a.whl")
-def pocketHermesBuildPython = System.getenv("POCKET_HERMES_BUILDPYTHON") ?: "python3.11"
+// F-Droid's Debian Trixie image supplies Python 3.13, while the Android
+// runtime remains explicitly pinned to CPython 3.11 below. Chaquopy 16.1
+// supports any Python 3.8+ build interpreter, and local builders can still
+// override this command for reproducibility experiments.
+def pocketHermesBuildPython = System.getenv("POCKET_HERMES_BUILDPYTHON") ?: "python3"
 def buildPocketRelayPythonWheels = tasks.register("buildPocketRelayPythonWheels", Exec) {
   workingDir pocketRelayRoot
   commandLine "bash", new File(pocketRelayRoot, "scripts/build-android-python-wheels.sh").absolutePath
@@ -117,10 +123,11 @@ tasks.configureEach {
 chaquopy {
   defaultConfig {
     version = "3.11"
-    // CI or a local builder supplies a Python 3.11 executable through
-    // POCKET_HERMES_BUILDPYTHON. The fallback keeps normal developer builds
-    // explicit: Chaquopy rejects an interpreter with the wrong minor version.
-    buildPython(System.getenv("POCKET_HERMES_BUILDPYTHON") ?: "python3.11")
+    // The embedded Android runtime is CPython 3.11. The build interpreter is
+    // intentionally independent: Chaquopy 16.1 supports the F-Droid
+    // buildserver's system Python 3.13, with an override retained for local
+    // reproducibility validation.
+    buildPython(pocketHermesBuildPython)
     pip {
       def requirementsFile = pocketHermesEmulatorTestBuild && pocketHermesAbis == ["x86_64"]
         ? "src/main/python/requirements-android-x86_64.txt"

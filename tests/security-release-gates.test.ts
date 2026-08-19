@@ -109,4 +109,20 @@ describe("security and FOSS release gates", () => {
     expect(pythonSbom).not.toContain("fetch(");
     expect(pythonSbom).not.toContain("randomUUID");
   });
+
+  it("keeps the F-Droid build interpreter portable while targeting CPython 3.11 on Android", () => {
+    const nativeGradle = read("modules/pocket-hermes-supervisor/android/build.gradle");
+    const wheelBuild = read("scripts/build-android-python-wheels.sh");
+    const pydanticBuild = read("scripts/build-pydantic-core-android-wheel.sh");
+    const reproducibleBuild = read("scripts/reproducible-android-build.sh");
+
+    expect(nativeGradle).toContain('com.chaquo.python:gradle:16.1.0');
+    expect(nativeGradle).toContain('version = "3.11"');
+    expect(nativeGradle).toContain('?: "python3"');
+    expect(nativeGradle).not.toContain('?: "python3.11"');
+    expect(wheelBuild).toContain('PYTHON="${PYTHON:-${POCKET_HERMES_BUILDPYTHON:-python3}}"');
+    expect(pydanticBuild).toContain("PYO3_NO_PYTHON=1");
+    expect(pydanticBuild).not.toContain("_sysconfigdata*.py");
+    expect(reproducibleBuild).toContain('PYTHON="${POCKET_HERMES_BUILDPYTHON:-python3}"');
+  });
 });

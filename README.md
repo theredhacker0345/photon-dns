@@ -153,7 +153,7 @@ pnpm run audit:licenses
 pnpm run release:preflight
 ```
 
-A native host build requires the documented Android SDK, NDK, Java, CPython 3.11 build interpreter, and prebuilt Python wheels. Set `POCKET_HERMES_BUILDPYTHON` to the intended CPython 3.11 executable in that environment. The [reproducible release policy](docs/reproducible-release-policy.md) and [Android build validation notes](docs/android-build-validation.md) describe the constrained build path.
+A native host build requires the documented Android SDK, NDK, Java, a Python 3.8+ build interpreter, and the checked-in Python-wheel sources. The embedded Android runtime remains **CPython 3.11**, but Chaquopy 16.1 permits the F-Droid build server's system Python 3.13 to drive packaging. Set `POCKET_HERMES_BUILDPYTHON` only to override the detected host interpreter for a local reproducibility run. The [reproducible release policy](docs/reproducible-release-policy.md) and [Android build validation notes](docs/android-build-validation.md) describe the constrained build path.
 
 ## Release and F-Droid
 

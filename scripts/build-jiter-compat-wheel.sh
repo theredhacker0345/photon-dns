@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
+PYTHON="${PYTHON:-${POCKET_HERMES_BUILDPYTHON:-python3}}"
 SOURCE="${ROOT}/modules/pocket-hermes-supervisor/android/src/main/python/vendor/jiter-compat"
 OUT="${ROOT}/.artifacts/wheels"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1704067200}"

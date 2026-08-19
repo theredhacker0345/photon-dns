@@ -5,7 +5,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
+# The wheel assemblers are host-minor agnostic. Use the F-Droid buildserver's
+# system Python unless a local reproducibility run explicitly supplies one.
+PYTHON="${PYTHON:-${POCKET_HERMES_BUILDPYTHON:-python3}}"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1704067200}"
 
 python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"

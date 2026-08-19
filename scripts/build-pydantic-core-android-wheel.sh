@@ -11,10 +11,7 @@ SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1704067200}"
 NDK_ROOT="${ANDROID_NDK_HOME:-/home/ubuntu/android-sdk/ndk/27.1.12297006}"
 RUSTUP_HOME="${RUSTUP_HOME:-/home/ubuntu/.rustup}"
 CARGO_HOME="${CARGO_HOME:-/home/ubuntu/.cargo}"
-PYTHON="${POCKET_HERMES_BUILDPYTHON:-${PYTHON:-}}"
-if [[ -z "${PYTHON}" ]]; then
-  PYTHON="$(command -v python3.11 || command -v python3)"
-fi
+PYTHON="${POCKET_HERMES_BUILDPYTHON:-${PYTHON:-python3}}"
 WORK="${WORK:-${ROOT}/.cache/pydantic-core-${VERSION}-android}"
 OUT="${ROOT}/.artifacts/wheels"
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
@@ -73,10 +70,9 @@ fi
 
 rm -rf "${WORK}"
 mkdir -p "${WORK}" "${OUT}"
-# Maturin/PyO3 needs the target interpreter's sysconfig data when cross
-# compiling. Keep this generated metadata in the ignored build workspace.
-stdlib_dir="$("${PYTHON}" -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')"
-cp "${stdlib_dir}"/_sysconfigdata*.py "${WORK}/"
+# Do not copy the build host's sysconfig data: F-Droid builds on Python 3.13,
+# whereas this wheel targets the embedded CPython 3.11 Android ABI. PyO3's
+# no-Python cross mode uses the explicit target settings below instead.
 rm -f "${OUT}/pydantic_core-${VERSION}-${PYTHON_TAG}-${PYTHON_TAG}-android_24_${WHEEL_ABI}.whl"
 cp -a "${VENDOR_SOURCE}" "${WORK}/pydantic_core-${VERSION}"
 
@@ -99,6 +95,7 @@ export "AR_${CARGO_ENV_TARGET}=${NDK_BIN}/llvm-ar"
 export "CARGO_TARGET_${CARGO_ENV_TARGET}_LINKER=${CLANG}"
 export RUSTFLAGS="${RUSTFLAGS:-} -L native=${WORK}"
 export PYO3_CROSS=1
+export PYO3_NO_PYTHON=1
 export PYO3_CROSS_LIB_DIR="${WORK}"
 export PYO3_CROSS_PYTHON_VERSION=3.11
 export PYO3_CROSS_PYTHON_IMPLEMENTATION=CPython
