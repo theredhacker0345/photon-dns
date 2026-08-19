@@ -149,8 +149,8 @@ describe("security and FOSS release gates", () => {
     const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
 
     expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
-    expect(fdroidMetadata).toContain("--profile \n        minimal --target aarch64-linux-android");
-    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash \n        ../scripts/build-android-python-wheels.sh");
+    expect(fdroidMetadata).toContain("--profile minimal\n        --target aarch64-linux-android");
+    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh");
   });
 
   it("keeps every native dependency reviewable at scan time and moves store assets upstream", () => {
