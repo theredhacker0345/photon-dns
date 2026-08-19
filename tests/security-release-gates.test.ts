@@ -53,6 +53,16 @@ describe("security and FOSS release gates", () => {
     expect(fdroidChecklist).toContain("immutable release tag");
   });
 
+  it("keeps the Android Gradle source project in the public release tree", () => {
+    const gitignore = read(".gitignore");
+
+    expect(gitignore).not.toMatch(/^\/android$/m);
+    expect(gitignore).toContain("/android/.gradle/");
+    expect(gitignore).toContain("/android/app/debug.keystore");
+    expect(read("android/settings.gradle")).toContain("rootProject.name");
+    expect(read("android/app/build.gradle")).toContain("com.android.application");
+  });
+
   it("declares GPLv3-only app-owned code and preserves contributor governance", () => {
     const packageJson = read("package.json");
     const fdroidMetadata = read("metadata/com.app.pockethermes.yml");

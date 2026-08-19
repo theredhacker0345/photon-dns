@@ -11,7 +11,7 @@ PYTHON="${PYTHON:-/home/ubuntu/toolchains/cpython-3.11/bin/python3.11}"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1786807638}"
 VENDORED_SOURCE="${ROOT}/third_party/hermes-agent"
 OUT="${ROOT}/.artifacts/wheels"
-EXPECTED_DIGEST="052ef8ebe1defc3307288b534299f63951afe9c6bd3aeffd9bfd44375f18735a"
+EXPECTED_DIGEST="392f5607c915d780a03e9a9cf75e849a02b87fa1df17733df502ec1bd0e78565"
 
 "${PYTHON}" --version | grep -q '^Python 3\.11\.'
 test -f "${VENDORED_SOURCE}/UPSTREAM.md"

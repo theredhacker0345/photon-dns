@@ -38,9 +38,20 @@ yarn-error.*
 
 app-example
 
-# generated native folders
+# generated iOS folder
 /ios
-/android
+
+# Android Gradle build outputs and machine-local configuration. The Android
+# source project itself is versioned because F-Droid builds from the upstream
+# source tag.
+/android/.gradle/
+/android/.kotlin/
+/android/build/
+/android/app/build/
+/android/.cxx/
+/android/app/.cxx/
+/android/local.properties
+/android/app/debug.keystore
 
 # IDE
 .vscode/
@@ -76,4 +87,3 @@ modules/pocket-hermes-supervisor/android/src/main/python/vendor/pydantic-core/*.
 
 # Module build outputs
 **/build/
-

@@ -10,9 +10,9 @@ is not updated by the Android build.
 | Upstream revision | `165c889e5b4277b56dadd42949a4112c1e6175a6` |
 | Upstream package version | `0.20.1` |
 | Upstream license | MIT, preserved in `LICENSE` |
-| Imported files | 1,126 files required by upstream `pyproject.toml` package discovery, declared `py-modules`, and package-data rules |
+| Imported files | 1,122 files required by upstream `pyproject.toml` package discovery, declared `py-modules`, and package-data rules |
 | Scope intentionally excluded | Git history, tests, unrelated top-level documentation, website, desktop application, optional skills, installer assets, unrelated development tooling, and the two non-runtime high-resolution achievement screenshots |
-| Stable content digest | `052ef8ebe1defc3307288b534299f63951afe9c6bd3aeffd9bfd44375f18735a` |
+| Stable content digest | `392f5607c915d780a03e9a9cf75e849a02b87fa1df17733df502ec1bd0e78565` |
 
 The content digest is SHA-256 over a lexicographically sorted stream of each
 vendored relative path followed by that file's SHA-256. `UPSTREAM.md` is excluded
