@@ -30,7 +30,7 @@ Builds:
     subdir: android
     sudo:
       - apt-get update
-      - apt-get install -y nodejs npm
+      - apt-get install -y build-essential nodejs npm
     init:
       - cd ..
       - npm install pnpm@9.12.0 --no-save --no-package-lock

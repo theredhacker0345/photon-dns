@@ -144,4 +144,12 @@ describe("security and FOSS release gates", () => {
     expect(read("third_party/pydantic-core/vendor/rustversion-1.0.17/build/build.rs")).toContain("rustc");
     expect(read("third_party/pydantic-core/vendor/rustversion-1.0.17/build/rustc.rs")).toContain("Version");
   });
+
+  it("provisions Cargo's native host linker and retains the pipeline-canonical F-Droid prebuild layout", () => {
+    const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
+
+    expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
+    expect(fdroidMetadata).toContain("--profile \n        minimal --target aarch64-linux-android");
+    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash \n        ../scripts/build-android-python-wheels.sh");
+  });
 });
