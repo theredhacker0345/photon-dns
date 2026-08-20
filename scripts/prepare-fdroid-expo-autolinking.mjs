@@ -22,6 +22,21 @@ const mavenLocalPublication =
   "          url = mavenLocal().url\n" +
   "        }\n" +
   "      }\n";
+const sourceBuiltExpoPackages = [
+  "expo-asset",
+  "expo-battery",
+  "expo-crypto",
+  "expo-document-picker",
+  "expo-file-system",
+  "expo-font",
+  "expo-haptics",
+  "expo-keep-awake",
+  "expo-linking",
+  "expo-secure-store",
+  "expo-sharing",
+  "expo-splash-screen",
+  "expo-system-ui",
+];
 
 function fail(message) {
   throw new Error(`F-Droid Expo autolinking preparation failed: ${message}`);
@@ -54,6 +69,26 @@ if (
   resolvedModules.extraDependencies.length !== 0
 ) {
   fail("the locked dependency graph requires extra Android Maven repositories");
+}
+const localPublicationExpoPackages = (resolvedModules.modules ?? [])
+  .filter((module) =>
+    module.projects?.some(
+      (project) => project.publication?.repository === "local-maven-repo",
+    ),
+  )
+  .map((module) => module.packageName)
+  .sort();
+const configuredSourcePackages = [...(resolvedModules.configuration?.buildFromSource ?? [])].sort();
+const expectedSourcePackages = [...sourceBuiltExpoPackages].sort();
+if (JSON.stringify(configuredSourcePackages) !== JSON.stringify(expectedSourcePackages)) {
+  fail(
+    `Expo Android build-from-source configuration drifted: ${configuredSourcePackages.join(", ")}`,
+  );
+}
+if (JSON.stringify(localPublicationExpoPackages) !== JSON.stringify(expectedSourcePackages)) {
+  fail(
+    `Expo Android local Maven publication set changed: ${localPublicationExpoPackages.join(", ")}`,
+  );
 }
 
 const dynamicRepository = 'url "${mavenRepo.url}"';
@@ -121,5 +156,5 @@ if (mavenLocalPublicationCount === 0) {
 }
 
 console.log(
-  "Prepared Expo Modules Gradle helpers for F-Droid: no dynamic Maven repositories remain.",
+  "Prepared Expo Modules Gradle helpers for F-Droid: every locked local publication is configured to build from source and no dynamic Maven repositories remain.",
 );

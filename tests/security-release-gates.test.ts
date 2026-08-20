@@ -165,6 +165,7 @@ describe("security and FOSS release gates", () => {
     const pythonWheelBuild = read("scripts/build-android-python-wheels.sh");
     const fullDescription = read("fastlane/metadata/android/en-US/full_description.txt");
     const expoPreparation = read("scripts/prepare-fdroid-expo-autolinking.mjs");
+    const packageJson = read("package.json");
 
     expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
     expect(fdroidMetadata).not.toContain("Binaries:");
@@ -197,5 +198,11 @@ describe("security and FOSS release gates", () => {
     expect(expoPreparation).toContain("Pocket Relay does not publish Maven artifacts during F-Droid builds.");
     expect(expoPreparation).toContain("Expo Modules Core mavenLocal repository remained after preparation");
     expect(expoPreparation).toContain("neither the expected source nor the prepared form");
+    expect(expoPreparation).toContain("Expo Android build-from-source configuration drifted");
+    expect(expoPreparation).toContain("Expo Android local Maven publication set changed");
+    expect(expoPreparation).toContain("sourceBuiltExpoPackages");
+    expect(packageJson).toContain('"buildFromSource"');
+    expect(packageJson).toContain('"expo-file-system"');
+    expect(packageJson).toContain('"expo-secure-store"');
   });
 });

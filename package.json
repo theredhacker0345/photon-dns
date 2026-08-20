@@ -4,6 +4,27 @@
   "private": true,
   "license": "GPL-3.0-only",
   "main": "expo-router/entry",
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-asset",
+          "expo-battery",
+          "expo-crypto",
+          "expo-document-picker",
+          "expo-file-system",
+          "expo-font",
+          "expo-haptics",
+          "expo-keep-awake",
+          "expo-linking",
+          "expo-secure-store",
+          "expo-sharing",
+          "expo-splash-screen",
+          "expo-system-ui"
+        ]
+      }
+    }
+  },
   "scripts": {
     "dev": "pnpm dev:metro",
     "dev:metro": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 npx expo start --web --port ${EXPO_PORT:-8081}",
