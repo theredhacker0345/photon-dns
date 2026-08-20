@@ -439,4 +439,6 @@
 - [x] Repair all terminal failures from F-Droid pipeline 2775216187 in one reviewed batch: apply the pipeline-authoritative metadata wrapping and make the Neuron Encrypt JNI builder discover Rustup Cargo across the prebuild-to-Gradle environment boundary
 - [x] Publish the validated canonical-metadata and Rustup-Cargo repair to F-Droid MR !46222, then verify every resulting pipeline job
 - [x] Restore the complete tracked Neuron Encrypt Rust vendor closure by preserving Cargo checksum-declared build scripts under the JNI vendor path, then publish one guarded F-Droid repair
-- [ ] Publish the validated Neuron Encrypt source-closure repair to F-Droid MR !46222 and verify every resulting pipeline job
+- [x] Publish the validated Neuron Encrypt source-closure repair to F-Droid MR !46222 and verify every resulting pipeline job
+- [x] Repair all terminal failures from F-Droid pipeline 2775341365 in one reviewed batch: apply CI-authoritative metadata wrapping and eliminate the NativeWind-nested React Native bundle conflict
+- [ ] Publish the validated CI-metadata and NativeWind dependency-graph repair to F-Droid MR !46222, then verify every resulting pipeline job
