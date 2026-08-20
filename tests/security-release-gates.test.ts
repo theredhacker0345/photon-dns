@@ -152,8 +152,8 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
     expect(fdroidMetadata).toContain("apt-get install -y -t bullseye openjdk-17-jdk-headless");
     expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
-    expect(fdroidMetadata).toContain("--profile minimal\n        --target aarch64-linux-android");
-    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh");
+    expect(fdroidMetadata).toContain("--profile \n        minimal --target aarch64-linux-android");
+    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash \n        ../scripts/build-android-python-wheels.sh");
   });
 
   it("keeps every native dependency reviewable at scan time and moves store assets upstream", () => {
@@ -171,7 +171,7 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");
-    expect(fdroidMetadata).toContain("commit: 810402cdd9b10c398129781eb217839399501dcc");
+    expect(fdroidMetadata).toContain("commit: a4985f0d0f842e6a89506b13976191ae1f6de507");
     expect(fdroidMetadata).toContain("node scripts/prepare-fdroid-expo-autolinking.mjs");
     expect(fdroidMetadata).toContain("gradle:\n      - yes");
     expect(fdroidMetadata).not.toContain("gradle:\n      - release");

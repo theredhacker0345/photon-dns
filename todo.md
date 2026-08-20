@@ -432,6 +432,7 @@
 - [x] Replace the erroneous F-Droid Gradle release flavor with the no-flavor declaration so the build invokes assembleRelease rather than assembleReleaseRelease
 - [x] Advance the F-Droid recipe source pin to the published no-flavor Gradle repair and publish one guarded merge-request update
 - [x] Configure every locked prebuilt Expo Android module to build from source so F-Droid no longer needs scanner-prohibited local Maven repositories
-- [ ] Advance the F-Droid recipe source pin to the published Expo source-build repair and publish one guarded merge-request update
+- [x] Advance the F-Droid recipe source pin to the published Expo source-build repair and publish one guarded merge-request update
 - [x] Audit every Android project in the locked release graph for scanner-deleted scripts, missing variants, local Maven publications, and source-build requirements before the next F-Droid publication
 - [x] Batch and locally validate all evidenced Android graph repairs before publishing one guarded F-Droid update
+- [ ] Publish the validated consolidated React Native Gradle-variant repair to F-Droid MR !46222 and verify its resulting pipeline
