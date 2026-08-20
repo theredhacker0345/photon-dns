@@ -10,6 +10,53 @@ const implementationPath = resolve(
 const corePluginPath = resolve(
   "node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle",
 );
+const reactNativeModuleRepositoryTransforms = [
+  {
+    path: resolve(
+      "node_modules/@react-native-async-storage/async-storage/android/build.gradle",
+    ),
+    source:
+      "    maven {\n" +
+      "        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm\n" +
+      '        url "${project.ext.resolveModulePath("react-native")}/android"\n' +
+      "    }\n",
+    marker:
+      "    // Pocket Relay resolves React Android from Maven Central during F-Droid builds.\n",
+    required: "implementation 'com.facebook.react:react-native:+'",
+  },
+  {
+    path: resolve(
+      "node_modules/react-native-safe-area-context/android/build.gradle",
+    ),
+    source:
+      "    maven {\n" +
+      "        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm\n" +
+      '        url "$rootDir/../node_modules/react-native/android"\n' +
+      "    }\n",
+    marker:
+      "    // Pocket Relay resolves React Android from Maven Central during F-Droid builds.\n",
+    required: "implementation 'com.facebook.react:react-native:+'",
+  },
+  {
+    path: resolve("node_modules/react-native-screens/android/build.gradle"),
+    source:
+      "repositories {\n" +
+      "    maven {\n" +
+      '        url "${reactNativeRootDir}/android"\n' +
+      "    }\n\n" +
+      "    mavenCentral()\n" +
+      "    mavenLocal()\n" +
+      "    google()\n" +
+      "}\n",
+    marker:
+      "repositories {\n" +
+      "    // Pocket Relay resolves React Android from Maven Central during F-Droid builds.\n" +
+      "    mavenCentral()\n" +
+      "    google()\n" +
+      "}\n",
+    required: "implementation 'com.facebook.react:react-native:+'",
+  },
+];
 const resolverPath = resolve(
   "node_modules/expo-modules-autolinking/bin/expo-modules-autolinking.js",
 );
@@ -40,6 +87,25 @@ const sourceBuiltExpoPackages = [
 
 function fail(message) {
   throw new Error(`F-Droid Expo autolinking preparation failed: ${message}`);
+}
+
+function replaceExactlyOnceOrVerifyPrepared({ path, source, marker, required }) {
+  const content = readFileSync(path, "utf8");
+  const sourceCount = content.split(source).length - 1;
+  if (sourceCount === 0) {
+    if (content.split(marker).length - 1 !== 1) {
+      fail(`${path} is neither the expected source nor the prepared form`);
+    }
+  } else if (sourceCount === 1) {
+    writeFileSync(path, content.replace(source, marker), "utf8");
+  } else {
+    fail(`expected one removable React Native repository block in ${path}`);
+  }
+
+  const prepared = readFileSync(path, "utf8");
+  if (prepared.includes(source) || !prepared.includes(required)) {
+    fail(`React Native Gradle structure changed unexpectedly in ${path}`);
+  }
 }
 
 const packageMetadata = JSON.parse(readFileSync(packagePath, "utf8"));
@@ -155,6 +221,10 @@ if (mavenLocalPublicationCount === 0) {
   fail("expected one Expo Modules Core mavenLocal publication repository");
 }
 
+for (const transform of reactNativeModuleRepositoryTransforms) {
+  replaceExactlyOnceOrVerifyPrepared(transform);
+}
+
 console.log(
-  "Prepared Expo Modules Gradle helpers for F-Droid: every locked local publication is configured to build from source and no dynamic Maven repositories remain.",
+  "Prepared Expo and React Native Gradle helpers for F-Droid: every local publication is source-built or replaced by Maven Central, with no dynamic Maven repositories remaining.",
 );

@@ -201,6 +201,13 @@ describe("security and FOSS release gates", () => {
     expect(expoPreparation).toContain("Expo Android build-from-source configuration drifted");
     expect(expoPreparation).toContain("Expo Android local Maven publication set changed");
     expect(expoPreparation).toContain("sourceBuiltExpoPackages");
+    expect(expoPreparation).toContain("reactNativeModuleRepositoryTransforms");
+    expect(expoPreparation).toContain("@react-native-async-storage/async-storage/android/build.gradle");
+    expect(expoPreparation).toContain("react-native-safe-area-context/android/build.gradle");
+    expect(expoPreparation).toContain("react-native-screens/android/build.gradle");
+    expect(expoPreparation).toContain("Pocket Relay resolves React Android from Maven Central during F-Droid builds.");
+    expect(expoPreparation).toContain("expected one removable React Native repository block");
+    expect(expoPreparation).toContain("React Native Gradle structure changed unexpectedly");
     expect(packageJson).toContain('"buildFromSource"');
     expect(packageJson).toContain('"expo-file-system"');
     expect(packageJson).toContain('"expo-secure-store"');
