@@ -152,8 +152,8 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
     expect(fdroidMetadata).toContain("apt-get install -y -t bullseye openjdk-17-jdk-headless");
     expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
-    expect(fdroidMetadata).toMatch(/--profile\s+\n\s+minimal --target aarch64-linux-android/);
-    expect(fdroidMetadata).toMatch(/source \$HOME\/.cargo\/env && bash\s+\n\s+\.\.\/scripts\/build-android-python-wheels\.sh/);
+    expect(fdroidMetadata).toContain("--profile minimal\n        --target aarch64-linux-android");
+    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh");
   });
 
   it("keeps every native dependency reviewable at scan time and moves store assets upstream", () => {
@@ -190,5 +190,10 @@ describe("security and FOSS release gates", () => {
     expect(expoPreparation).toContain("Pocket Relay has no resolved extra Android Maven repositories.");
     expect(expoPreparation).toContain('const beforeProjectClosure = "    }\\n\\n"');
     expect(expoPreparation).toContain("settings-phase beforeProject closure");
+    expect(expoPreparation).toContain('"node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle"');
+    expect(expoPreparation).toContain("mavenLocal().url");
+    expect(expoPreparation).toContain("Pocket Relay does not publish Maven artifacts during F-Droid builds.");
+    expect(expoPreparation).toContain("Expo Modules Core mavenLocal repository remained after preparation");
+    expect(expoPreparation).toContain("neither the expected source nor the prepared form");
   });
 });

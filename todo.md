@@ -427,3 +427,5 @@
 - [x] Pin the F-Droid recipe to the already-published source commit that contains the required Expo autolinking preparation script
 - [x] Repair the F-Droid Expo autolinking preparation replacement so it removes the scanner-visible dynamic Maven repository code while preserving valid Gradle closure structure
 - [ ] Advance the F-Droid source pin to the published Expo autolinking closure repair and publish one guarded merge-request metadata update
+- [x] Preserve Expo Modules Core’s scanner-deleted legacy Gradle helper while removing only its mavenLocal publication repository
+- [x] Restore the F-Droid build-server’s exact canonical metadata wrapping after the rewriter trace rejected the newer local normalizer output

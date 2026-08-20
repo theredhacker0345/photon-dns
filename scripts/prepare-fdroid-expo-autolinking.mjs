@@ -7,12 +7,21 @@ const packagePath = resolve("node_modules/expo-modules-autolinking/package.json"
 const implementationPath = resolve(
   "node_modules/expo-modules-autolinking/scripts/android/autolinking_implementation.gradle",
 );
+const corePluginPath = resolve(
+  "node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle",
+);
 const resolverPath = resolve(
   "node_modules/expo-modules-autolinking/bin/expo-modules-autolinking.js",
 );
 const startAnchor = "      // Add extra maven repositories to allprojects\n";
 const endAnchor = "    // Apply plugins for all app projects\n";
 const beforeProjectClosure = "    }\n\n";
+const mavenLocalPublication =
+  "      repositories {\n" +
+  "        maven {\n" +
+  "          url = mavenLocal().url\n" +
+  "        }\n" +
+  "      }\n";
 
 function fail(message) {
   throw new Error(`F-Droid Expo autolinking preparation failed: ${message}`);
@@ -47,38 +56,70 @@ if (
   fail("the locked dependency graph requires extra Android Maven repositories");
 }
 
-const implementation = readFileSync(implementationPath, "utf8");
-const start = implementation.indexOf(startAnchor);
-const end = implementation.indexOf(endAnchor);
-if (start === -1 || end === -1 || end <= start) {
-  fail("expected unused extraMavenRepos block was not found exactly once");
-}
-if (implementation.indexOf(startAnchor, start + startAnchor.length) !== -1) {
-  fail("expected a single extraMavenRepos block");
-}
-
 const dynamicRepository = 'url "${mavenRepo.url}"';
-const block = implementation.slice(start, end);
-if (
-  block.split(dynamicRepository).length - 1 !== 1 ||
-  implementation.split(dynamicRepository).length - 1 !== 1
-) {
-  fail("expected one dynamic Maven URL inside the removable block");
-}
-if (!block.endsWith(beforeProjectClosure)) {
-  fail("expected the settings-phase beforeProject closure after the removable block");
-}
-
 const replacement =
   "      // Pocket Relay has no resolved extra Android Maven repositories.\n" +
   "      // Keep this static for F-Droid source scanning.\n" +
   beforeProjectClosure;
-writeFileSync(
-  implementationPath,
-  implementation.slice(0, start) + replacement + implementation.slice(end),
-  "utf8",
-);
+const implementation = readFileSync(implementationPath, "utf8");
+const dynamicRepositoryCount = implementation.split(dynamicRepository).length - 1;
+if (dynamicRepositoryCount === 0) {
+  if (
+    implementation.split(replacement).length - 1 !== 1 ||
+    implementation.includes(startAnchor)
+  ) {
+    fail("autolinking implementation is neither the expected source nor the prepared form");
+  }
+} else if (dynamicRepositoryCount === 1) {
+  const start = implementation.indexOf(startAnchor);
+  const end = implementation.indexOf(endAnchor);
+  if (start === -1 || end === -1 || end <= start) {
+    fail("expected unused extraMavenRepos block was not found exactly once");
+  }
+  if (implementation.indexOf(startAnchor, start + startAnchor.length) !== -1) {
+    fail("expected a single extraMavenRepos block");
+  }
+  const block = implementation.slice(start, end);
+  if (
+    block.split(dynamicRepository).length - 1 !== 1 ||
+    !block.endsWith(beforeProjectClosure)
+  ) {
+    fail("expected one dynamic Maven URL and the settings-phase beforeProject closure");
+  }
+  writeFileSync(
+    implementationPath,
+    implementation.slice(0, start) + replacement + implementation.slice(end),
+    "utf8",
+  );
+} else {
+  fail("expected one dynamic Maven URL inside the removable block");
+}
+
+const corePlugin = readFileSync(corePluginPath, "utf8");
+const corePreparedMarker =
+  "      // Pocket Relay does not publish Maven artifacts during F-Droid builds.\n";
+const mavenLocalPublicationCount =
+  corePlugin.split(mavenLocalPublication).length - 1;
+if (mavenLocalPublicationCount === 0) {
+  if (
+    corePlugin.split(corePreparedMarker).length - 1 !== 1 ||
+    corePlugin.includes("mavenLocal().url")
+  ) {
+    fail("Expo Modules Core helper is neither the expected source nor the prepared form");
+  }
+} else if (mavenLocalPublicationCount === 1) {
+  const preparedCorePlugin = corePlugin.replace(
+    mavenLocalPublication,
+    corePreparedMarker,
+  );
+  if (preparedCorePlugin.includes("mavenLocal().url")) {
+    fail("Expo Modules Core mavenLocal repository remained after preparation");
+  }
+  writeFileSync(corePluginPath, preparedCorePlugin, "utf8");
+} else {
+  fail("expected one Expo Modules Core mavenLocal publication repository");
+}
 
 console.log(
-  "Prepared Expo Modules Autolinking 3.0.23 for F-Droid: no extra Android Maven repositories resolved.",
+  "Prepared Expo Modules Gradle helpers for F-Droid: no dynamic Maven repositories remain.",
 );
