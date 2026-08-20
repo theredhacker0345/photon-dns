@@ -164,11 +164,13 @@ describe("security and FOSS release gates", () => {
     const nativeGradle = read("modules/pocket-hermes-supervisor/android/build.gradle");
     const pythonWheelBuild = read("scripts/build-android-python-wheels.sh");
     const fullDescription = read("fastlane/metadata/android/en-US/full_description.txt");
+    const expoPreparation = read("scripts/prepare-fdroid-expo-autolinking.mjs");
 
     expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");
+    expect(fdroidMetadata).toContain("node scripts/prepare-fdroid-expo-autolinking.mjs");
     expect(jniBuild).toContain("cargo build --release --locked --offline");
     expect(jniBuild).toContain("${JNI_ROOT}/vendor");
     expect(jniCargo).toContain('path = "android-core"');
@@ -179,5 +181,11 @@ describe("security and FOSS release gates", () => {
     expect(read("fastlane/metadata/android/en-US/images/icon.png").length).toBeGreaterThan(0);
     expect(read("fastlane/metadata/android/en-US/images/phoneScreenshots/1.png").length).toBeGreaterThan(0);
     expect(fullDescription).toContain("<ul>");
+    expect(expoPreparation).toContain('const expectedVersion = "3.0.23"');
+    expect(expoPreparation).toContain('"resolve", "--platform", "android", "--json"');
+    expect(expoPreparation).toContain("extraDependencies.length !== 0");
+    expect(expoPreparation).toContain("the locked dependency graph requires extra Android Maven repositories");
+    expect(expoPreparation).toContain('url "${mavenRepo.url}"');
+    expect(expoPreparation).toContain("Pocket Relay has no resolved extra Android Maven repositories.");
   });
 });

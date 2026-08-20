@@ -421,3 +421,5 @@
 - [ ] Establish an immutable upstream release-reference policy before enabling F-Droid automatic update checks
 - [x] Collect the complete failed F-Droid build trace from pipeline 2773652679 before researching or batching another correction
 - [x] Provision the Gradle-required Java 17 toolchain on the F-Droid build server without changing app version or relying on toolchain downloads
+- [x] Collect the complete failed F-Droid build trace from pipeline 2773732110 before researching or batching another correction
+- [x] Restore the missing Expo Modules Autolinking Android Gradle script during the F-Droid Node dependency install without masking the cause or changing version 1.0.0

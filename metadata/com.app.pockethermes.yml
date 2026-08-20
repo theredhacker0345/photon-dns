@@ -28,6 +28,7 @@ Builds:
       - cd ..
       - npm install pnpm@9.12.0 --no-save --no-package-lock
       - ./node_modules/.bin/pnpm install --frozen-lockfile
+      - node scripts/prepare-fdroid-expo-autolinking.mjs
     gradle:
       - release
     output: app/build/outputs/apk/release/app-release-unsigned.apk
