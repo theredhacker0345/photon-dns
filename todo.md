@@ -444,4 +444,4 @@
 - [x] Publish the validated CI-metadata and NativeWind dependency-graph repair to F-Droid MR !46222, then verify every resulting pipeline job
 - [x] Repair the F-Droid release-bundle Hermes compiler launch failure from pipeline 2775444288 after auditing the complete compiler binary and build-environment path
 - [x] Run the closest available local F-Droid workflow reproduction—including the recipe prebuild, scanner, clean dependency install, and Gradle release build—before every future guarded MR publication
-- [ ] Publish the locally reproduced F-Droid-only JavaScriptCore fallback to MR !46222, then verify every resulting pipeline job
+- [x] Publish the locally reproduced F-Droid-only JavaScriptCore fallback to MR !46222, then verify every resulting pipeline job
