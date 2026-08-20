@@ -437,4 +437,6 @@
 - [x] Batch and locally validate all evidenced Android graph repairs before publishing one guarded F-Droid update
 - [x] Publish the validated consolidated React Native Gradle-variant repair to F-Droid MR !46222 and verify its resulting pipeline
 - [x] Repair all terminal failures from F-Droid pipeline 2775216187 in one reviewed batch: apply the pipeline-authoritative metadata wrapping and make the Neuron Encrypt JNI builder discover Rustup Cargo across the prebuild-to-Gradle environment boundary
-- [ ] Publish the validated canonical-metadata and Rustup-Cargo repair to F-Droid MR !46222, then verify every resulting pipeline job
+- [x] Publish the validated canonical-metadata and Rustup-Cargo repair to F-Droid MR !46222, then verify every resulting pipeline job
+- [x] Restore the complete tracked Neuron Encrypt Rust vendor closure by preserving Cargo checksum-declared build scripts under the JNI vendor path, then publish one guarded F-Droid repair
+- [ ] Publish the validated Neuron Encrypt source-closure repair to F-Droid MR !46222 and verify every resulting pipeline job

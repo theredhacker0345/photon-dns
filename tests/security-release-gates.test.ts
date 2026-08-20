@@ -1,5 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
@@ -216,5 +217,55 @@ describe("security and FOSS release gates", () => {
     expect(packageJson).toContain('"buildFromSource"');
     expect(packageJson).toContain('"expo-file-system"');
     expect(packageJson).toContain('"expo-secure-store"');
+  });
+
+  it("keeps the Android-reachable Neuron Encrypt Cargo closure tracked without adding a Windows prebuilt archive", () => {
+    const vendorRoot = "modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor";
+    const excludedWindowsImportArchives = [
+      "modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/windows_aarch64_gnullvm/lib/libwindows.a",
+      "modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/windows_i686_gnu/lib/libwindows.a",
+      "modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/windows_x86_64_gnu/lib/libwindows.a",
+      "modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/windows_x86_64_gnullvm/lib/libwindows.a",
+    ];
+    const tracked = new Set(
+      execFileSync("git", ["ls-files", "--", vendorRoot], {
+        cwd: root,
+        encoding: "utf8",
+      })
+        .trim()
+        .split("\n")
+        .filter(Boolean),
+    );
+    const checksums = readdirSync(join(root, vendorRoot), {
+      recursive: true,
+      encoding: "utf8",
+    }) as string[];
+    const checksumPaths = checksums.filter((entry) =>
+      entry.endsWith(".cargo-checksum.json"),
+    );
+
+    expect(checksumPaths.length).toBeGreaterThan(0);
+    const missingFromGit: string[] = [];
+    for (const checksumRelativePath of checksumPaths) {
+      const checksumPath = join(vendorRoot, checksumRelativePath);
+      const manifest = JSON.parse(read(checksumPath)) as {
+        files: Record<string, string>;
+      };
+      const cratePath = dirname(checksumPath);
+      const missing = Object.keys(manifest.files)
+        .map((requiredPath) => join(cratePath, requiredPath))
+        .filter((requiredPath) => !tracked.has(requiredPath));
+
+      missingFromGit.push(...missing);
+    }
+
+    expect(missingFromGit.sort()).toEqual(excludedWindowsImportArchives);
+    expect(missingFromGit.every((requiredPath) => requiredPath.endsWith(".a"))).toBe(true);
+    expect(
+      read("modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/windows_aarch64_gnullvm/Cargo.toml"),
+    ).toContain('name = "windows_aarch64_gnullvm"');
+    expect(
+      read("modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/windows-targets/Cargo.toml"),
+    ).toContain("[target.aarch64-pc-windows-gnullvm.dependencies.windows_aarch64_gnullvm]");
   });
 });

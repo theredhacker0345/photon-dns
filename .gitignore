@@ -96,5 +96,5 @@ modules/pocket-hermes-supervisor/android/src/main/jniLibs/
 # versioned while retaining the general build-output rule above.
 !third_party/pydantic-core/vendor/**/build/
 !third_party/pydantic-core/vendor/**/build/**
-!modules/pocket-hermes-supervisor/android/neuron-encrypt/vendor/**/build/
-!modules/pocket-hermes-supervisor/android/neuron-encrypt/vendor/**/build/**
+!modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/**/build/
+!modules/pocket-hermes-supervisor/android/neuron-encrypt/jni/vendor/**/build/**
