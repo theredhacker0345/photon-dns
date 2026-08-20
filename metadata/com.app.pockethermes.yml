@@ -30,7 +30,7 @@ Builds:
       - ./node_modules/.bin/pnpm install --frozen-lockfile
       - node scripts/prepare-fdroid-expo-autolinking.mjs
     gradle:
-      - release
+      - yes
     output: app/build/outputs/apk/release/app-release-unsigned.apk
     srclibs:
       - rustup@1.25.2

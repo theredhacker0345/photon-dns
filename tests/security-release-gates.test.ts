@@ -172,6 +172,8 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");
     expect(fdroidMetadata).toContain("commit: 537521ac2aa8ffc9566843ced43891b5adfc6bee");
     expect(fdroidMetadata).toContain("node scripts/prepare-fdroid-expo-autolinking.mjs");
+    expect(fdroidMetadata).toContain("gradle:\n      - yes");
+    expect(fdroidMetadata).not.toContain("gradle:\n      - release");
     expect(jniBuild).toContain("cargo build --release --locked --offline");
     expect(jniBuild).toContain("${JNI_ROOT}/vendor");
     expect(jniCargo).toContain('path = "android-core"');
