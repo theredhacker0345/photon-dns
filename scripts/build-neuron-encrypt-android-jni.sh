@@ -13,6 +13,18 @@ NDK_VERSION="${ANDROID_NDK_VERSION:-27.1.12297006}"
 LOCAL_PROPERTIES="${ROOT}/android/local.properties"
 NDK_ROOT="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
 CARGO_HOME="${CARGO_HOME:-${HOME:?HOME is required for Cargo}/.cargo}"
+RUSTUP_CARGO="${CARGO_HOME}/bin/cargo"
+
+# F-Droid installs Rustup in the recipe prebuild shell. That shell's PATH does
+# not persist into the later Gradle Exec task, so prefer the deterministic
+# Rustup location before accepting a local builder's already-exported cargo.
+if [[ -x "${RUSTUP_CARGO}" ]]; then
+  CARGO_BIN="${RUSTUP_CARGO}"
+elif CARGO_BIN="$(command -v cargo 2>/dev/null)"; then
+  :
+else
+  CARGO_BIN="${RUSTUP_CARGO}"
+fi
 
 if [[ -z "${NDK_ROOT}" && -f "${LOCAL_PROPERTIES}" ]]; then
   NDK_ROOT="$(sed -n -e 's/^ndk\.dir=//p' "${LOCAL_PROPERTIES}" | head -n 1)"
@@ -49,7 +61,7 @@ case "${ANDROID_ABI}" in
     ;;
 esac
 
-for required in cargo "${CLANG}" "${JNI_ROOT}/android-core/UPSTREAM.md" \
+for required in "${CARGO_BIN}" "${CLANG}" "${JNI_ROOT}/android-core/UPSTREAM.md" \
   "${JNI_ROOT}/Cargo.lock" "${JNI_ROOT}/.cargo/config.toml"; do
   [[ -e "${required}" ]] || { echo "Missing JNI build prerequisite: ${required}" >&2; exit 1; }
 done
@@ -76,7 +88,7 @@ export "CARGO_TARGET_${CARGO_ENV_TARGET}_LINKER=${CLANG}"
 
 (
   cd "${JNI_ROOT}"
-  cargo build --release --locked --offline --target "${RUST_TARGET}"
+  "${CARGO_BIN}" build --release --locked --offline --target "${RUST_TARGET}"
 )
 
 BUILT_LIB="${TARGET_DIR}/${RUST_TARGET}/release/libneuron_encrypt_jni.so"

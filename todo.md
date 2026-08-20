@@ -435,4 +435,6 @@
 - [x] Advance the F-Droid recipe source pin to the published Expo source-build repair and publish one guarded merge-request update
 - [x] Audit every Android project in the locked release graph for scanner-deleted scripts, missing variants, local Maven publications, and source-build requirements before the next F-Droid publication
 - [x] Batch and locally validate all evidenced Android graph repairs before publishing one guarded F-Droid update
-- [ ] Publish the validated consolidated React Native Gradle-variant repair to F-Droid MR !46222 and verify its resulting pipeline
+- [x] Publish the validated consolidated React Native Gradle-variant repair to F-Droid MR !46222 and verify its resulting pipeline
+- [x] Repair all terminal failures from F-Droid pipeline 2775216187 in one reviewed batch: apply the pipeline-authoritative metadata wrapping and make the Neuron Encrypt JNI builder discover Rustup Cargo across the prebuild-to-Gradle environment boundary
+- [ ] Publish the validated canonical-metadata and Rustup-Cargo repair to F-Droid MR !46222, then verify every resulting pipeline job
