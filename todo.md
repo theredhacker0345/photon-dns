@@ -430,3 +430,4 @@
 - [x] Preserve Expo Modules Core’s scanner-deleted legacy Gradle helper while removing only its mavenLocal publication repository
 - [x] Restore the F-Droid build-server’s exact canonical metadata wrapping after the rewriter trace rejected the newer local normalizer output
 - [x] Replace the erroneous F-Droid Gradle release flavor with the no-flavor declaration so the build invokes assembleRelease rather than assembleReleaseRelease
+- [ ] Advance the F-Droid recipe source pin to the published no-flavor Gradle repair and publish one guarded merge-request update
