@@ -36,6 +36,7 @@ Builds:
     prebuild:
       - $$rustup$$/rustup-init.sh -y --default-toolchain 1.88.0 --profile minimal
         --target aarch64-linux-android
+      - echo "hermesEnabled=false" >> gradle.properties
       - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
       - source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh
     scandelete:
@@ -50,7 +51,9 @@ MaintainerNotes: |-
   Pydantic Core 2.46.4 source, licenses, provenance records, and their required
   local build inputs are vendored under third_party/. The prebuild script is
   fail-closed and must run without network access. A clean F-Droid build-server
-  run remains the final independent verification before publication.
+  run remains the final independent verification before publication. F-Droid
+  builds use JavaScriptCore because the scanner removes React Native's prebuilt
+  host Hermes compiler; normal Pocket Relay builds retain Hermes.
 
 AutoUpdateMode: None
 UpdateCheckMode: None

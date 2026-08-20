@@ -441,4 +441,7 @@
 - [x] Restore the complete tracked Neuron Encrypt Rust vendor closure by preserving Cargo checksum-declared build scripts under the JNI vendor path, then publish one guarded F-Droid repair
 - [x] Publish the validated Neuron Encrypt source-closure repair to F-Droid MR !46222 and verify every resulting pipeline job
 - [x] Repair all terminal failures from F-Droid pipeline 2775341365 in one reviewed batch: apply CI-authoritative metadata wrapping and eliminate the NativeWind-nested React Native bundle conflict
-- [ ] Publish the validated CI-metadata and NativeWind dependency-graph repair to F-Droid MR !46222, then verify every resulting pipeline job
+- [x] Publish the validated CI-metadata and NativeWind dependency-graph repair to F-Droid MR !46222, then verify every resulting pipeline job
+- [x] Repair the F-Droid release-bundle Hermes compiler launch failure from pipeline 2775444288 after auditing the complete compiler binary and build-environment path
+- [x] Run the closest available local F-Droid workflow reproduction—including the recipe prebuild, scanner, clean dependency install, and Gradle release build—before every future guarded MR publication
+- [ ] Publish the locally reproduced F-Droid-only JavaScriptCore fallback to MR !46222, then verify every resulting pipeline job

@@ -148,6 +148,7 @@ describe("security and FOSS release gates", () => {
 
   it("provisions the required Java and Cargo host toolchains while retaining the pipeline-canonical F-Droid prebuild layout", () => {
     const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
+    const appGradle = read("android/app/build.gradle");
 
     expect(fdroidMetadata).toContain("https://deb.debian.org/debian bullseye main");
     expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
@@ -157,7 +158,10 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).toContain("npm exec --yes --package=pnpm@9.12.0 -- pnpm install --frozen-lockfile");
     expect(fdroidMetadata).not.toContain("npm install pnpm@9.12.0 --no-save --no-package-lock");
     expect(fdroidMetadata).toContain("--profile minimal\n        --target aarch64-linux-android");
+    expect(fdroidMetadata).toContain('echo "hermesEnabled=false" >> gradle.properties');
     expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh");
+    expect(appGradle).toContain("if (hermesEnabled.toBoolean())");
+    expect(appGradle).toContain("implementation jscFlavor");
   });
 
   it("keeps every native dependency reviewable at scan time and moves store assets upstream", () => {
