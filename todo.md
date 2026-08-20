@@ -445,3 +445,5 @@
 - [x] Repair the F-Droid release-bundle Hermes compiler launch failure from pipeline 2775444288 after auditing the complete compiler binary and build-environment path
 - [x] Run the closest available local F-Droid workflow reproduction—including the recipe prebuild, scanner, clean dependency install, and Gradle release build—before every future guarded MR publication
 - [x] Publish the locally reproduced F-Droid-only JavaScriptCore fallback to MR !46222, then verify every resulting pipeline job
+- [x] Audit reviewer seekme-seekyou’s request to retain only `metadata/com.app.pockethermes.yml` and add an evidence-backed AntiFeatures description before one guarded MR update
+- [x] Prepare, locally validate, publish, and monitor one canonical F-Droid metadata-only response to the reviewer feedback without changing Pocket Relay 1.0.0, tags, or releases

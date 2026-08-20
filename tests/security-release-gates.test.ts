@@ -176,6 +176,8 @@ describe("security and FOSS release gates", () => {
     const packageJson = read("package.json");
 
     expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
+    expect(fdroidMetadata).toContain("NonFreeNet:\n    en-US: Optional Telegram gateway and third-party AI provider endpoints are");
+    expect(fdroidMetadata).toContain("non-free\n      network services.");
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");
