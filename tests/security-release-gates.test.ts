@@ -188,5 +188,7 @@ describe("security and FOSS release gates", () => {
     expect(expoPreparation).toContain("the locked dependency graph requires extra Android Maven repositories");
     expect(expoPreparation).toContain('url "${mavenRepo.url}"');
     expect(expoPreparation).toContain("Pocket Relay has no resolved extra Android Maven repositories.");
+    expect(expoPreparation).toContain('const beforeProjectClosure = "    }\\n\\n"');
+    expect(expoPreparation).toContain("settings-phase beforeProject closure");
   });
 });

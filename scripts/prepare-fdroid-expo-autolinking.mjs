@@ -12,6 +12,7 @@ const resolverPath = resolve(
 );
 const startAnchor = "      // Add extra maven repositories to allprojects\n";
 const endAnchor = "    // Apply plugins for all app projects\n";
+const beforeProjectClosure = "    }\n\n";
 
 function fail(message) {
   throw new Error(`F-Droid Expo autolinking preparation failed: ${message}`);
@@ -64,10 +65,14 @@ if (
 ) {
   fail("expected one dynamic Maven URL inside the removable block");
 }
+if (!block.endsWith(beforeProjectClosure)) {
+  fail("expected the settings-phase beforeProject closure after the removable block");
+}
 
 const replacement =
   "      // Pocket Relay has no resolved extra Android Maven repositories.\n" +
-  "      // Keep this static for F-Droid source scanning.\n";
+  "      // Keep this static for F-Droid source scanning.\n" +
+  beforeProjectClosure;
 writeFileSync(
   implementationPath,
   implementation.slice(0, start) + replacement + implementation.slice(end),
