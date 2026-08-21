@@ -454,7 +454,7 @@
 - [x] Create and validate a comprehensive README and a repository-hosted PDF user guide that explain setup, all implemented features, safe operation, backups, Telegram, providers, skills, and troubleshooting using authentic screenshots where appropriate
 - [x] Complete and validate the README and repository PDF guide before resuming Appetize screenshot capture, per owner priority
 - [x] Audit reviewer linsui’s request to install Rustup from Debian and replace any non-Debian Rustup bootstrap in MR !46222 only after validating the F-Droid build-server-compatible approach
-- [ ] Publish and monitor one guarded reviewer-requested Rustup packaging correction without changing Pocket Relay version 1.0.0, tags, or releases
+- [x] Publish and monitor one guarded reviewer-requested Rustup packaging correction without changing Pocket Relay version 1.0.0, tags, or releases
 - [x] Pause all Appetize emulator capture and F-Droid screenshot-replacement work; complete only linsui’s Rustup request, the README, and the repository PDF guide
 - [x] Validate, commit, and push the three owner-prioritized deliverables together with no version, tag, or release change
 - [x] Repair the failed reviewer pipeline in one validated batch by canonicalizing metadata and removing the absent rustup-init shell environment assumption from the Debian Rustup build path
