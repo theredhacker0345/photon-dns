@@ -447,3 +447,13 @@
 - [x] Publish the locally reproduced F-Droid-only JavaScriptCore fallback to MR !46222, then verify every resulting pipeline job
 - [x] Audit reviewer seekme-seekyou’s request to retain only `metadata/com.app.pockethermes.yml` and add an evidence-backed AntiFeatures description before one guarded MR update
 - [x] Prepare, locally validate, publish, and monitor one canonical F-Droid metadata-only response to the reviewer feedback without changing Pocket Relay 1.0.0, tags, or releases
+- [x] Inspect the existing Appetize emulator integration, release APK, and F-Droid Fastlane screenshot boundary before capturing replacement store assets
+- [ ] Capture authentic Pocket Relay screenshots from an Appetize Android emulator, replace only the F-Droid Fastlane images, validate their dimensions and provenance, then publish and monitor one guarded MR update without changing version 1.0.0
+- [ ] Inspect the successful F-Droid pipeline APK artifact for retained availability, Android signing, and Appetize installability before using the documented emulator-only capture fallback
+- [x] Audit all implemented Pocket Relay capabilities, security boundaries, and validation evidence for a complete source-of-truth README and repository PDF guide
+- [x] Create and validate a comprehensive README and a repository-hosted PDF user guide that explain setup, all implemented features, safe operation, backups, Telegram, providers, skills, and troubleshooting using authentic screenshots where appropriate
+- [x] Complete and validate the README and repository PDF guide before resuming Appetize screenshot capture, per owner priority
+- [x] Audit reviewer linsui’s request to install Rustup from Debian and replace any non-Debian Rustup bootstrap in MR !46222 only after validating the F-Droid build-server-compatible approach
+- [ ] Publish and monitor one guarded reviewer-requested Rustup packaging correction without changing Pocket Relay version 1.0.0, tags, or releases
+- [x] Pause all Appetize emulator capture and F-Droid screenshot-replacement work; complete only linsui’s Rustup request, the README, and the repository PDF guide
+- [x] Validate, commit, and push the three owner-prioritized deliverables together with no version, tag, or release change

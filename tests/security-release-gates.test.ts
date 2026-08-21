@@ -153,13 +153,15 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).toContain("https://deb.debian.org/debian bullseye main");
     expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
     expect(fdroidMetadata).toContain("apt-get install -y -t bullseye openjdk-17-jdk-headless");
-    expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm");
-    expect(fdroidMetadata).toContain("echo \"deb https://deb.debian.org/debian bullseye main\" > /etc/apt/sources.list.d/bullseye.list");
+    expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm rustup");
+    expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
     expect(fdroidMetadata).toContain("npm exec --yes --package=pnpm@9.12.0 -- pnpm install --frozen-lockfile");
     expect(fdroidMetadata).not.toContain("npm install pnpm@9.12.0 --no-save --no-package-lock");
-    expect(fdroidMetadata).toContain("--profile minimal\n        --target aarch64-linux-android");
+    expect(fdroidMetadata).not.toContain("rustup-init.sh");
+    expect(fdroidMetadata).not.toContain("srclibs:\n      - rustup@");
+    expect(fdroidMetadata).toContain("rustup default 1.88.0\n      - rustup target add aarch64-linux-android");
     expect(fdroidMetadata).toContain('echo "hermesEnabled=false" >> gradle.properties');
-    expect(fdroidMetadata).toContain("source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh");
+    expect(fdroidMetadata).toMatch(/source \$HOME\/\.cargo\/env && bash\s*\n\s+\.\.\/scripts\/build-android-python-wheels\.sh/);
     expect(appGradle).toContain("if (hermesEnabled.toBoolean())");
     expect(appGradle).toContain("implementation jscFlavor");
   });
@@ -177,7 +179,7 @@ describe("security and FOSS release gates", () => {
 
     expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
     expect(fdroidMetadata).toContain("NonFreeNet:\n    en-US: Optional Telegram gateway and third-party AI provider endpoints are");
-    expect(fdroidMetadata).toContain("non-free\n      network services.");
+    expect(fdroidMetadata).toContain("non-free network services.");
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");

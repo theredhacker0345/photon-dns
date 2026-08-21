@@ -1,7 +1,7 @@
 AntiFeatures:
   NonFreeNet:
-    en-US: Optional Telegram gateway and third-party AI provider endpoints are non-free
-      network services.
+    en-US: Optional Telegram gateway and third-party AI provider endpoints are
+      non-free network services.
 Categories:
   - Internet
   - System
@@ -22,9 +22,10 @@ Builds:
     commit: 8ed63fb96f0ebe5dd1f2b090e92975bd4f9ab0e7
     subdir: android
     sudo:
-      - echo "deb https://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list
+      - echo "deb https://deb.debian.org/debian bullseye main" >
+        /etc/apt/sources.list.d/bullseye.list
       - apt-get update
-      - apt-get install -y build-essential nodejs npm
+      - apt-get install -y build-essential nodejs npm rustup
       - apt-get install -y -t bullseye openjdk-17-jdk-headless
     init:
       - cd ..
@@ -33,14 +34,13 @@ Builds:
     gradle:
       - yes
     output: app/build/outputs/apk/release/app-release-unsigned.apk
-    srclibs:
-      - rustup@1.25.2
     prebuild:
-      - $$rustup$$/rustup-init.sh -y --default-toolchain 1.88.0 --profile minimal
-        --target aarch64-linux-android
+      - rustup default 1.88.0
+      - rustup target add aarch64-linux-android
       - echo "hermesEnabled=false" >> gradle.properties
       - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
-      - source $HOME/.cargo/env && bash ../scripts/build-android-python-wheels.sh
+      - source $HOME/.cargo/env && bash
+        ../scripts/build-android-python-wheels.sh
     scandelete:
       - node_modules
       - third_party/pydantic-core/vendor/regex-automata-0.4.13/tests/fuzz/testdata
