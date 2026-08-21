@@ -472,3 +472,7 @@
 - [x] Inventory every implemented Pocket Relay feature against README coverage and document omitted owner-facing capabilities accurately
 - [x] Re-pin canonical F-Droid metadata to the exact published source commit containing the complete README feature guide
 - [x] Confirm and deliver the complete README feature guide before resuming external F-Droid pipeline monitoring
+- [x] Superseded APK-build and attachment plan after the owner selected a no-asset release; no tag was moved, recreated, or changed
+- [x] Verify GitLab’s exact visible 1.0.0 tag name and use only its matching immutable source commit for any attached release APK
+- [x] Create a no-asset GitLab release for the existing immutable Pocket Relay 1.0.0 F-Droid source tag
+- [x] Inspect the latest successful F-Droid pipeline APK artifact and determine whether it is installable on a physical Android device before sharing any link
