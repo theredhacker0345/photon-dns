@@ -40,6 +40,69 @@ Pocket Relay is a mobile control plane and an Android-hosted runtime. The owner 
 | **Encrypted backups** | Owner-triggered `.prbackup.neuron` exports using a strict non-secret allow-list, password protection, preview-first restore, and final confirmation. |
 | **Owner controls** | Five themes including OLED Black, Android-local notification master toggle and test, backup reminders, creator/project links, changelog access, and issue reporting. |
 
+## Complete feature guide
+
+The following guide explains the app’s full owner-facing feature set. It describes **what Pocket Relay does on the phone**, how its control surfaces relate to one another, and the deliberate safety limits that remain in force. The [User Guide](docs/Pocket_Relay_User_Guide.md) provides the matching step-by-step operating manual; this section is the repository’s complete capability map.
+
+### 1. Dedicated-phone host and Dashboard
+
+Pocket Relay turns one Android phone into the host for an embedded CPython 3.11 and Hermes Agent 0.20.1 worker. Starting the host launches a **non-exported Android foreground supervisor**, so Android shows a persistent notification while long-running work is active. This is an intentionally visible host service, not a hidden background process; foreground services are Android’s supported model for user-important, long-lived work.[1]
+
+The Dashboard is the daily control surface. It shows the host state—stopped, starting, running, or policy-blocked—together with charging readiness, free-storage readiness, native CPU and process-RAM measurements, private-workspace usage, the selected policy, Telegram-route state, and the last successful encrypted-backup time. The resource chart retains the latest 30 **in-memory** samples only; it is not persistent analytics. When Android cannot provide a reading, Pocket Relay reports it as unavailable rather than inventing a value.
+
+| Dashboard and host control | What the owner can do | Important boundary |
+|---|---|---|
+| **Start, stop, and recovery** | Start or stop the foreground host, review a policy block, and opt into bounded recovery or boot recovery where supported. | OEM battery management and a real device’s reboot/Keystore behavior still require physical-device acceptance testing. |
+| **Readiness** | Review charging, battery, storage reserve, workspace, CPU, and RAM status before relying on continuous operation. | These are guardrails for Pocket Relay’s process and app-private workspace, not device-wide cgroups or controls over other apps. |
+| **Recommended limits** | Fill conservative editable CPU, RAM, workspace, warning, and storage values based on reported phone hardware. | The owner reviews and saves the proposed values; no invisible performance policy is imposed. |
+| **Safety response** | Configure warnings and safe host stops for sustained policy breaches. | Android’s own memory manager remains authoritative; the app cannot override system scheduling. |
+
+### 2. Setup, provider connections, models, and Favorites
+
+The guided setup keeps configuration in four validated stages: give the host phone a name and inspect readiness; configure one Telegram owner chat and route; choose a model provider and model; then define the runtime policy. The native supervisor does not receive the configuration until the inputs are normalized. API keys, Telegram tokens, proxy passwords, and MCP bearer tokens follow Android’s protected secret path; public labels and endpoint metadata can be displayed locally without revealing the secret material.
+
+Pocket Relay supports OpenAI, OpenRouter, Groq, Mistral AI, Kilo Code, Custom OpenAI-compatible services, **Ollama**, and **LM Studio**. You can keep multiple provider connections, choose the active one, test its authentication and latency before saving it, refresh its model catalogue, search and filter the returned models, and bookmark models in the Favorites view. Hosted and custom endpoints must use HTTPS. Ollama and LM Studio are the intentionally narrow exception: plain HTTP is accepted only for a numeric private-LAN address, with optional authentication. The direct **Add Ollama** and **Add LM Studio** controls in Settings open those local-provider presets without requiring owners to search the broader provider picker.
+
+### 3. Telegram gateway, Agent Console, and one owner conversation
+
+Pocket Relay is a one-owner host. The Telegram setup accepts one positive private chat ID, rejects groups and unrecognized senders, protects the bot token, and measures a native `getMe` route check in milliseconds. Telegram can use **Direct**, **HTTP proxy**, or **SOCKS5 proxy** routing. The chosen proxy applies only to Telegram Bot API traffic: it does not redirect model-provider traffic, remote MCP requests, telemetry, or unrelated app networking. Route diagnostics redact protected proxy material and prove present reachability only—not a proxy’s future reliability or privacy.
+
+The on-phone Agent Console and the authenticated Telegram owner chat share the same canonical Hermes owner session rather than creating disconnected conversations. Pocket Relay keeps a bounded, owner-visible 100-entry app-private ledger so you can see the recent cross-surface context. **Reset conversation** clears that displayed ledger and begins a new Hermes context. Console-originated replies are mirrored once to the owner chat; replies originating in Telegram remain on Telegram, preventing duplicate delivery.
+
+### 4. Immediate work, automations, and resource policy
+
+Use the Agent Console for an immediate owner request. Use Automations for durable, owner-configured scheduled work: each schedule validates a five-field cron expression, has a visible run state and history, and can be paused or deleted when no longer needed. Immediate requests and scheduled work follow the same owner identity, provider selection, telemetry, Telegram delivery, and resource-policy boundaries.
+
+The owner sets CPU, RAM, private-workspace, low-battery, storage-reserve, warning-threshold, notification, and restart preferences. A sustained breach can safely stop the host, and a private-workspace breach can prevent new task or schedule persistence. These limits do **not** give an AI device-wide resource control, unlimited storage, or permission to automate Android outside Pocket Relay.
+
+### 5. Remote MCP connectors
+
+Remote Model Context Protocol support is deliberately small and owner-mediated. Pocket Relay accepts only a trusted public **HTTPS Streamable HTTP** endpoint on the default port. It can store an optional bearer token through protected storage, discover and display a server’s manifest and tools, and require a short owner approval before an explicit tool call. Local, `stdio`, file, HTTP, loopback, private-network, redirecting, and non-default-port MCP endpoints are rejected.
+
+An approved call is explicit: the owner submits `/mcp serverId toolName {"argument":"value"}` through the controlled path. The connector must be enabled, the manifest must still contain the selected tool, the approval grant must be active, and bounded request/response validation must pass. The embedded model does not autonomously choose or execute MCP tools.
+
+### 6. Skills and owner-visible execution audit
+
+Skills are small, deterministic QuickJS packages for synchronous JSON transformations—not Android plugins, browser extensions, arbitrary packages, or background scripts. A valid skill contains `skill.json` and `main.js`, declares a FOSS SPDX license, has an empty permissions list, carries an exact source hash, and exports `run(input)`. Owners can start from the first-party gallery, request an AI-drafted pure transformation, import a public GitHub source pinned to a resolved commit, review it, install it, enable it, approve it, run it, delete it, or export a portable `*.pocket-relay-skill.json` envelope.
+
+**Approve & run** invokes only the exact reviewed source in a non-exported isolated QuickJS process with bounded JSON input and output. Skills cannot read secrets, Telegram, provider APIs, MCP credentials, the network, a shell, arbitrary files, CPython, compilers, native libraries, dynamic imports, or background schedules. The Android Agent Console includes an owner-safe view of recent QuickJS execution metadata; it intentionally redacts source, credentials, output bodies, and raw exception text while retaining actionable status information.
+
+### 7. Encrypted backup, restore, and verification
+
+Backups are created only from Settings and use the `.prbackup.neuron` format. Before encryption, Pocket Relay builds a versioned portable payload from a strict allow-list. Neuron Encrypt then provides the authenticated AES-256-GCM-SIV construction, Argon2id password derivation, and HKDF-SHA512 domain separation.[2] The backup password is not stored and cannot be recovered.
+
+The backup can include selected non-secret settings, public provider metadata, proxy host/type/port, resource policy, automations, Favorites, non-secret MCP metadata, and source-verified skill bundles. It deliberately excludes Telegram tokens, model API keys, proxy passwords, MCP bearer tokens, Android Keystore material, conversations, task history, telemetry, audit records, diagnostics, and private paths. Restore is **preview first**: choose a file and password, inspect a safe summary of additions/changes/exclusions plus any format or app-version warning, then give final Android confirmation. A wrong password, malformed file, incompatible version, or dismissed preview makes no live configuration change. Restored providers require credentials again, and restored MCP connectors remain disabled and unchecked until the owner re-verifies them.
+
+### 8. Notifications, themes, creator links, and project controls
+
+Pocket Relay provides five themes, including **OLED Black** for low-light or low-power displays. The master device-notifications switch governs Android-local host alerts and optional encrypted-backup reminders; it does not disable Telegram delivery. **Test notification** requests Android permission feedback where required and lets the owner confirm that local alerts actually reach the device. Settings also exposes creator credit, an email/WhatsApp hiring route, the project issue tracker, the changelog, provider/connector management, skill management, backup/restore, and the current resource policy.
+
+### 9. Security boundaries and deliberately unavailable powers
+
+The worker lives in Pocket Relay’s app-private Android boundary. It has a private workspace, not shared storage or a general Android terminal. Normal Hermes sessions have an explicit empty upstream toolset: they cannot run shell commands, install packages, compile code, browse the web, take screenshots, access arbitrary files, start servers, use Docker, control Android settings, or access other apps’ data. This is a least-privilege Android app, not a Linux-container VM or a claim that Android/OEM policy can be bypassed.
+
+Pocket Relay is connected-operation only. Telegram and hosted model providers need their network routes; same-LAN Ollama or LM Studio can reduce third-party inference dependence but do not make Telegram remote control available offline. The app contains no analytics SDK, advertising SDK, account sign-in service, public multi-user relay, or Pocket Relay-operated cloud control plane. Read the [threat model](docs/threat-model.md), [privacy statement](docs/privacy.md), [MCP policy](docs/mcp-connectors.md), [skills security guide](docs/skills-security.md), and [backup design](docs/encrypted-backup-design.md) before deploying a spare phone for unattended work.
+
 ## Quick start
 
 Set up Pocket Relay on a dedicated phone that can stay powered and connected. The in-app flow validates every stage before the native host receives a configuration.
