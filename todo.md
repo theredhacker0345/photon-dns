@@ -458,3 +458,9 @@
 - [x] Pause all Appetize emulator capture and F-Droid screenshot-replacement work; complete only linsui’s Rustup request, the README, and the repository PDF guide
 - [x] Validate, commit, and push the three owner-prioritized deliverables together with no version, tag, or release change
 - [x] Repair the failed reviewer pipeline in one validated batch by canonicalizing metadata and removing the absent rustup-init shell environment assumption from the Debian Rustup build path
+- [x] Inspect and correct the reported truncated README ending without removing validated release information
+- [x] Verify the Ollama and LM Studio provider implementation and expose a clear in-app configuration path if the current UI does not surface it
+- [ ] Publish the validated local-provider Settings and README status correction after GitLab restores write access for the protected project credential
+- [x] Verify repository and in-app attribution for Neuron Encrypt and Hermes Agent, adding explicit visible credit where it is missing
+- [ ] Inspect and use only an authorized GitLab publication path while the sandbox egress IP is blocked by GitLab
+- [x] Check whether the sandbox has an already authorized GitLab SSH transport, without adding keys, proxies, or browser delegation

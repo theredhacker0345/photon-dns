@@ -2,11 +2,12 @@
 
 Pocket Relay application code is distributed under the GNU General Public License, version 3 only (GPL-3.0-only). This document records the primary third-party components and their independent license obligations that apply to the app and its embedded runtime. GPLv3 does not replace, remove, or relicense these third-party notices.
 
-## Runtime and framework
+## Runtime, encryption, and framework
 
 | Component | License | Use in Pocket Relay | Notice requirement |
 |---|---|---|---|
-| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | MIT | Planned embedded agent runtime. | Include the upstream copyright and MIT license with every runtime bundle. |
+| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | MIT | Pinned, vendored embedded agent runtime (`0.20.1`). | Include the upstream copyright and MIT license with every runtime bundle. |
+| [Neuron Encrypt](https://gitlab.com/theredhacker0345/neuron-encrypt) | GPL-3.0-only | Native authenticated-encryption boundary for password-protected backup export and restore. | Retain the upstream GPL notice and corresponding source with every distributed binary. |
 | [Expo](https://github.com/expo/expo) | MIT | React Native tooling and native module framework. | Retain license notices in source/distribution materials as applicable. |
 | [React Native](https://github.com/facebook/react-native) | MIT | Android mobile UI runtime. | Retain license notices in source/distribution materials as applicable. |
 | [Expo Modules Core](https://github.com/expo/expo/tree/main/packages/expo-modules-core) | MIT | Local Kotlin supervisor module API. | Retain license notices in source/distribution materials as applicable. |
@@ -25,4 +26,4 @@ Pocket Relay application code is distributed under the GNU General Public Licens
 
 ## Release procedure
 
-Before publishing an Android APK, regenerate the dependency license inventory with `pnpm run audit:licenses`, review changes, retain the upstream Hermes Agent license if its source is bundled, and include this notice file plus the project GPLv3 license in the release archive. Publish the corresponding source, lockfiles, wheel provenance, SBOMs, and build instructions for the exact distributed APK as described in `COPYRIGHT_POLICY.md`.
+Before publishing an Android APK, regenerate the dependency license inventory with `pnpm run audit:licenses`, review changes, retain the upstream Hermes Agent and Neuron Encrypt notices with their corresponding source, and include this notice file plus the project GPLv3 license in the release archive. Publish the corresponding source, lockfiles, wheel provenance, SBOMs, and build instructions for the exact distributed APK as described in `COPYRIGHT_POLICY.md`.

@@ -120,7 +120,7 @@ The embedded agent can reason over owner messages and return model-generated tex
 
 ## F-Droid and release status
 
-Pocket Relay 1.0.0 is under F-Droid review through [MR !46222](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222). The latest reviewer-response pipeline, `2777120453`, passed every job: F-Droid build, update checks, redirects, lint, metadata rewriting, script checks, schema validation, source scan, and APK validation. The MR contains the canonical `NonFreeNet` explanation because optional Telegram and third-party AI endpoints are non-free network services; this does not change the application’s GPL-3.0-only license.[4]
+Pocket Relay 1.0.0 is under F-Droid review through [MR !46222](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46222). The latest reviewer-response pipeline, `2780396625`, passed every job: F-Droid build, update checks, redirects, lint, metadata rewriting, script checks, schema validation, source scan, and APK validation. The MR contains the canonical `NonFreeNet` explanation because optional Telegram and third-party AI endpoints are non-free network services; this does not change the application’s GPL-3.0-only license.[4]
 
 The remaining external gates are F-Droid maintainer acceptance and owner physical-device acceptance. Do not claim store publication until F-Droid accepts and publishes the package. No new tag, release, or version was created during the current 1.0.0 submission work.
 
@@ -168,7 +168,7 @@ Contributions must preserve the owner-only boundary, protected-secret model, no-
 
 ## License and attribution
 
-Pocket Relay application code is [GNU GPL v3.0 only](LICENSE). It incorporates the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) runtime through a pinned, reviewed source closure, but is not an official Nous Research product. Third-party notices remain part of compliant distributions.
+Pocket Relay application code is [GNU GPL v3.0 only](LICENSE). It incorporates the MIT-licensed [Hermes Agent](https://github.com/NousResearch/hermes-agent) runtime through a pinned, reviewed source closure, but is not an official Nous Research product. Password-protected backup export and restore use [Neuron Encrypt](https://gitlab.com/theredhacker0345/neuron-encrypt), whose GPL-3.0-only source and notice are retained with the native encryption boundary. Third-party notices remain part of compliant distributions.
 
 ## References
 
