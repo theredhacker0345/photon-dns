@@ -161,7 +161,10 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).not.toContain("srclibs:\n      - rustup@");
     expect(fdroidMetadata).toContain("rustup default 1.88.0\n      - rustup target add aarch64-linux-android");
     expect(fdroidMetadata).toContain('echo "hermesEnabled=false" >> gradle.properties');
-    expect(fdroidMetadata).toMatch(/source \$HOME\/\.cargo\/env && bash\s*\n\s+\.\.\/scripts\/build-android-python-wheels\.sh/);
+    expect(fdroidMetadata).toContain('echo "deb https://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list');
+    expect(fdroidMetadata).toContain("Optional Telegram gateway and third-party AI provider endpoints are non-free\n      network services.");
+    expect(fdroidMetadata).toContain("- bash ../scripts/build-android-python-wheels.sh");
+    expect(fdroidMetadata).not.toContain("source $HOME/.cargo/env");
     expect(appGradle).toContain("if (hermesEnabled.toBoolean())");
     expect(appGradle).toContain("implementation jscFlavor");
   });
@@ -179,7 +182,7 @@ describe("security and FOSS release gates", () => {
 
     expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
     expect(fdroidMetadata).toContain("NonFreeNet:\n    en-US: Optional Telegram gateway and third-party AI provider endpoints are");
-    expect(fdroidMetadata).toContain("non-free network services.");
+    expect(fdroidMetadata).toContain("non-free\n      network services.");
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");

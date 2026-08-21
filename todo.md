@@ -457,3 +457,4 @@
 - [ ] Publish and monitor one guarded reviewer-requested Rustup packaging correction without changing Pocket Relay version 1.0.0, tags, or releases
 - [x] Pause all Appetize emulator capture and F-Droid screenshot-replacement work; complete only linsui’s Rustup request, the README, and the repository PDF guide
 - [x] Validate, commit, and push the three owner-prioritized deliverables together with no version, tag, or release change
+- [x] Repair the failed reviewer pipeline in one validated batch by canonicalizing metadata and removing the absent rustup-init shell environment assumption from the Debian Rustup build path
