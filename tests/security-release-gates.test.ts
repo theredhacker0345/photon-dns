@@ -161,8 +161,8 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).not.toContain("srclibs:\n      - rustup@");
     expect(fdroidMetadata).toContain("rustup default 1.88.0\n      - rustup target add aarch64-linux-android");
     expect(fdroidMetadata).toContain('echo "hermesEnabled=false" >> gradle.properties');
-    expect(fdroidMetadata).toContain('echo "deb https://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list');
-    expect(fdroidMetadata).toContain("Optional Telegram gateway and third-party AI provider endpoints are non-free\n      network services.");
+    expect(fdroidMetadata).toContain('echo "deb https://deb.debian.org/debian bullseye main" > \n        /etc/apt/sources.list.d/bullseye.list');
+    expect(fdroidMetadata).toContain("Optional Telegram gateway and third-party AI provider endpoints are \n      non-free network services.");
     expect(fdroidMetadata).toContain("- bash ../scripts/build-android-python-wheels.sh");
     expect(fdroidMetadata).not.toContain("source $HOME/.cargo/env");
     expect(appGradle).toContain("if (hermesEnabled.toBoolean())");
@@ -182,11 +182,11 @@ describe("security and FOSS release gates", () => {
 
     expect(fdroidMetadata).toContain("AuthorName: Ubaid ur Rehman");
     expect(fdroidMetadata).toContain("NonFreeNet:\n    en-US: Optional Telegram gateway and third-party AI provider endpoints are");
-    expect(fdroidMetadata).toContain("non-free\n      network services.");
+    expect(fdroidMetadata).toContain("non-free network services.");
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");
-    expect(fdroidMetadata).toContain("commit: 8ed63fb96f0ebe5dd1f2b090e92975bd4f9ab0e7");
+    expect(fdroidMetadata).toContain("commit: 1d2892db54f6552dfa1037f5c2a4e8e4c69afcb3");
     expect(fdroidMetadata).toContain("node scripts/prepare-fdroid-expo-autolinking.mjs");
     expect(fdroidMetadata).toContain("gradle:\n      - yes");
     expect(fdroidMetadata).not.toContain("gradle:\n      - release");

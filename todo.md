@@ -464,3 +464,5 @@
 - [x] Verify repository and in-app attribution for Neuron Encrypt and Hermes Agent, adding explicit visible credit where it is missing
 - [x] Inspect and use only an authorized GitLab publication path while the sandbox egress IP is blocked by GitLab
 - [x] Check whether the sandbox has an already authorized GitLab SSH transport, without adding keys, proxies, or browser delegation
+- [x] Add concise README local-LAN troubleshooting guidance for Ollama and LM Studio
+- [ ] Advance the canonical F-Droid metadata source commit to the latest published Pocket Relay main revision and publish one guarded MR update
