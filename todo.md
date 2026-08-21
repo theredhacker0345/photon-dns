@@ -466,7 +466,7 @@
 - [x] Check whether the sandbox has an already authorized GitLab SSH transport, without adding keys, proxies, or browser delegation
 - [x] Add concise README local-LAN troubleshooting guidance for Ollama and LM Studio
 - [x] Advance the canonical F-Droid metadata source commit to the latest published Pocket Relay main revision and publish one guarded MR update
-- [ ] Verify the F-Droid pipeline triggered by the latest-source-pin metadata update before claiming the revised MR is fully green
+- [x] Verify the F-Droid pipeline triggered by the latest-source-pin metadata update before claiming the revised MR is fully green
 - [x] Collect the complete failed `fdroid rewritemeta` trace from pipeline 2780590380 before researching or publishing any subsequent correction
 - [x] Apply the exact pipeline-required scalar wrapping for the NonFreeNet and Bullseye sudo entries, then verify it in a CI-matched metadata context
 - [x] Inventory every implemented Pocket Relay feature against README coverage and document omitted owner-facing capabilities accurately
