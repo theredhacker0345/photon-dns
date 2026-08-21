@@ -469,3 +469,4 @@
 - [ ] Verify the F-Droid pipeline triggered by the latest-source-pin metadata update before claiming the revised MR is fully green
 - [x] Inventory every implemented Pocket Relay feature against README coverage and document omitted owner-facing capabilities accurately
 - [x] Re-pin canonical F-Droid metadata to the exact published source commit containing the complete README feature guide
+- [x] Confirm and deliver the complete README feature guide before resuming external F-Droid pipeline monitoring
