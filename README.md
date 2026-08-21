@@ -83,6 +83,19 @@ Provider connections keep public endpoint/label metadata locally while keys rema
 
 Pocket Relay is online-only by design. Telegram and hosted providers need a network route; a LAN model endpoint reduces third-party inference dependency but does not make Telegram remote control available offline.
 
+### Local-LAN troubleshooting: Ollama and LM Studio
+
+The model server runs on another device, while Pocket Relay runs on the Android phone. Therefore, `localhost` means the **phone**, not the computer hosting Ollama or LM Studio. Enter the computer's numeric private-LAN address and base path in Settings—never a public address, hostname, or an endpoint ending in `/models`.
+
+| Check | Ollama | LM Studio |
+|---|---|---|
+| **Provider and endpoint** | Select **Ollama** and enter, for example, `http://192.168.1.20:11434/v1`. | Select **LM Studio** and enter, for example, `http://192.168.1.21:1234/v1`.[5] |
+| **Server readiness** | Confirm a model is installed and that Ollama is listening on an address reachable from the phone; its OpenAI-compatible path is `/v1`.[6] | Load a model and start LM Studio's local server before testing; its OpenAI-compatible server exposes `GET /v1/models`.[5] |
+| **Phone reachability** | Keep the phone and model host on the same trusted LAN. Disable guest-network isolation, remove VPN routes that split the two devices, and permit the selected local port through the host firewall. | Apply the same trusted-LAN, guest-network, VPN, and firewall checks. |
+| **Pocket Relay test** | Tap **Test connection**, then **Refresh models**. An API key is optional for this provider. | Tap **Test connection**, then **Refresh models**. An API key is optional for this provider. |
+
+If the test times out, first open `http://<numeric-private-IP>:<port>/v1/models` from a browser on the Android phone. A failure there is a LAN/server/firewall problem rather than a Pocket Relay credential issue. Do not port-forward or publicly expose an HTTP model server; Pocket Relay accepts plain HTTP only for numeric private-LAN addresses. Use an HTTPS endpoint for any non-LAN provider.
+
 ### Why Pocket Relay is connected-operation only
 
 Pocket Relay is a phone-hosted control plane for a connected agent, rather than an offline assistant. Remote Telegram control requires a reachable Telegram Bot API route, and hosted model providers require their own authenticated network endpoint. The **same-network Ollama and LM Studio presets** can route inference to a compatible model server on the private LAN, but the server must still be reachable and Telegram remains unavailable without its own network route. This explicit boundary prevents the app from implying offline functionality that it does not provide.
@@ -176,3 +189,5 @@ Pocket Relay application code is [GNU GPL v3.0 only](LICENSE). It incorporates t
 [2]: https://gitlab.com/theredhacker0345/neuron-encrypt/-/raw/main/README.md "Neuron Encrypt README"
 [3]: https://developer.android.com/privacy-and-security/keystore "Android Keystore system"
 [4]: https://f-droid.org/en/docs/Anti-Features/ "F-Droid Anti-Features"
+[5]: https://lmstudio.ai/docs/app/api/endpoints/openai "LM Studio OpenAI Compatibility Endpoints"
+[6]: https://docs.ollama.com/api/openai-compatibility "Ollama OpenAI compatibility"
