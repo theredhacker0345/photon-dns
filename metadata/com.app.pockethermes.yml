@@ -19,7 +19,7 @@ Repo: https://gitlab.com/theredhacker0345/pocket-relay.git
 Builds:
   - versionName: 1.0.0
     versionCode: 1
-    commit: 1d2892db54f6552dfa1037f5c2a4e8e4c69afcb3
+    commit: 83513d331307210dac387af4c3cddcc9e6e52d16
     subdir: android
     sudo:
       - echo "deb https://deb.debian.org/debian bullseye main" > 

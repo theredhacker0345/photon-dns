@@ -468,4 +468,4 @@
 - [x] Advance the canonical F-Droid metadata source commit to the latest published Pocket Relay main revision and publish one guarded MR update
 - [ ] Verify the F-Droid pipeline triggered by the latest-source-pin metadata update before claiming the revised MR is fully green
 - [x] Inventory every implemented Pocket Relay feature against README coverage and document omitted owner-facing capabilities accurately
-- [ ] Re-pin canonical F-Droid metadata to the exact published source commit containing the complete README feature guide
+- [x] Re-pin canonical F-Droid metadata to the exact published source commit containing the complete README feature guide
