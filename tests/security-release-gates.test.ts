@@ -138,8 +138,10 @@ describe("security and FOSS release gates", () => {
     expect(pydanticBuild).toContain('git -C "${ROOT}" ls-tree -r --name-only HEAD -- "${VENDOR_RELATIVE}"');
     expect(pydanticBuild).toContain('EXPECTED_TREE_SHA256="4754bc4a465b6681a5cfaffbbcd8b5bc5252f25f71ea7b34ae16beff55b24312"');
     expect(pydanticBuild).toContain('FDROID_SCANNER_DELETED_PREFIX="./vendor/regex-automata-0.4.13/tests/fuzz/testdata/"');
+    expect(pydanticBuild).toContain('FDROID_SCANNER_DELETED_SENTINEL="${VENDOR_SOURCE}/${FDROID_SCANNER_DELETED_PREFIX#./}deserialize_dense_crash-9486fb7c8a93b12c12a62166b43d31640c0208a9"');
     expect(pydanticBuild).toContain('FDROID_SCANNER_DELETED_TREE_SHA256="c596f778e585215cb3f63000abfa35f660c7dc9cfad7240e9a40a19cd5d51495"');
     expect(pydanticBuild).toContain('scanner_deleted_filter=(grep -v "^${FDROID_SCANNER_DELETED_PREFIX}")');
+    expect(pydanticBuild).toContain('if [[ -f "${FDROID_SCANNER_DELETED_SENTINEL}" ]]; then');
     expect(pydanticBuild).not.toContain("find . -type f ! -path './UPSTREAM.md'");
     expect(reproducibleBuild).toContain('PYTHON="${POCKET_HERMES_BUILDPYTHON:-python3}"');
     expect(gitignore).toContain("!third_party/pydantic-core/vendor/**/build/");

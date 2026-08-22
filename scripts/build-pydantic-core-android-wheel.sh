@@ -35,6 +35,7 @@ VENDOR_SOURCE="${ROOT}/third_party/pydantic-core"
 VENDOR_RELATIVE="third_party/pydantic-core"
 EXPECTED_TREE_SHA256="4754bc4a465b6681a5cfaffbbcd8b5bc5252f25f71ea7b34ae16beff55b24312"
 FDROID_SCANNER_DELETED_PREFIX="./vendor/regex-automata-0.4.13/tests/fuzz/testdata/"
+FDROID_SCANNER_DELETED_SENTINEL="${VENDOR_SOURCE}/${FDROID_SCANNER_DELETED_PREFIX#./}deserialize_dense_crash-9486fb7c8a93b12c12a62166b43d31640c0208a9"
 FDROID_SCANNER_DELETED_TREE_SHA256="c596f778e585215cb3f63000abfa35f660c7dc9cfad7240e9a40a19cd5d51495"
 
 python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"
@@ -80,9 +81,11 @@ test -d "${VENDOR_SOURCE}/vendor" || { echo "Missing vendored Rust dependency cl
 # traversal included ignored Cargo build output left by local validation, which
 # made the recorded digest differ from the clean Git checkout F-Droid builds.
 # F-Droid removes this known fuzz-fixture directory through `scandelete` before
-# executing custom `build` commands. Validate the ordinary complete checkout
-# locally, or the exact scanner-pruned tree when that trusted removal occurred.
-if [[ -d "${VENDOR_SOURCE}/${FDROID_SCANNER_DELETED_PREFIX#./}" ]]; then
+# executing custom `build` commands. It leaves the now-empty directory in
+# place, so detect a known removed fixture rather than testing that directory.
+# Validate the ordinary complete checkout locally, or the exact scanner-pruned
+# tree when that trusted removal occurred.
+if [[ -f "${FDROID_SCANNER_DELETED_SENTINEL}" ]]; then
   expected_tree_sha256="${EXPECTED_TREE_SHA256}"
   scanner_deleted_filter=(cat)
 else
