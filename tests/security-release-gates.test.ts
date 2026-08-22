@@ -116,6 +116,7 @@ describe("security and FOSS release gates", () => {
     const wheelBuild = read("scripts/build-android-python-wheels.sh");
     const pydanticBuild = read("scripts/build-pydantic-core-android-wheel.sh");
     const reproducibleBuild = read("scripts/reproducible-android-build.sh");
+    const cargoVendorPreparation = read("scripts/prepare-fdroid-cargo-vendor.py");
     const gitignore = read(".gitignore");
 
     expect(nativeGradle).toContain('com.chaquo.python:gradle:16.1.0');
@@ -142,6 +143,13 @@ describe("security and FOSS release gates", () => {
     expect(pydanticBuild).toContain('FDROID_SCANNER_DELETED_TREE_SHA256="c596f778e585215cb3f63000abfa35f660c7dc9cfad7240e9a40a19cd5d51495"');
     expect(pydanticBuild).toContain('scanner_deleted_filter=(grep -v "^${FDROID_SCANNER_DELETED_PREFIX}")');
     expect(pydanticBuild).toContain('if [[ -f "${FDROID_SCANNER_DELETED_SENTINEL}" ]]; then');
+    expect(pydanticBuild).toContain('"${PYTHON}" "${ROOT}/scripts/prepare-fdroid-cargo-vendor.py"');
+    expect(pydanticBuild).toContain('--manifest "${SOURCE_DIR}/${FDROID_SCANNER_DELETED_CARGO_CHECKSUM}"');
+    expect(pydanticBuild).toContain('--prefix "${FDROID_SCANNER_DELETED_CARGO_PREFIX}"');
+    expect(pydanticBuild).toContain("--expected-removed-count 9");
+    expect(cargoVendorPreparation).toContain("F-Droid removes scanner-excluded source fixtures");
+    expect(cargoVendorPreparation).toContain("Unexpected F-Droid scanner deletion set");
+    expect(cargoVendorPreparation).toContain("Refusing to prune Cargo checksums while scanner-excluded fixtures remain");
     expect(pydanticBuild).not.toContain("find . -type f ! -path './UPSTREAM.md'");
     expect(reproducibleBuild).toContain('PYTHON="${POCKET_HERMES_BUILDPYTHON:-python3}"');
     expect(gitignore).toContain("!third_party/pydantic-core/vendor/**/build/");

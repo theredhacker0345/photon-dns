@@ -36,6 +36,8 @@ VENDOR_RELATIVE="third_party/pydantic-core"
 EXPECTED_TREE_SHA256="4754bc4a465b6681a5cfaffbbcd8b5bc5252f25f71ea7b34ae16beff55b24312"
 FDROID_SCANNER_DELETED_PREFIX="./vendor/regex-automata-0.4.13/tests/fuzz/testdata/"
 FDROID_SCANNER_DELETED_SENTINEL="${VENDOR_SOURCE}/${FDROID_SCANNER_DELETED_PREFIX#./}deserialize_dense_crash-9486fb7c8a93b12c12a62166b43d31640c0208a9"
+FDROID_SCANNER_DELETED_CARGO_PREFIX="tests/fuzz/testdata/"
+FDROID_SCANNER_DELETED_CARGO_CHECKSUM="vendor/regex-automata-0.4.13/.cargo-checksum.json"
 FDROID_SCANNER_DELETED_TREE_SHA256="c596f778e585215cb3f63000abfa35f660c7dc9cfad7240e9a40a19cd5d51495"
 
 python_prefix="$(cd "$(dirname "${PYTHON}")/.." && pwd)"
@@ -149,6 +151,12 @@ export PYO3_CROSS=1
 export PYO3_CONFIG_FILE="${WORK}/pyo3-config.txt"
 
 SOURCE_DIR="${WORK}/pydantic_core-${VERSION}"
+if [[ ! -f "${FDROID_SCANNER_DELETED_SENTINEL}" ]]; then
+  "${PYTHON}" "${ROOT}/scripts/prepare-fdroid-cargo-vendor.py" \
+    --manifest "${SOURCE_DIR}/${FDROID_SCANNER_DELETED_CARGO_CHECKSUM}" \
+    --prefix "${FDROID_SCANNER_DELETED_CARGO_PREFIX}" \
+    --expected-removed-count 9
+fi
 (
   cd "${SOURCE_DIR}"
   cargo build --release --locked --target "${RUST_TARGET}"
