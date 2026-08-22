@@ -140,6 +140,7 @@
 - [x] Repair the copied Cargo checksum manifest for F-Droid’s confirmed scanner-pruned fuzz fixtures
 - [x] Write, validate, publish, and deliver the detailed Pocket Relay v1.2.0 AI Operator Mode and multi-agent orchestration specification
 - [x] Draft the detailed v1.2.0 AI Operator Mode and multi-agent orchestration product specification
+- [x] Create the standalone v1.2.0 engineering implementation plan with architecture, workstreams, tests, and rollout gates
 - [x] Upgrade README with current app UI screenshots and the shipped Pocket Relay icon
 - [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update
 - [x] Delete remote GitLab tags `v1.0.0` and `v1.0.1` and any attached Release objects without deleting their commits
