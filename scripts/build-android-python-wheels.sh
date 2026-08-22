@@ -24,10 +24,11 @@ export LC_ALL=C
 export LANG=C
 export PYTHONHASHSEED=0
 
-# F-Droid scans after this prebuild phase but before Gradle runs. The Pydantic
-# builder needs a disposable native Cargo target to make its wheel; leaving it
-# behind would make the source scanner report generated ELF objects. The wheel
-# itself is written under .artifacts and remains available to Gradle.
+# F-Droid scans before this custom build phase and before Gradle runs. The
+# Pydantic builder needs a disposable native Cargo target to make its wheel;
+# leaving it behind would make later source inspection report generated ELF
+# objects. The wheel itself is written under .artifacts and remains available
+# to Gradle.
 cleanup_pydantic_cache() {
   rm -rf "${ROOT}/.cache/pydantic-core-2.46.4-android"
 }

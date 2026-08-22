@@ -132,9 +132,10 @@
 - [ ] Retrieve, batch-resolve, validate, publish, and reply to all three latest linsui review instructions on F-Droid MR !46222
 - [x] Retrieve the latest three non-system linsui review notes on F-Droid MR !46222 and map every request to the reviewed metadata field
 - [x] Implement the exact F-Droid recipe corrections requested across all three linsui notes
-- [ ] Validate the reviewer-corrected F-Droid recipe, including metadata normalization and release gates
+- [x] Validate the reviewer-corrected F-Droid recipe, including metadata normalization and release gates
 - [ ] Publish one guarded metadata-only update to the open F-Droid MR !46222 branch
-- [ ] Reply to linsui on MR !46222 with the applied corrections and actual pipeline state
+- [x] Reply to linsui on MR !46222 with the applied corrections and actual pipeline state
+- [x] Repair the Pydantic vendor-tree integrity gate for F-Droid’s reviewer-requested post-scan custom build phase
 - [x] Upgrade README with current app UI screenshots and the shipped Pocket Relay icon
 - [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update
 - [x] Delete remote GitLab tags `v1.0.0` and `v1.0.1` and any attached Release objects without deleting their commits
