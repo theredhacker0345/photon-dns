@@ -146,24 +146,26 @@ describe("security and FOSS release gates", () => {
     expect(read("third_party/pydantic-core/vendor/rustversion-1.0.17/build/rustc.rs")).toContain("Version");
   });
 
-  it("provisions the required Java and Cargo host toolchains while retaining the pipeline-canonical F-Droid prebuild layout", () => {
+  it("provisions the required Java and Cargo host toolchains with linsui's canonical F-Droid build layout", () => {
     const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
     const appGradle = read("android/app/build.gradle");
 
-    expect(fdroidMetadata).toContain("https://deb.debian.org/debian bullseye main");
-    expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
-    expect(fdroidMetadata).toContain("apt-get install -y -t bullseye openjdk-17-jdk-headless");
+    expect(fdroidMetadata).toContain("subdir: android/app");
+    expect(fdroidMetadata).toContain("https://deb.debian.org/debian bookworm main");
+    expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bookworm.list");
+    expect(fdroidMetadata).toContain("apt-get install -y -t bookworm openjdk-17-jdk-headless");
     expect(fdroidMetadata).toContain("apt-get install -y build-essential nodejs npm rustup");
-    expect(fdroidMetadata).toContain("/etc/apt/sources.list.d/bullseye.list");
+    expect(fdroidMetadata).toContain("init:\n      - cd ../..");
     expect(fdroidMetadata).toContain("npm exec --yes --package=pnpm@9.12.0 -- pnpm install --frozen-lockfile");
     expect(fdroidMetadata).not.toContain("npm install pnpm@9.12.0 --no-save --no-package-lock");
     expect(fdroidMetadata).not.toContain("rustup-init.sh");
     expect(fdroidMetadata).not.toContain("srclibs:\n      - rustup@");
     expect(fdroidMetadata).toContain("rustup default 1.88.0\n      - rustup target add aarch64-linux-android");
-    expect(fdroidMetadata).toContain('echo "hermesEnabled=false" >> gradle.properties');
-    expect(fdroidMetadata).toContain('echo "deb https://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list');
+    expect(fdroidMetadata).toContain('echo "hermesEnabled=false" >> ../gradle.properties');
+    expect(fdroidMetadata).toContain('echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list');
     expect(fdroidMetadata).toContain("Optional Telegram gateway and third-party AI provider endpoints are non-free\n      network services.");
-    expect(fdroidMetadata).toContain("- bash ../scripts/build-android-python-wheels.sh");
+    expect(fdroidMetadata).toContain("build: bash ../../scripts/build-android-python-wheels.sh");
+    expect(fdroidMetadata).not.toContain("output: app/build/outputs/apk/release/app-release-unsigned.apk");
     expect(fdroidMetadata).not.toContain("source $HOME/.cargo/env");
     expect(appGradle).toContain("if (hermesEnabled.toBoolean())");
     expect(appGradle).toContain("implementation jscFlavor");
