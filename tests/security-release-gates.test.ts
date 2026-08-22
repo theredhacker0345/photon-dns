@@ -191,7 +191,7 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).not.toContain("Binaries:");
     expect(fdroidMetadata).not.toContain("AllowedAPKSigningKeys:");
     expect(fdroidMetadata).toContain("AutoUpdateMode: None");
-    expect(fdroidMetadata).toContain("commit: 83513d331307210dac387af4c3cddcc9e6e52d16");
+    expect(fdroidMetadata).toContain("commit: 1ca46137941d8c0931cd3500e42003161be41ebd");
     expect(fdroidMetadata).toContain("node scripts/prepare-fdroid-expo-autolinking.mjs");
     expect(fdroidMetadata).toContain("gradle:\n      - yes");
     expect(fdroidMetadata).not.toContain("gradle:\n      - release");

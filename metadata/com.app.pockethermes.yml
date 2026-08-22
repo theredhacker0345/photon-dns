@@ -19,7 +19,7 @@ Repo: https://gitlab.com/theredhacker0345/pocket-relay.git
 Builds:
   - versionName: 1.0.0
     versionCode: 1
-    commit: 83513d331307210dac387af4c3cddcc9e6e52d16
+    commit: 1ca46137941d8c0931cd3500e42003161be41ebd
     subdir: android/app
     sudo:
       - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
