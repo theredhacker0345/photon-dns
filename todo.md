@@ -138,7 +138,7 @@
 - [x] Repair the Pydantic vendor-tree integrity gate for F-Droid’s reviewer-requested post-scan custom build phase
 - [x] Correct F-Droid’s empty-directory scanner-pruned-tree detection and repin the source recipe
 - [x] Repair the copied Cargo checksum manifest for F-Droid’s confirmed scanner-pruned fuzz fixtures
-- [ ] Write, validate, publish, and deliver the detailed Pocket Relay v1.2.0 AI Operator Mode and multi-agent orchestration specification
+- [x] Write, validate, publish, and deliver the detailed Pocket Relay v1.2.0 AI Operator Mode and multi-agent orchestration specification
 - [x] Draft the detailed v1.2.0 AI Operator Mode and multi-agent orchestration product specification
 - [x] Upgrade README with current app UI screenshots and the shipped Pocket Relay icon
 - [x] Validate README assets, branding consistency, tests, and TypeScript before publishing the documentation update
