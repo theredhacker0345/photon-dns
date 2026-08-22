@@ -129,11 +129,11 @@
 - [x] Add a source-controlled unsigned-release policy, release preflight, and F-Droid handoff evidence that cannot fall back to the debug signing key
 - [x] Run final sandbox test, type, SBOM, license, and APK-integrity validation gates
 - [ ] Complete F-Droid build-server and post-gap-closure physical-device validation; immutable public tag `v1.0.0-fdroid.2` and F-Droid MR !46222 are already published, while maintainer review and hardware remain external gates
-- [ ] Retrieve, batch-resolve, validate, publish, and reply to all three latest linsui review instructions on F-Droid MR !46222
+- [x] Retrieve, batch-resolve, validate, publish, and reply to all three latest linsui review instructions on F-Droid MR !46222
 - [x] Retrieve the latest three non-system linsui review notes on F-Droid MR !46222 and map every request to the reviewed metadata field
 - [x] Implement the exact F-Droid recipe corrections requested across all three linsui notes
 - [x] Validate the reviewer-corrected F-Droid recipe, including metadata normalization and release gates
-- [ ] Publish one guarded metadata-only update to the open F-Droid MR !46222 branch
+- [x] Publish guarded metadata-only updates to the open F-Droid MR !46222 branch when complete F-Droid traces established each required repair
 - [x] Reply to linsui on MR !46222 with the applied corrections and actual pipeline state
 - [x] Repair the Pydantic vendor-tree integrity gate for F-Droid’s reviewer-requested post-scan custom build phase
 - [x] Correct F-Droid’s empty-directory scanner-pruned-tree detection and repin the source recipe
