@@ -162,6 +162,7 @@ describe("security and FOSS release gates", () => {
   it("provisions the required Java and Cargo host toolchains with linsui's canonical F-Droid build layout", () => {
     const fdroidMetadata = read("metadata/com.app.pockethermes.yml");
     const appGradle = read("android/app/build.gradle");
+    const mainApplication = read("android/app/src/main/java/com/app/pockethermes/MainApplication.kt");
 
     expect(fdroidMetadata).toContain("subdir: android/app");
     expect(fdroidMetadata).toContain("https://deb.debian.org/debian bookworm main");
@@ -182,6 +183,7 @@ describe("security and FOSS release gates", () => {
     expect(fdroidMetadata).not.toContain("source $HOME/.cargo/env");
     expect(appGradle).toContain("if (hermesEnabled.toBoolean())");
     expect(appGradle).toContain("implementation jscFlavor");
+    expect(mainApplication).toContain("override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED");
   });
 
   it("keeps every native dependency reviewable at scan time and moves store assets upstream", () => {

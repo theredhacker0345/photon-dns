@@ -32,6 +32,10 @@ class MainApplication : Application(), ReactApplication {
           override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
 
           override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+
+          // Keep the JavaScript runtime aligned with the Gradle dependency selected by
+          // hermesEnabled. F-Droid sets this to false and packages JSC instead of Hermes.
+          override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
       }
   )
 

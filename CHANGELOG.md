@@ -6,6 +6,10 @@ All notable user-facing changes to Pocket Relay are documented here. This projec
 
 Pocket Relay now includes an owner-reviewed Skills workspace with first-party sample skills, GitHub imports, portable exports, and Android share support. The control plane also received a refined mobile interface with layered theme surfaces, clearer host status, larger actions, and improved accessibility semantics.
 
+## 1.0.1
+
+This patch release fixes the F-Droid launch crash caused by the native React host assuming Hermes while the F-Droid recipe correctly packages JavaScriptCore. The host now follows `BuildConfig.IS_HERMES_ENABLED`, keeping standard Hermes builds and F-Droid JSC builds aligned. Android version code 2 is used for the corrected release.
+
 ## 1.0.0
 
 This release adds an owner-triggered local notification test, with clear master-preference and Android-permission feedback. Backup reminders and host-safety alerts now use Pocket Relay's Android-native local notification bridge rather than a Firebase-backed notification package. The release materials also correct the public GPL-3.0-only listing, verify the public GitLab source metadata, minimize the explicit Android permission surface, and record the remaining F-Droid build-server prerequisite for the pinned Hermes Agent source.
