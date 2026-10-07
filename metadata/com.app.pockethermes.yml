@@ -7,7 +7,6 @@ Categories:
   - System
 License: GPL-3.0-only
 AuthorName: Ubaid ur Rehman
-WebSite: https://gitlab.com/theredhacker0345/pocket-relay
 SourceCode: https://gitlab.com/theredhacker0345/pocket-relay
 IssueTracker: https://gitlab.com/theredhacker0345/pocket-relay/issues
 
@@ -17,57 +16,34 @@ RepoType: git
 Repo: https://gitlab.com/theredhacker0345/pocket-relay.git
 
 Builds:
-  - versionName: 1.0.1
-    versionCode: 2
-    commit: 3d3984d757e4cb3d7d8154bb498c2570aa2a4a47
-    subdir: android/app
-    sudo:
-      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
-      - apt-get update
-      - apt-get install -y build-essential nodejs npm rustup
-      - apt-get install -y -t bookworm openjdk-17-jdk-headless
-    init:
-      - cd ../..
-      - npm exec --yes --package=pnpm@9.12.0 -- pnpm install --frozen-lockfile
-      - node scripts/prepare-fdroid-expo-autolinking.mjs
-    gradle:
-      - yes
-    prebuild:
-      - rustup default 1.88.0
-      - rustup target add aarch64-linux-android
-      - echo "hermesEnabled=false" >> ../gradle.properties
-      - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
-    scandelete:
-      - node_modules
-      - third_party/pydantic-core/vendor/regex-automata-0.4.13/tests/fuzz/testdata
-    build: bash ../../scripts/build-android-python-wheels.sh
-    ndk: 27.1.12297006
-
   - versionName: 1.0.0
     versionCode: 1
-    commit: 89c848d3ebfa230d614437ff58bf0c3a5ac3955c
-    subdir: android/app
+    commit: 2a328d493b76b847c692c2841f4344bb38f425c0
+    subdir: android
     sudo:
-      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+      - echo "deb https://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list
       - apt-get update
       - apt-get install -y build-essential nodejs npm rustup
-      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - apt-get install -y -t bullseye openjdk-17-jdk-headless
     init:
-      - cd ../..
+      - cd ..
       - npm exec --yes --package=pnpm@9.12.0 -- pnpm install --frozen-lockfile
       - node scripts/prepare-fdroid-expo-autolinking.mjs
     gradle:
       - yes
+    output: app/build/outputs/apk/release/app-release-unsigned.apk
     prebuild:
       - rustup default 1.88.0
       - rustup target add aarch64-linux-android
-      - echo "hermesEnabled=false" >> ../gradle.properties
+      - echo "hermesEnabled=false" >> gradle.properties
       - echo "Building Pocket Relay offline embedded Python wheels for ARM64"
+      - bash ../scripts/build-android-python-wheels.sh
     scandelete:
       - node_modules
       - third_party/pydantic-core/vendor/regex-automata-0.4.13/tests/fuzz/testdata
-    build: bash ../../scripts/build-android-python-wheels.sh
     ndk: 27.1.12297006
+
+AllowedAPKSigningKeys: 1b214cbaf218184164679112e2bb156d30acd7e48ebdaa2aecf352935e4a7006
 
 MaintainerNotes: |-
   Requires Android 7.0+ (API 24+) and targets ARM64. The Gradle release artifact
@@ -82,5 +58,5 @@ MaintainerNotes: |-
 
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: 1.0.1
-CurrentVersionCode: 2
+CurrentVersion: 1.0.0
+CurrentVersionCode: 1
