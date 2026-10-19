@@ -202,3 +202,26 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// Deterministic F-Droid reproducible builds: the React Native Gradle Plugin
+// bakes the build host's LAN IP (AgpConfiguratorUtils.getHostIpAddress) into
+// the react_native_dev_server_ip string resource during DSL finalization, so
+// identical sources produce different resources.arsc bytes on different
+// machines, which breaks F-Droid Binaries verification. Rewrite that
+// generated value with a fixed loopback address at variant level (after DSL
+// finalization, before task realization) so every builder emits identical
+// bytes. Release builds never contact a Metro dev server, so runtime
+// behavior is unchanged.
+androidComponents {
+    onVariants { variant ->
+        try {
+            variant.resValues.get().each { key, resValue ->
+                if (key.getType() == 'string' && key.getName() == 'react_native_dev_server_ip') {
+                    resValue.getValue().set('127.0.0.1')
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Pocket Relay: could not pin react_native_dev_server_ip: ${e}")
+        }
+    }
+}
